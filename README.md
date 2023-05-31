@@ -20,3 +20,4 @@ This software is licensed under the MIT license.
 - `Wasm3`: MIT
 - `Wasi SDK`: Apache 2.0
 - `ios_system`: BSD 3-Clause License
+- `SF symbols`: Apple Inc.
