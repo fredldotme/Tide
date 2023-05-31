@@ -1,0 +1,22 @@
+<RCC>
+    <qresource prefix="/">
+        <file>assets/play.fill@2x.png</file>
+        <file>assets/play@2x.png</file>
+        <file>assets/square.and.arrow.down.on.square.fill@2x.png</file>
+        <file>assets/square.and.arrow.down.on.square@2x.png</file>
+        <file>assets/sidebar.left@2x.png</file>
+        <file>assets/sidebar.right@2x.png</file>
+        <file>assets/chevron.backward@2x.png</file>
+        <file>assets/folder@2x.png</file>
+        <file>assets/doc@2x.png</file>
+        <file>assets/hammer.fill@2x.png</file>
+        <file>assets/hammer@2x.png</file>
+        <file>assets/terminal.fill@2x.png</file>
+        <file>assets/terminal@2x.png</file>
+        <file>assets/xmark.circle.fill@2x.png</file>
+        <file>assets/xmark.circle@2x.png</file>
+        <file>assets/exclamationmark.square@2x.png</file>
+        <file>assets/checkmark.circle@2x.png</file>
+        <file>assets/xmark@2x.png</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,7 @@
+[submodule "3rdparty/wasm3"]
+	path = 3rdparty/wasm3
+	url = https://github.com/fredldotme/wasm3.git
+[submodule "3rdparty/llvm"]
+	path = 3rdparty/llvm
+	url = https://github.com/fredldotme/llvm-project.git
+	branch = iossystem302
