@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
     ImFixerInstaller imFixer;
 
     QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    fixedFont.setPixelSize(20);
+    fixedFont.setPixelSize(16);
 
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                             QStringLiteral("/Library/usr/lib/clang/14.0.0");
@@ -49,8 +49,9 @@ int main(int argc, char *argv[])
     qmlRegisterType<DirectoryListing>("Tide", 1, 0, "DirectoryListing");
 
     qmlRegisterUncreatableType<ImFixerInstaller>("Tide", 1, 0, "ImFixerInstaller", "Instantiated in main() as 'imFixer'.");
-    qmlRegisterUncreatableType<ProgramSpec>("Tide", 1, 0, "ProgramSpec", "ProgramSpec is protocol between 'iosSystem' and Consoles.");
+    qmlRegisterUncreatableType<ProgramSpec>("Tide", 1, 0, "ProgramSpec", "ProgramSpec is protocol between 'iosSystem' and 'Console'.");
     qmlRegisterUncreatableType<IosSystemGlue>("Tide", 1, 0, "IosSystemGlue", "Instantiated in main() as 'iosSystem'.");
+    qmlRegisterUncreatableType<QSourceHighliter>("Tide", 1, 0, "SourceHighliter", "Use 'SyntaxHighlighter' instead.");
 
     const QUrl url(u"qrc:/Tide/Main.qml"_qs);
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,

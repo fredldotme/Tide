@@ -14,6 +14,7 @@ public:
 
 public slots:
     void init(QQuickTextDocument* doc, const bool lightTheme);
+    void setCurrentLanguage(QSourceHighliter::Language language);
 
 private:
     QSourceHighliter* m_highlighter;

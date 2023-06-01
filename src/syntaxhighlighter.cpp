@@ -19,3 +19,13 @@ void SyntaxHighlighter::init(QQuickTextDocument* doc, const bool lightTheme)
     else
         this->m_highlighter = new QSourceHighliter(doc->textDocument(), QSourceHighliter::Monokai);
 }
+
+
+void SyntaxHighlighter::setCurrentLanguage(QSourceHighliter::Language language)
+{
+    if (!this->m_highlighter)
+        return;
+
+    this->m_highlighter->setCurrentLanguage(language);
+    this->m_highlighter->rehighlight();
+}

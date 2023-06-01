@@ -32,6 +32,8 @@
 
 class QSourceHighliter : public QSyntaxHighlighter
 {
+    Q_OBJECT
+
 public:
     enum Themes {
         Monokai = 1

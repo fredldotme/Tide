@@ -18,6 +18,7 @@ public:
 public slots:
     void push(DirectoryListing listing);
     void close(DirectoryListing listing);
+    void closeAllByBookmark(QByteArray bookmark);
 
 private:
     QVariantList files();

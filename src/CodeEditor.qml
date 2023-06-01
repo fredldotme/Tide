@@ -10,6 +10,52 @@ Item {
     property DirectoryListing file : null
     property bool invalidated : false
 
+    function languageForLowerCaseFileName(name) {
+        // Default to C++
+        if (name === "")
+            return SourceHighliter.CodeCpp;
+
+        if (name === "makefile") {
+            return SourceHighliter.CodeMake;
+        }
+        if (name === "cmakelists.txt" || name.endsWith(".cmake")) {
+            return SourceHighliter.CodeMake;
+        }
+
+        if (name.endsWith(".cpp") || name.endsWith(".h") || name.endsWith(".hpp")) {
+            return SourceHighliter.CodeCpp;
+        }
+        if (name.endsWith(".c")) {
+            return SourceHighliter.CodeC;
+        }
+        if (name.endsWith(".qml")) {
+            return SourceHighliter.CodeQML;
+        }
+        if (name.endsWith(".js")) {
+            return SourceHighliter.CodeJs;
+        }
+        if (name.endsWith(".css")) {
+            return SourceHighliter.CodeCSS
+        }
+        if (name.endsWith(".sh")) {
+            return SourceHighliter.CodeBash;
+        }
+        if (name.endsWith(".rs")) {
+            return SourceHighliter.CodeRust;
+        }
+        if (name.endsWith(".java")) {
+            return SourceHighliter.CodeJava;
+        }
+        if (name.endsWith(".go")) {
+            return SourceHighliter.CodeGo;
+        }
+        if (name.endsWith(".py")) {
+            return SourceHighliter.CodePython;
+        }
+
+        return SourceHighliter.CodeCpp;
+    }
+
     onFileChanged: {
         if (file == null)
             return
@@ -18,6 +64,10 @@ Item {
         const path = projectPicker.openBookmark(editor.file.bookmark)
         text = fileIo.readFile(file.path)
         projectPicker.closeFile(path)
+
+        const lang = languageForLowerCaseFileName(file.name.toLowerCase())
+        console.log("Language: " + lang)
+        highlighter.setCurrentLanguage(lang)
     }
 
     function invalidate () {
@@ -60,8 +110,6 @@ Item {
         anchors.fill: parent
 
         Row {
-            width: parent.width
-
             Column {
                 id: lineNumbersColumn
                 width: childrenRect.width

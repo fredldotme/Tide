@@ -30,10 +30,26 @@ void OpenFilesManager::close(const DirectoryListing listing)
         emit closingFile(listing);
         m_files.removeAt(index);
         removed = true;
+        break;
     }
 
     if (removed)
         emit filesChanged();
+}
+
+void OpenFilesManager::closeAllByBookmark(QByteArray bookmark)
+{
+    std::vector<DirectoryListing> listings;
+
+    for (const auto& file : m_files) {
+        if (file.bookmark != bookmark)
+            continue;
+        listings.push_back(file);
+    }
+
+    for (const auto& listing : listings) {
+        close(listing);
+    }
 }
 
 QVariantList OpenFilesManager::files()

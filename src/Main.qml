@@ -12,22 +12,24 @@ ApplicationWindow {
     title: qsTr("Tide")
 
     readonly property int paddingSmall: 8
+    readonly property int paddingMedium: 16
     readonly property int roundedCornersRadius: 16
     readonly property int sideBarWidth: 300
+    readonly property bool shouldAllowSidebar: (bookmarkDb.bookmarks.length > 0 &&
+                                                openFiles.files.length > 0)
 
     property bool showLeftSideBar: true
-
-    property string consoleOutput: ""
     property bool compiling: false
 
-    function saveFile(file) {
+    function saveCurrentFile() {
+        const file = editor.file
         const path = projectPicker.openBookmark(file.bookmark)
         fileIo.writeFile(file.path, editor.text)
         projectPicker.closeFile(path);
     }
 
-    function saveCurrentFile() {
-        saveFile(editor.file)
+    function clearConsoleOutput() {
+        consoleOutput.clear()
     }
 
     onActiveChanged: {
@@ -38,7 +40,9 @@ ApplicationWindow {
 
     onWidthChanged: {
         editor.refreshLineNumbers()
-        if (width < height)
+
+        // Hide the sidebar
+        if (width < height && shouldAllowSidebar)
             showLeftSideBar = false
     }
 
@@ -48,16 +52,20 @@ ApplicationWindow {
             spacing: paddingSmall * 2
 
             ToolButton {
+                id: sideBarButton
                 icon.source: Qt.resolvedUrl("qrc:/assets/sidebar.left@2x.png")
                 icon.color: root.palette.button
                 onClicked: showLeftSideBar = !showLeftSideBar
-                visible: bookmarkDb.bookmarks.length > 0
+                visible: shouldAllowSidebar
+                leftPadding: paddingMedium
             }
 
             ToolButton {
+                text: qsTr("Import")
                 icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.down.on.square@2x.png")
                 icon.color: root.palette.button
                 onClicked: projectPicker.startImport()
+                leftPadding: sideBarButton.visible ? 0 : paddingMedium
             }
 
             Label {
@@ -66,6 +74,7 @@ ApplicationWindow {
                 text: compiling ? qsTr("Compiling... get your swords!") :
                                   qsTr("Tide")
                 elide: Text.ElideRight
+                font.bold: true
                 horizontalAlignment: Label.AlignHCenter
                 verticalAlignment: Label.AlignVCenter
             }
@@ -95,8 +104,9 @@ ApplicationWindow {
                         }
                     onErrorOccured:
                         (str) => {
-                            consoleOutput += str
+                            consoleOutput.append({"content": str, "stdout": false})
                             consoleView.show()
+                            consoleScrollView.positionViewAtEnd()
                         }
                 }
 
@@ -110,9 +120,9 @@ ApplicationWindow {
                 }
             }
             ToolButton {
-                visible: openFiles.files.length > 0
                 icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
                 icon.color: root.palette.button
+                rightPadding: paddingMedium
 
                 onClicked: {
                     if (consoleView.visible)
@@ -170,7 +180,8 @@ ApplicationWindow {
         onContentRead:
             (line, stdout) => {
                 console.log("Output: " + line);
-                consoleOutput += line
+                consoleOutput.append({"content": line, "stdout": stdout})
+                consoleScrollView.positionViewAtEnd()
             }
     }
 
@@ -253,6 +264,7 @@ ApplicationWindow {
 
                     Column {
                         width: parent.width
+                        spacing: paddingSmall
                         height: openFilesArea.height == 0 ?
                                     parent.height :
                                     (parent.height - fileSeperator.height) / 2
@@ -282,11 +294,11 @@ ApplicationWindow {
                                     model: bookmarkDb.bookmarks
                                     spacing: paddingSmall
                                     clip: true
-                                    delegate: Button {
+                                    delegate: TideButton {
                                         id: bookmarkButton
-                                        flat: true
                                         text: projectPicker.getDirNameForBookmark(modelData)
                                         font.pixelSize: 20
+                                        color: root.palette.button
                                         onClicked: {
                                             projectNavigationStack.push(directoryComponent,
                                                                         { model: projectPicker.listBookmarkContents(modelData) })
@@ -305,6 +317,7 @@ ApplicationWindow {
                                             icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
                                             onClicked: {
                                                 const bookmark = projectsContextMenu.selectedBookmark
+                                                openFiles.closeAllByBookmark(bookmark)
                                                 bookmarkDb.removeBookmark(bookmark)
                                                 projectsContextMenu.selectedBookmark = null
                                             }
@@ -319,11 +332,11 @@ ApplicationWindow {
                                 ListView {
                                     spacing: paddingSmall
                                     clip: true
-                                    delegate: Button {
+                                    delegate: TideButton {
                                         readonly property bool isBackButton : (modelData.name === "..")
                                         readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
 
-                                        flat: true
+                                        color: root.palette.button
                                         icon.color: root.palette.button
                                         icon.source: isBackButton ? Qt.resolvedUrl("qrc:/assets/chevron.backward@2x.png")
                                                                   : (isDir ? Qt.resolvedUrl("qrc:/assets/folder@2x.png")
@@ -366,6 +379,7 @@ ApplicationWindow {
                         width: parent.width
                         height: 0
                         visible: height > 0
+                        spacing: paddingSmall
 
                         Behavior on height {
                             NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
@@ -377,6 +391,7 @@ ApplicationWindow {
                             font.pixelSize: 16
                             color: root.palette.text
                             y: paddingSmall
+                            topPadding: paddingSmall
                         }
 
                         ListView {
@@ -391,6 +406,7 @@ ApplicationWindow {
                                 text: modelData.name
                                 font.pixelSize: 20
                                 onClicked: {
+                                    saveCurrentFile()
                                     openEditor(modelData)
                                 }
                                 onPressAndHold: {
@@ -407,7 +423,6 @@ ApplicationWindow {
                                     icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
                                     onClicked: {
                                         let file = openFilesContextMenu.selectedFile
-                                        saveFile(file)
                                         openFiles.close(file)
                                         openFilesContextMenu.selectedFile = null
                                         if (openFiles.files.length > 0)
@@ -436,6 +451,178 @@ ApplicationWindow {
                 fileIo: fileIo
                 projectPicker: projectPicker
                 visible: openFiles.files.length > 0
+            }
+        }
+    }
+
+    Rectangle {
+        id: consoleShadow
+        anchors.fill: parent
+        color: root.palette.shadow
+        opacity: 0.0
+        visible: opacity > 0.0
+
+        Behavior on opacity {
+            NumberAnimation {
+                duration: consoleShadow.consoleAnimation
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        readonly property int consoleAnimation: 250
+
+        // Due to a Qt bug it is possible to crash the IDE by tapping a CodeEditor
+        // while the console is open and overlaid on top, apparently due to the TextField
+        // being instantiated in a different thread (how?). Catch any accidental presses
+        // in a modal way to work around this issue.
+        MouseArea {
+            anchors.fill: parent
+            onClicked:
+                (mouse) => {
+                    mouse.accepted = true
+                }
+        }
+    }
+
+    Rectangle {
+        id: consoleView
+        color: root.palette.base
+        radius: roundedCornersRadius
+        width: (parent.width / 2)
+        height: (parent.height / 2)
+        x: width / 2
+        y: parent.height
+        visible: y < parent.height
+        border.color: root.palette.text
+        border.width: 1
+        clip: true
+
+        function show() {
+            consoleShadow.opacity = 0.3
+            y = (height / 2)
+            hideStdOut = false
+        }
+
+        function hide() {
+            consoleShadow.opacity = 0.0
+            y = parent.height
+        }
+
+        property bool hideStdOut: false
+
+        ListModel {
+            id: consoleOutput
+        }
+
+        Behavior on y {
+            NumberAnimation {
+                duration: consoleShadow.consoleAnimation
+                easing.type: Easing.OutCubic
+            }
+        }
+
+        Column {
+            anchors.fill: parent
+            clip: true
+
+            ToolBar {
+                id: consoleToolBar
+                width: parent.width
+                RowLayout {
+                    anchors.fill: parent
+                    ToolButton {
+                        icon.source: Qt.resolvedUrl("qrc:/assets/xmark.circle@2x.png")
+                        icon.color: root.palette.button
+                        leftPadding: paddingMedium
+                        onClicked: {
+                            clearConsoleOutput()
+                        }
+                    }
+                    ToolButton {
+                        icon.source: !consoleView.hideStdOut ?
+                                         Qt.resolvedUrl("qrc:/assets/line.3.horizontal.decrease.circle@2x.png")
+                                       : Qt.resolvedUrl("qrc:/assets/line.3.horizontal.decrease.circle.fill@2x.png")
+                        icon.color: !consoleView.hideStdOut ? root.palette.link : root.palette.linkVisited
+                        onClicked: {
+                            consoleView.hideStdOut = !consoleView.hideStdOut
+                        }
+                    }
+
+                    Label {
+                        Layout.fillWidth: true
+                        color: root.palette.text
+                        text: qsTr("Console")
+                        elide: Text.ElideRight
+                        font.bold: true
+                        horizontalAlignment: Label.AlignHCenter
+                        verticalAlignment: Label.AlignVCenter
+                    }
+
+                    ToolButton {
+                        text: qsTr("Close")
+                        rightPadding: paddingMedium
+                        onClicked: {
+                            consoleView.hide()
+                        }
+                    }
+                }
+            }
+
+            ScrollView {
+                width: parent.width
+                height: parent.height - consoleToolBar.height - consoleInputField.height - (paddingSmall*2)
+                ListView {
+                    id: consoleScrollView
+                    model: consoleOutput
+                    width: parent.width
+                    clip: true
+                    delegate: Text {
+                        readonly property bool isAllowedLine: !stdout || (stdout && !consoleView.hideStdOut)
+                        id: consoleContentLine
+                        wrapMode: TextArea.WrapAnywhere
+                        font: fixedFont
+                        text: content
+                        color: root.palette.text
+                        width: consoleScrollView.width
+                        height: isAllowedLine ? contentHeight : 0
+                        visible: height > 0
+
+                        Behavior on height {
+                            NumberAnimation {
+                                duration: 100
+                                easing.type: Easing.OutCubic
+                            }
+                        }
+
+                        Connections {
+                            target: consoleView
+                            function onHideStdOutChanged() {
+                                consoleContentLine.height =
+                                        consoleContentLine.isAllowedLine ?
+                                            consoleContentLine.contentHeight : 0
+                            }
+                        }
+                    }
+                }
+            }
+
+            TextField {
+                id: consoleInputField
+                font: fixedFont
+                width: parent.width
+                height: font.pixelSize + (paddingSmall*2)
+                background: Item { }
+                placeholderText: qsTr("Input:")
+                focus: consoleView.visible
+                Keys.onPressed:
+                    (event) => {
+                        if (event.key !== Qt.Key_Return) {
+                            return;
+                        }
+
+                        consoleHandler.write(text + "\n")
+                        text = ""
+                    }
             }
         }
     }
@@ -473,13 +660,13 @@ ApplicationWindow {
         }
 
         function flashSuccess(text) {
-            flashingIcon.source = iconSuccess
+            flashingIcon.icon.source = iconSuccess
             warningText.text = text
             opacity = 1.0
         }
 
         function flashWarning(text) {
-            flashingIcon.source = iconWarning
+            flashingIcon.icon.source = iconWarning
             warningText.text = text
             opacity = 1.0
         }
@@ -487,11 +674,18 @@ ApplicationWindow {
         Column {
             anchors.centerIn: parent
             spacing: paddingSmall
-            Image {
+
+            // Button gives us coloring for free, so use it as a clutch for now
+            Button {
                 id: flashingIcon
                 width: 128
                 height: 128
+                icon.width: width
+                icon.height: height
                 anchors.horizontalCenter: parent.horizontalCenter
+                flat: true
+                enabled: false
+                icon.color: root.palette.text
             }
             Text {
                 id: warningText
@@ -501,99 +695,6 @@ ApplicationWindow {
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 text: ""
-            }
-        }
-    }
-
-    Rectangle {
-        id: consoleView
-        color: root.palette.base
-        radius: roundedCornersRadius
-        width: (parent.width / 2)
-        height: (parent.height / 2)
-        x: width / 2
-        y: parent.height
-        visible: y < parent.height
-        border.color: root.palette.text
-        border.width: 2
-        clip: true
-
-        function show() {
-            y = (height / 2)
-        }
-
-        function hide() {
-            y = parent.height
-        }
-
-        Behavior on y {
-            NumberAnimation { duration: 250; easing.type: Easing.OutCubic }
-        }
-
-        Column {
-            anchors.fill: parent
-            clip: true
-
-            ToolBar {
-                id: consoleToolBar
-                width: parent.width
-                RowLayout {
-                    anchors.fill: parent
-                    ToolButton {
-                        icon.source: Qt.resolvedUrl("qrc:/assets/xmark.circle@2x.png")
-                        icon.color: root.palette.button
-                        onClicked: {
-                            consoleOutput = ""
-                            consoleView.hide()
-                        }
-                    }
-
-                    Item {
-                        Layout.fillWidth: true
-                    }
-
-                    ToolButton {
-                        text: qsTr("Close")
-                        onClicked: {
-                            consoleView.hide()
-                        }
-                    }
-                }
-            }
-
-            ScrollView {
-                id: consoleScrollView
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                ScrollBar.vertical.policy: ScrollBar.AlwaysOn
-                width: parent.width
-                height: parent.height - consoleToolBar.height - consoleInputField.height - (paddingSmall*2)
-
-                Text {
-                    width: parent.width
-                    font: fixedFont
-                    text: consoleOutput
-                    color: root.palette.text
-                    wrapMode: TextArea.WrapAnywhere
-                }
-            }
-
-            TextField {
-                id: consoleInputField
-                font: fixedFont
-                width: parent.width
-                height: font.pixelSize + (paddingSmall*2)
-                background: Item { }
-                placeholderText: qsTr("Input:")
-                focus: consoleView.visible
-                Keys.onPressed:
-                    (event) => {
-                        if (event.key !== Qt.Key_Return) {
-                            return;
-                        }
-
-                        consoleHandler.write(text + "\n")
-                        text = ""
-                    }
             }
         }
     }
