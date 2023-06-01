@@ -11,6 +11,7 @@ This project uses LLVM + Clang and the Wasi SDK to provide a compiler toolchain 
 ## License
 
 Copyright Alfred Neumayer (C) 2023
+
 This software is licensed under the MIT license.
 
 
