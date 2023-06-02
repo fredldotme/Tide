@@ -12,7 +12,8 @@ class IosSystemGlue : public QObject
 public:
     IosSystemGlue(QObject* parent = nullptr);
 
-    Q_INVOKABLE void runBuildCommand(const QString cmd);
+    Q_INVOKABLE bool runBuildCommands(const QStringList cmds);
+    Q_INVOKABLE void killBuildCommands();
     Q_INVOKABLE void setupStdIo();
 
 private:

@@ -91,8 +91,6 @@ class wasi_module: public wasm3::module
 public:
     void link_wasi() {
         m3_LinkWASI(m_module.get());
-        //SuppressLookupFailure(m3_LinkRawFunction(m_module.get(), "*", "_debug", "i(*i)", wasm3_print));
-        //SuppressLookupFailure(m3_LinkRawFunction(m_module.get(), "*", "printf", "i(**)", wasm3_printf));
     }
 };
 
@@ -101,8 +99,7 @@ void WasmRunner::executeInThread()
     try {
         m_runtime = m_env.new_runtime(stack_size);
 
-        const QString dir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
-        const auto fullPath = dir + "/" + m_binary;
+        const auto fullPath = m_binary;
 
         std::ifstream wasm_file(fullPath.toUtf8().data(), std::ios::binary | std::ios::in);
         if (!wasm_file.is_open()) {

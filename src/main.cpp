@@ -16,6 +16,8 @@
 #include "sysrootmanager.h"
 #include "wasmrunner.h"
 #include "imfixerinstaller.h"
+#include "projectbuilder.h"
+#include "autocompleter.h"
 
 int main(int argc, char *argv[])
 {
@@ -47,6 +49,8 @@ int main(int argc, char *argv[])
     qmlRegisterType<SysrootManager>("Tide", 1, 0, "SysrootManager");
     qmlRegisterType<WasmRunner>("Tide", 1, 0, "WasmRunner");
     qmlRegisterType<DirectoryListing>("Tide", 1, 0, "DirectoryListing");
+    qmlRegisterType<ProjectBuilder>("Tide", 1, 0, "ProjectBuilder");
+    qmlRegisterType<AutoCompleter>("Tide", 1, 0, "AutoCompleter");
 
     qmlRegisterUncreatableType<ImFixerInstaller>("Tide", 1, 0, "ImFixerInstaller", "Instantiated in main() as 'imFixer'.");
     qmlRegisterUncreatableType<ProgramSpec>("Tide", 1, 0, "ProgramSpec", "ProgramSpec is protocol between 'iosSystem' and 'Console'.");

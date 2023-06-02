@@ -16,9 +16,11 @@
         <file>assets/xmark.circle.fill@2x.png</file>
         <file>assets/xmark.circle@2x.png</file>
         <file>assets/exclamationmark.square@2x.png</file>
-        <file>assets/checkmark.circle@2x.png</file>
         <file>assets/xmark@2x.png</file>
         <file>assets/line.3.horizontal.decrease.circle@2x.png</file>
         <file>assets/line.3.horizontal.decrease.circle.fill@2x.png</file>
+        <file>assets/function@2x.png</file>
+        <file>assets/c.square@2x.png</file>
+        <file>assets/v.square@2x.png</file>
     </qresource>
 </RCC>

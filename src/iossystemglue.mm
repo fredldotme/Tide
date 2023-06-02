@@ -55,20 +55,24 @@ void IosSystemGlue::setupStdIo()
     emit stdioCreated({inWriteEnd, outReadEnd, errReadEnd});
 }
 
-void IosSystemGlue::runBuildCommand(const QString cmd)
+// Blocking and hence shouldn't be called from the main or GUI threads
+bool IosSystemGlue::runBuildCommands(const QStringList cmds)
 {
-    qDebug() << Q_FUNC_INFO;
+    thread_stdin = m_spec.stdin;
+    thread_stdout = m_spec.stdout;
+    thread_stderr = m_spec.stderr;
 
-    std::thread t1([=](){
-        qDebug() << "running command" << cmd;
-
-        thread_stdin = m_spec.stdin;
-        thread_stdout = m_spec.stdout;
-        thread_stderr = m_spec.stderr;
-
+    for (const auto& cmd : cmds) {
         const int ret = ios_system(cmd.toUtf8().data());
         emit commandEnded(ret);
-    });
-    t1.detach();
+        if (ret != 0)
+            return false;
+    }
+    return true;
+}
+
+void IosSystemGlue::killBuildCommands()
+{
+    ios_kill();
 }
 

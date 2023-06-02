@@ -7,12 +7,21 @@ project(${PROJECT_NAME} VERSION 0.1 LANGUAGES C)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 
 qt_standard_project_setup()
 
-add_definitions(-Dd_m3HasWASI -Dd_m3HasTracer)
+add_definitions(-Dd_m3HasWASI)
+
+include_directories(${PROJECT_NAME}
+    # QMake parser
+    ${QMAKEPARSER_DIR}/lib/include
+
+    # libclang
+    ${LLVM_DIR}/clang/include
+)
 
 qt_add_executable(${PROJECT_NAME}
     # Code
@@ -33,6 +42,8 @@ qt_add_executable(${PROJECT_NAME}
     wasmrunner.cpp
     imeventfixer.cpp
     imfixerinstaller.cpp
+    projectbuilder.cpp
+    autocompleter.cpp
 
     # Header-only code
     programspec.h
@@ -53,6 +64,16 @@ qt_add_executable(${PROJECT_NAME}
     ${WASM_DIR}/source/m3_info.c
     ${WASM_DIR}/source/m3_module.c
     ${WASM_DIR}/source/m3_parse.c
+
+    # QMake parser
+    ${QMAKEPARSER_DIR}/lib/include/qmakeblock.h
+    ${QMAKEPARSER_DIR}/lib/include/qmakecursor.h
+    ${QMAKEPARSER_DIR}/lib/include/qmakeparser.h
+    ${QMAKEPARSER_DIR}/lib/include/qmakereader.h
+    ${QMAKEPARSER_DIR}/lib/src/qmakeblock.cpp
+    ${QMAKEPARSER_DIR}/lib/src/qmakecursor.cpp
+    ${QMAKEPARSER_DIR}/lib/src/qmakeparser.cpp
+    ${QMAKEPARSER_DIR}/lib/src/qmakereader.cpp
 
     # Assets
     assets.qrc
@@ -83,7 +104,6 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
     MACOSX_BUNDLE TRUE
     WIN32_EXECUTABLE TRUE
-    LINK_OPTIONS "-Wl,-F${LLVM_FRAMEWORKS}"
     XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
 )
 
@@ -103,22 +123,15 @@ find_library(LINK REQUIRED NAMES link PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_P
 find_library(NM REQUIRED NAMES nm PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
 find_library(OPT REQUIRED NAMES opt PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
 
+# libclang for C++ ASTs
+find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+
+message(${LIBCLANG_CPP})
+
 include_directories(${PROJECT_NAME}
-    # system() replacement
+    # system() replacement through ios_system (with ios_error.h)
     ${IOS_SYSTEM}
     ${LLVM_DIR}
-
-    # LLVM & Clang tools
-    ${LLVM}
-    ${CLANG}
-    ${LLD}
-    ${LLI}
-    ${AR}
-    ${DIS}
-    ${LLD}
-    ${LINK}
-    ${NM}
-    ${OPT}
 
     # Wasm3 runtime
     ${WASM_DIR}/source
@@ -138,6 +151,8 @@ target_link_libraries(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME}
     PUBLIC
     ${IOS_SYSTEM}
+    ${LLVM}
+    ${LIBCLANG_CPP}
 )
 
 set_property(TARGET ${PROJECT_NAME}
@@ -153,10 +168,12 @@ set_property(TARGET ${PROJECT_NAME}
     ${LINK}
     ${NM}
     ${OPT}
+    ${LIBCLANG_CPP}
 )
 
 set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY OFF)
 set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY ON)
+set_target_properties(${PROJECT_NAME} PROPERTIES SKIP_BUILD_RPATH ON)
 
 set(COMMANDDICTIONARY "${CMAKE_CURRENT_SOURCE_DIR}/commandDictionary.plist")
 target_sources(${PROJECT_NAME} PUBLIC ${COMMANDDICTIONARY})
@@ -171,6 +188,14 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 )
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy "${CLANGRT}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/lib/wasi/libclang_rt.builtins-wasm32.a"
+)
+
+# Because finding the bootstrapped libclang framework with bundled libLLVM is pain
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/libLLVM.framework/libLLVM" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Frameworks/libclang.framework/libclang"
+)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND install_name_tool -change "@rpath/libclang.dylib" "@rpath/libclang.framework/libclang" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Tide"
 )
 
 install(TARGETS ${PROJECT_NAME}

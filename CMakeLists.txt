@@ -6,5 +6,6 @@ set(LLVM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/llvm)
 set(WASI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tmp/wasi-sysroot)
 set(CLANGRT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tmp)
 set(WASM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/wasm3)
+set(QMAKEPARSER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libqmakeparser)
 
 add_subdirectory(src)

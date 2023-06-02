@@ -4,11 +4,27 @@ set -e
 
 # 1) LLVM
 OLD_PWD=$(pwd)
-cd 3rdparty/llvm/
-./bootstrap.sh
+#cd 3rdparty/llvm/
+#./bootstrap.sh
 cd $OLD_PWD
 
-# 2) wasi-sdk
+# 2) libclang-cpp
+OLD_PWD=$(pwd)
+LIBNAME=libclang
+if [ ! -d tmp ]; then
+    mkdir tmp
+fi
+cd tmp
+rm -rf libclang.framework || true
+mkdir -p $LIBNAME.framework/
+cd $LIBNAME.framework
+cp -a $OLD_PWD/aux/libclang-cpp/Info.plist ./
+lipo -create $OLD_PWD/3rdparty/llvm/build-iphoneos/lib/libclang.dylib -output ./$LIBNAME
+cp -a $OLD_PWD/3rdparty/llvm/build-iphoneos/lib/libclang.dylib ./$LIBNAME
+plutil -convert binary1 Info.plist
+cd $OLD_PWD
+
+# 3) wasi-sdk
 OLD_PWD=$(pwd)
 if [ ! -d tmp ]; then
     mkdir tmp
@@ -18,7 +34,7 @@ curl -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wa
 tar xvf wasi-sdk.tar.gz
 cd $OLD_PWD
 
-# 3) libclang_rt
+# 4) libclang_rt
 OLD_PWD=$(pwd)
 if [ ! -d tmp ]; then
     mkdir tmp

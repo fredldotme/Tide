@@ -9,6 +9,7 @@ RowLayout {
     property alias color: labelControl.color
     property alias text: labelControl.text
     property alias font: labelControl.font
+    property alias elide: labelControl.elide
     property alias icon: iconControl.icon
     readonly property bool pressed: iconControl.pressed || labelControlMouseArea.pressed
 

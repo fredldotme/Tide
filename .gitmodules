@@ -5,3 +5,6 @@
 	path = 3rdparty/llvm
 	url = https://github.com/fredldotme/llvm-project.git
 	branch = iossystem302
+[submodule "3rdparty/libqmakeparser"]
+	path = 3rdparty/libqmakeparser
+	url = https://github.com/fredldotme/libqmakeparser.git

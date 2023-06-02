@@ -9,6 +9,10 @@ Item {
     property ExternalProjectPicker projectPicker : null
     property DirectoryListing file : null
     property bool invalidated : false
+    property bool showAutoCompletor : false
+    property alias autoCompleter: autoCompleter
+
+    signal saveRequested()
 
     function languageForLowerCaseFileName(name) {
         // Default to C++
@@ -68,10 +72,19 @@ Item {
         const lang = languageForLowerCaseFileName(file.name.toLowerCase())
         console.log("Language: " + lang)
         highlighter.setCurrentLanguage(lang)
+        showAutoCompletor = false
+        reloadAst()
+    }
+
+    function reloadAst() {
+        if (file.name.toLowerCase().endsWith(".cpp") || file.name.toLowerCase().endsWith(".h") ||
+                file.name.toLowerCase().endsWith(".h"))
+            autoCompleter.reloadAst(file.path)
     }
 
     function invalidate () {
         invalidated = true
+        showAutoCompletor = false
         text = ""
     }
 
@@ -91,6 +104,10 @@ Item {
         Component.onCompleted: {
             init(codeField.textDocument, (root.palette.base !== Qt.color("#1c1c1e")))
         }
+    }
+
+    AutoCompleter {
+        id: autoCompleter
     }
 
     Connections {
@@ -136,9 +153,102 @@ Item {
                     refreshLineNumbers()
                 }
                 font: fixedFont
-                focus: true
+                focus: !showAutoCompletor
                 wrapMode: TextEdit.WrapAnywhere
                 Component.onCompleted: imFixer.setupImEventFilter(codeField)
+
+                Shortcut {
+                    sequence: "Ctrl+Shift+S"
+                    onActivated: {
+                        showAutoCompletor = !showAutoCompletor
+                        if (showAutoCompletor) {
+                            codeEditor.saveRequested() // Implicitly calls reloadAst
+                        }
+                    }
+                }
+
+                Shortcut {
+                    sequence: "Ctrl+S"
+                    onActivated: codeEditor.saveRequested()
+                }
+
+                Rectangle {
+                    anchors.fill: parent
+                    color: root.palette.shadow
+                    opacity: showAutoCompletor ? 0.5 : 0.0
+                    visible: opacity > 0.0
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: consoleShadow.consoleAnimation
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
+                    readonly property int consoleAnimation: 250
+
+                    // Due to a Qt bug it is possible to crash the IDE by tapping a CodeEditor
+                    // while the console is open and overlaid on top, apparently due to the TextField
+                    // being instantiated in a different thread (how?). Catch any accidental presses
+                    // in a modal way to work around this issue.
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked:
+                            (mouse) => {
+                                showAutoCompletor = false
+                                mouse.accepted = true
+                            }
+                    }
+                }
+
+                Rectangle {
+                    width: Math.min(autoCompletionList.contentItem.childrenRect.width, 300)
+                    height: Math.min(autoCompletionList.contentItem.childrenRect.height, 300)
+                    x: codeField.cursorRectangle.x
+                    y: codeField.cursorRectangle.y
+                    visible: showAutoCompletor
+                    color: root.palette.base
+                    border.color: root.palette.text
+                    border.width: 1
+                    radius: root.roundedCornersRadius
+
+                    ListView {
+                        id: autoCompletionList
+                        anchors.fill: parent
+                        model: autoCompleter.decls
+                        focus: showAutoCompletor
+                        keyNavigationEnabled: true
+
+                        function iconForKind(kind) {
+                            if (kind === AutoCompleter.Function)
+                                return Qt.resolvedUrl("qrc:/assets/function@2x.png");
+                            else if (kind === AutoCompleter.Variable)
+                                return Qt.resolvedUrl("qrc:/assets/v.square@2x.png");
+                            return ""
+                        }
+
+                        function insertable(name, kind) {
+                            if (kind === AutoCompleter.Function)
+                                return name + "(";
+                            return name;
+                        }
+
+                        delegate: TideButton {
+                            icon.source: autoCompletionList.iconForKind(modelData.kind)
+                            text: modelData.name
+                            font.styleName: "Monospace"
+                            font.bold: true
+                            font.pixelSize: 24
+                            color: root.palette.button
+                            elide: Text.ElideRight
+                            onClicked: {
+                                codeField.insert(codeField.cursorPosition,
+                                                 autoCompletionList.insertable(modelData.name, modelData.kind))
+                                showAutoCompletor = false
+                            }
+                        }
+                    }
+                }
             }
         }
     }

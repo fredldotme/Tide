@@ -22,10 +22,14 @@ ApplicationWindow {
     property bool compiling: false
 
     function saveCurrentFile() {
+        if (editor.file == null || editor.invalidated)
+            return
+
         const file = editor.file
         const path = projectPicker.openBookmark(file.bookmark)
         fileIo.writeFile(file.path, editor.text)
         projectPicker.closeFile(path);
+        editor.reloadAst()
     }
 
     function clearConsoleOutput() {
@@ -35,6 +39,8 @@ ApplicationWindow {
     onActiveChanged: {
         if (active) {
             cleanObsoleteProjects()
+        } else {
+            saveCurrentFile()
         }
     }
 
@@ -70,9 +76,10 @@ ApplicationWindow {
 
             Label {
                 Layout.fillWidth: true
+                Layout.alignment: Qt.AlignHCenter
                 color: root.palette.button
                 text: compiling ? qsTr("Compiling... get your swords!") :
-                                  qsTr("Tide")
+                                  ""
                 elide: Text.ElideRight
                 font.bold: true
                 horizontalAlignment: Label.AlignHCenter
@@ -80,19 +87,19 @@ ApplicationWindow {
             }
 
             ToolButton {
-                visible: openFiles.files.length > 0
+                visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
                 icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
                 icon.color: root.palette.button
                 onClicked: {
                     saveCurrentFile()
                     compiling = true
-                    iosSystem.runBuildCommand("clang++" +
-                                              " --sysroot=" + sysroot +
-                                              " -o ~/Documents/a.out \"" + editor.file.path + "\"")
+
+                    projectBuilder.clean()
+                    projectBuilder.build()
                 }
             }
             ToolButton {
-                visible: openFiles.files.length > 0
+                visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
                 icon.source: Qt.resolvedUrl("qrc:/assets/play.fill@2x.png")
                 icon.color: root.palette.button
 
@@ -116,7 +123,7 @@ ApplicationWindow {
 
                     consoleView.show()
                     wasmRunner.kill();
-                    wasmRunner.run("a.out", [])
+                    wasmRunner.run(projectBuilder.runnableFile(), [])
                 }
             }
             ToolButton {
@@ -164,14 +171,7 @@ ApplicationWindow {
     Connections {
         target: iosSystem
         function onCommandEnded(ret) {
-            compiling = false
-
             console.log("Command retuned: " + ret);
-            if (ret !== 0) {
-                warningSign.flashWarning(qsTr("Build failed!"))
-            } else {
-                warningSign.flashSuccess(qsTr("Build successful!"))
-            }
         }
     }
 
@@ -185,6 +185,22 @@ ApplicationWindow {
             }
     }
 
+    ProjectBuilder {
+        id: projectBuilder
+        onBuildError:
+            (str) => {
+                compiling = false
+                console.log("Output: " + str);
+                consoleOutput.append({"content": str, "stdout": false})
+                consoleScrollView.positionViewAtEnd()
+                warningSign.flashWarning(qsTr("Build failed!"))
+            }
+        onBuildSuccess: {
+            compiling = false
+            warningSign.flashSuccess(qsTr("Build successful!"))
+        }
+    }
+
     Component.onCompleted: {
         projectPicker.documentSelected.connect(directorySelected);
         iosSystem.stdioCreated.connect(function(spec) {
@@ -196,6 +212,9 @@ ApplicationWindow {
         iosSystem.setupStdIo()
 
         sysrootManager.installBundledSysroot();
+
+        projectBuilder.commandRunner = iosSystem
+        projectBuilder.setSysroot(sysroot);
 
         if (bookmarkDb.bookmarks.count === 0)
             projectPicker.startImport();
@@ -214,8 +233,14 @@ ApplicationWindow {
     }
 
     function openEditor(modelData) {
+        saveCurrentFile()
+
         openFiles.push(modelData)
         editor.file = modelData
+
+        // Also load project in case it's a .pro
+        if (modelData.path.endsWith(".pro"))
+            projectBuilder.loadProject(modelData.path)
     }
 
     Text {
@@ -292,7 +317,7 @@ ApplicationWindow {
 
                                 ListView {
                                     model: bookmarkDb.bookmarks
-                                    spacing: paddingSmall
+                                    spacing: paddingSmall * 2
                                     clip: true
                                     delegate: TideButton {
                                         id: bookmarkButton
@@ -335,12 +360,14 @@ ApplicationWindow {
                                     delegate: TideButton {
                                         readonly property bool isBackButton : (modelData.name === "..")
                                         readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
+                                        readonly property bool isProject : (modelData.name.endsWith(".pro"))
 
                                         color: root.palette.button
                                         icon.color: root.palette.button
                                         icon.source: isBackButton ? Qt.resolvedUrl("qrc:/assets/chevron.backward@2x.png")
                                                                   : (isDir ? Qt.resolvedUrl("qrc:/assets/folder@2x.png")
-                                                                           : Qt.resolvedUrl("qrc:/assets/doc@2x.png"))
+                                                                           : isProject ? Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
+                                                                                       : Qt.resolvedUrl("qrc:/assets/doc@2x.png"))
                                         text: isBackButton ? qsTr("Back") : modelData.name
                                         font.pixelSize: 20
                                         onClicked: {
@@ -451,6 +478,8 @@ ApplicationWindow {
                 fileIo: fileIo
                 projectPicker: projectPicker
                 visible: openFiles.files.length > 0
+
+                onSaveRequested: saveCurrentFile()
             }
         }
     }
@@ -560,6 +589,7 @@ ApplicationWindow {
 
                     ToolButton {
                         text: qsTr("Close")
+                        font.bold: true
                         rightPadding: paddingMedium
                         onClicked: {
                             consoleView.hide()
