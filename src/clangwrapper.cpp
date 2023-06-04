@@ -1,0 +1,36 @@
+#include "clangwrapper.h"
+
+#include <QCoreApplication>
+
+#include <dlfcn.h>
+
+ClangWrapper::ClangWrapper()
+{
+    const auto libPath = qApp->applicationDirPath() + "/Frameworks/libclang.framework/libclang";
+    this->handle = dlopen(libPath.toUtf8().data(), RTLD_NOW);
+
+    if (!this->handle) {
+        qWarning() << "Failed to load libclang from" << libPath;
+        return;
+    }
+
+    *(void**)(&createIndex) = dlsym(this->handle, "clang_createIndex");
+    *(void**)(&disposeIndex) = dlsym(this->handle, "clang_disposeIndex");
+    *(void**)(&createTranslationUnitFromSourceFile) = dlsym(this->handle, "clang_createTranslationUnitFromSourceFile");
+    *(void**)(&getTranslationUnitCursor) = dlsym(this->handle, "clang_getTranslationUnitCursor");
+    *(void**)(&disposeTranslationUnit) = dlsym(this->handle, "clang_disposeTranslationUnit");
+    *(void**)(&visitChildren) = dlsym(this->handle, "clang_visitChildren");
+    *(void**)(&getCursorKind) = dlsym(this->handle, "clang_getCursorKind");
+    *(void**)(&getCursorSpelling) = dlsym(this->handle, "clang_getCursorSpelling");
+    *(void**)(&getCString) = dlsym(this->handle, "clang_getCString");
+    *(void**)(&disposeString) = dlsym(this->handle, "clang_disposeString");
+    *(void**)(&toggleCrashRecovery) = dlsym(this->handle, "clang_toggleCrashRecovery");
+}
+
+ClangWrapper::~ClangWrapper()
+{
+    if (this->handle) {
+        dlclose(this->handle);
+        this->handle = nullptr;
+    }
+}

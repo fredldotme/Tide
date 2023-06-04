@@ -1,54 +1,37 @@
 #include "autocompleter.h"
 
-#include <QCoreApplication>
 #include <QDebug>
 
-#include <dlfcn.h>
-
 AutoCompleter::AutoCompleter(QObject *parent)
-    : QObject{parent}, handle{nullptr}
+    : QObject{parent}, clang{nullptr}
 {
     QObject::connect(&m_thread, &QThread::started, this, &AutoCompleter::run, Qt::DirectConnection);
-
-    const auto libPath = qApp->applicationDirPath() + "/Frameworks/libclang.framework/libclang";
-    this->handle = dlopen(libPath.toUtf8().data(), RTLD_NOW);
-
-    if (!this->handle) {
-        qWarning() << "Failed to load libclang from" << libPath;
-        return;
-    }
-
-    *(void**)(&clang_createIndex) = dlsym(this->handle, "clang_createIndex");
-    *(void**)(&clang_createTranslationUnitFromSourceFile) = dlsym(this->handle, "clang_createTranslationUnitFromSourceFile");
-    *(void**)(&clang_getTranslationUnitCursor) = dlsym(this->handle, "clang_getTranslationUnitCursor");
-    *(void**)(&clang_visitChildren) = dlsym(this->handle, "clang_visitChildren");
-    *(void**)(&clang_disposeTranslationUnit) = dlsym(this->handle, "clang_disposeTranslationUnit");
-    *(void**)(&clang_disposeIndex) = dlsym(this->handle, "clang_disposeIndex");
-    *(void**)(&clang_getCursorKind) = dlsym(this->handle, "clang_getCursorKind");
-    *(void**)(&clang_getCursorSpelling) = dlsym(this->handle, "clang_getCursorSpelling");
-    *(void**)(&clang_getCString) = dlsym(this->handle, "clang_getCString");
-    *(void**)(&clang_disposeString) = dlsym(this->handle, "clang_disposeString");
-}
-
-AutoCompleter::~AutoCompleter()
-{
-
 }
 
 void AutoCompleter::run()
 {
-    CXIndex index = clang_createIndex(0, 0);
-    CXTranslationUnit unit = clang_createTranslationUnitFromSourceFile(index, m_path.toUtf8().data(), 0, nullptr, 0, nullptr);
+    ClangWrapper clang;
+    this->clang = &clang;
+
+    CXIndex index = this->clang->createIndex(0, 0);
+
+    std::vector<const char*> args;
+    for (const QString& path : this->m_includePaths) {
+        args.push_back("-I");
+        args.push_back(path.toUtf8().data());
+    }
+
+    CXTranslationUnit unit = this->clang->createTranslationUnitFromSourceFile(index, m_path.toUtf8().data(), args.size(), args.data(), 0, nullptr);
 
     if (unit) {
         m_decls.clear();
-        CXCursor rootCursor = clang_getTranslationUnitCursor(unit);
-        clang_visitChildren(rootCursor, [](CXCursor c, CXCursor parent, CXClientData client_data)
+        CXCursor rootCursor = this->clang->getTranslationUnitCursor(unit);
+        this->clang->visitChildren(rootCursor, [](CXCursor c, CXCursor parent, CXClientData client_data)
             {
                 AutoCompleter* thiz = reinterpret_cast<AutoCompleter*>(client_data);
 
-                CXCursorKind kind = thiz->clang_getCursorKind(c);
-                CXString spelling = thiz->clang_getCursorSpelling(c);
+                CXCursorKind kind = thiz->clang->getCursorKind(c);
+                CXString spelling = thiz->clang->getCursorSpelling(c);
 
                 CompletionKind completionKind = Unknown;
 
@@ -64,11 +47,11 @@ void AutoCompleter::run()
                 }
 
                 if (completionKind != Unknown) {
-                    const QString name = QString::fromUtf8(thiz->clang_getCString(spelling));
+                    const QString name = QString::fromUtf8(thiz->clang->getCString(spelling));
                     thiz->foundKind(completionKind, name);
                 }
 
-                thiz->clang_disposeString(spelling);
+                thiz->clang->disposeString(spelling);
 
                 return CXChildVisit_Recurse;
             }, this);
@@ -76,8 +59,9 @@ void AutoCompleter::run()
         emit declsChanged();
     }
 
-    clang_disposeTranslationUnit(unit);
-    clang_disposeIndex(index);
+    this->clang->disposeTranslationUnit(unit);
+    this->clang->disposeIndex(index);
+    this->clang = nullptr;
 }
 
 void AutoCompleter::reloadAst(const QString path)
@@ -87,6 +71,11 @@ void AutoCompleter::reloadAst(const QString path)
     this->m_path = path;
     this->m_thread.terminate();
     this->m_thread.start();
+}
+
+void AutoCompleter::setIncludePaths(const QStringList paths)
+{
+    this->m_includePaths = paths;
 }
 
 void AutoCompleter::foundKind(CompletionKind kind, const QString name)

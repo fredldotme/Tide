@@ -5,7 +5,9 @@
 #include <QVariantMap>
 #include <QThread>
 
-#include <clang-c/Index.h>
+#include <vector>
+
+#include "clangwrapper.h"
 
 class AutoCompleter : public QObject
 {
@@ -22,29 +24,13 @@ public:
     Q_ENUM(CompletionKind)
 
     explicit AutoCompleter(QObject *parent = nullptr);
-    ~AutoCompleter();
     void foundKind(CompletionKind kind, const QString name);
 
-    // Public because the child visitor needs those
-    void* handle;
-    CXIndex (*clang_createIndex)(int, int);
-    CXTranslationUnit (*clang_createTranslationUnitFromSourceFile)(
-        CXIndex, const char *, int,
-        const char *const *, unsigned ,
-        struct CXUnsavedFile *);
-    CXCursor (*clang_getTranslationUnitCursor)(CXTranslationUnit);
-    unsigned (*clang_visitChildren)(CXCursor,
-                                    CXCursorVisitor,
-                                    CXClientData);
-    void (*clang_disposeTranslationUnit)(CXTranslationUnit);
-    void (*clang_disposeIndex)(CXIndex);
-    enum CXCursorKind (*clang_getCursorKind)(CXCursor);
-    CXString (*clang_getCursorSpelling)(CXCursor);
-    const char* (*clang_getCString)(CXString);
-    void (*clang_disposeString)(CXString);
+    ClangWrapper* clang;
 
 public slots:
     void reloadAst(const QString path);
+    void setIncludePaths(const QStringList paths);
 
 private:
     void run();
@@ -52,6 +38,7 @@ private:
     QString m_path;
     QThread m_thread;
     QVariantList m_decls;
+    QStringList m_includePaths;
 
 signals:
     void declsChanged();

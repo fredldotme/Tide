@@ -13,7 +13,7 @@ ApplicationWindow {
 
     readonly property int paddingSmall: 8
     readonly property int paddingMedium: 16
-    readonly property int roundedCornersRadius: 16
+    readonly property int roundedCornersRadius: 8
     readonly property int sideBarWidth: 300
     readonly property bool shouldAllowSidebar: (bookmarkDb.bookmarks.length > 0 &&
                                                 openFiles.files.length > 0)
@@ -427,9 +427,15 @@ ApplicationWindow {
                             model: openFiles.files
                             spacing: paddingSmall
                             clip: true
-                            delegate: Button {
+                            delegate: TideButton {
+                                readonly property bool isProject : modelData.name.endsWith(".pro")
+
                                 id: openFilesEntryButton
-                                flat: true
+                                icon.source: isProject ? Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
+                                                       : Qt.resolvedUrl("qrc:/assets/doc@2x.png")
+                                color: (editor.file.path === modelData.path) ?
+                                           root.palette.button :
+                                           root.palette.text
                                 text: modelData.name
                                 font.pixelSize: 20
                                 onClicked: {
@@ -477,6 +483,7 @@ ApplicationWindow {
                 anchors.fill: parent
                 fileIo: fileIo
                 projectPicker: projectPicker
+                projectBuilder: projectBuilder
                 visible: openFiles.files.length > 0
 
                 onSaveRequested: saveCurrentFile()

@@ -18,7 +18,7 @@ inline static QString resolveDefaultVariables(const QString& line,
 }
 
 ProjectBuilder::ProjectBuilder(QObject *parent)
-    : QObject{parent}, m_iosSystem{nullptr}
+    : QObject{parent}, m_iosSystem{nullptr}, m_building(false)
 {
 
 }
@@ -116,9 +116,10 @@ void ProjectBuilder::build()
         const QString buildObject = buildDirPath + QDir::separator() + sourceFileName + ".o";
         objectsToLink << buildObject;
 
-        const QString command = QStringLiteral("clang++") +
-                                QStringLiteral(" -c ") +
+        const auto compiler = source.endsWith(".c") ? QStringLiteral("clang") : QStringLiteral("clang++");
+        const QString command = compiler +
                                 QStringLiteral(" --sysroot=") + m_sysroot +
+                                QStringLiteral(" -c") +
                                 includeFlags +
                                 defineFlags +
                                 libraryFlags +
@@ -143,12 +144,18 @@ void ProjectBuilder::build()
     buildCommands << linkCommand;
 
     std::thread buildThread([=]() {
+        m_building = true;
+        emit buildingChanged();
+
         const bool success = m_iosSystem->runBuildCommands(buildCommands);
         if (success) {
             emit buildSuccess();
         } else {
             emit buildError(QStringLiteral("Build failed"));
         }
+
+        m_building = false;
+        emit buildingChanged();
     });
     buildThread.detach();
 }
@@ -163,6 +170,28 @@ QString ProjectBuilder::runnableFile()
     const auto buildDirPath = buildRoot() + QDir::separator() + hash();
     const auto runnableFilePath = buildDirPath + QDir::separator() + "a.out";
     return runnableFilePath;
+}
+
+QStringList ProjectBuilder::includePaths()
+{
+    QStringList ret;
+    QMakeParser projectParser;
+    projectParser.setProjectFile(m_projectFile);
+
+    const auto buildDirPath = buildRoot() + "/" + hash();
+    const auto sourceDirPath = QFileInfo(m_projectFile).absolutePath();
+    const auto variables = projectParser.getVariables();
+
+    if (variables.find("INCLUDEPATH") != variables.end()) {
+        const auto includes = variables.at("INCLUDEPATH");
+        for (const auto& include : includes.values) {
+            qDebug() << "Include path:" << include;
+            QString resolvedInclude = resolveDefaultVariables(include, sourceDirPath, buildDirPath);
+            ret << QStringLiteral("\"%1\"").arg(resolvedInclude);
+        }
+    }
+
+    return ret;
 }
 
 QString ProjectBuilder::buildRoot()

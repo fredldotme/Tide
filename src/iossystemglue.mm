@@ -16,7 +16,6 @@ IosSystemGlue::IosSystemGlue(QObject* parent) : QObject(parent)
 {
     initializeEnvironment();
     joinMainThread = true;
-    qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi");
 }
 
 void IosSystemGlue::setupStdIo()
@@ -61,8 +60,8 @@ bool IosSystemGlue::runBuildCommands(const QStringList cmds)
         thread_stdout = m_spec.stdout;
         thread_stderr = m_spec.stderr;
 
-        const int ret = ios_system(cmd.toUtf8().data());
-        emit commandEnded(ret);
+        const auto stdcmd = cmd.toStdString();
+        const int ret = ios_system(stdcmd.c_str());
         if (ret != 0)
             return false;
     }

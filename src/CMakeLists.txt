@@ -43,6 +43,7 @@ qt_add_executable(${PROJECT_NAME}
     imfixerinstaller.cpp
     projectbuilder.cpp
     autocompleter.cpp
+    clangwrapper.cpp
 
     # Header-only code
     programspec.h

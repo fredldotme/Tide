@@ -24,6 +24,7 @@ int main(int argc, char *argv[])
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                             QStringLiteral("/Library/usr/lib/clang/14.0.0");
     qputenv("SYSROOT", sysroot.toUtf8().data());
+    qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi");
 
     QGuiApplication app(argc, argv);
     QQuickStyle::setStyle("iOS");
@@ -43,7 +44,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<ProjectBuilder>("Tide", 1, 0, "ProjectBuilder");
     qmlRegisterType<AutoCompleter>("Tide", 1, 0, "AutoCompleter");
 
-    qmlRegisterUncreatableType<IosSystemGlue>("Tide", 1, 0, "IosSystemGlue", "");
+    qmlRegisterUncreatableType<IosSystemGlue>("Tide", 1, 0, "IosSystemGlue", "Created in main() as 'iosSystem'.");
     qmlRegisterUncreatableType<ImFixerInstaller>("Tide", 1, 0, "ImFixerInstaller", "Instantiated in main() as 'imFixer'.");
     qmlRegisterUncreatableType<ProgramSpec>("Tide", 1, 0, "ProgramSpec", "ProgramSpec is protocol between 'iosSystem' and 'Console'.");
     qmlRegisterUncreatableType<QSourceHighliter>("Tide", 1, 0, "SourceHighliter", "Use 'SyntaxHighlighter' instead.");

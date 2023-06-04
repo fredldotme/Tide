@@ -8,6 +8,7 @@ Item {
     property FileIo fileIo : null
     property ExternalProjectPicker projectPicker : null
     property DirectoryListing file : null
+    property ProjectBuilder projectBuilder : null
     property bool invalidated : false
     property bool showAutoCompletor : false
 
@@ -76,9 +77,15 @@ Item {
     }
 
     function reloadAst() {
+        // libclang and clang++ trip over each other regularly.
+        if (projectBuilder.building)
+            return;
+
         if (file.name.toLowerCase().endsWith(".cpp") || file.name.toLowerCase().endsWith(".h") ||
-                file.name.toLowerCase().endsWith(".h"))
+                file.name.toLowerCase().endsWith(".h")) {
+            autoCompleter.setIncludePaths(projectBuilder.includePaths());
             autoCompleter.reloadAst(file.path)
+        }
     }
 
     function invalidate () {

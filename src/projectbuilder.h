@@ -12,6 +12,8 @@ class ProjectBuilder : public QObject
     Q_OBJECT
 
     Q_PROPERTY(IosSystemGlue* commandRunner MEMBER m_iosSystem NOTIFY commandRunnerChanged)
+    Q_PROPERTY(bool building MEMBER m_building NOTIFY buildingChanged)
+
 public:
     explicit ProjectBuilder(QObject *parent = nullptr);
 
@@ -22,6 +24,7 @@ public slots:
     void build();
     void cancel();
     QString runnableFile();
+    QStringList includePaths();
 
 private:
     QString buildRoot();
@@ -30,9 +33,11 @@ private:
     IosSystemGlue* m_iosSystem;
     QString m_sysroot;
     QString m_projectFile;
+    bool m_building;
 
 signals:
     void commandRunnerChanged();
+    void buildingChanged();
     void buildSuccess();
     void buildError(QString str);
 };

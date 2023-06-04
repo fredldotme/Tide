@@ -24,7 +24,7 @@ bool FileIo::writeFile(const QString path, const QByteArray content)
 {
     QFile file(path);
     if (!file.open(QFile::ReadWrite | QFile::Truncate | QFile::Text)) {
-        qWarning() << "Failed to open file read-only";
+        qWarning() << "Failed to open file read-write";
         return "";
     }
 
