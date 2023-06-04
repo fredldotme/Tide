@@ -119,10 +119,10 @@ void ProjectBuilder::build()
         const QString command = QStringLiteral("clang++") +
                                 QStringLiteral(" -c ") +
                                 QStringLiteral(" --sysroot=") + m_sysroot +
-                                QStringLiteral(" -o %1").arg(buildObject) +
                                 includeFlags +
                                 defineFlags +
                                 libraryFlags +
+                                QStringLiteral(" -o %1 ").arg(buildObject) +
                                 QStringLiteral(" \"%1\"").arg(sourceFile);
         qDebug() << "Compile command:" << command;
         buildCommands << command;

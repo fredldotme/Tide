@@ -15,9 +15,7 @@ extern "C" {
 IosSystemGlue::IosSystemGlue(QObject* parent) : QObject(parent)
 {
     initializeEnvironment();
-
-    const auto sysroot = qApp->applicationDirPath() + QStringLiteral("/usr");
-    qputenv("SYSROOT", sysroot.toUtf8().data());
+    joinMainThread = true;
     qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi");
 }
 
@@ -58,11 +56,11 @@ void IosSystemGlue::setupStdIo()
 // Blocking and hence shouldn't be called from the main or GUI threads
 bool IosSystemGlue::runBuildCommands(const QStringList cmds)
 {
-    thread_stdin = m_spec.stdin;
-    thread_stdout = m_spec.stdout;
-    thread_stderr = m_spec.stderr;
-
     for (const auto& cmd : cmds) {
+        thread_stdin = m_spec.stdin;
+        thread_stdout = m_spec.stdout;
+        thread_stderr = m_spec.stderr;
+
         const int ret = ios_system(cmd.toUtf8().data());
         emit commandEnded(ret);
         if (ret != 0)

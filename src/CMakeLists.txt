@@ -7,7 +7,6 @@ project(${PROJECT_NAME} VERSION 0.1 LANGUAGES C)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
-set(CMAKE_BUILD_WITH_INSTALL_RPATH ON)
 
 find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 
@@ -126,8 +125,6 @@ find_library(OPT REQUIRED NAMES opt PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PAT
 # libclang for C++ ASTs
 find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
-message(${LIBCLANG_CPP})
-
 include_directories(${PROJECT_NAME}
     # system() replacement through ios_system (with ios_error.h)
     ${IOS_SYSTEM}
@@ -146,13 +143,7 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Sql
-)
-
-target_link_libraries(${PROJECT_NAME}
-    PUBLIC
     ${IOS_SYSTEM}
-    ${LLVM}
-    ${LIBCLANG_CPP}
 )
 
 set_property(TARGET ${PROJECT_NAME}
@@ -173,7 +164,6 @@ set_property(TARGET ${PROJECT_NAME}
 
 set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY OFF)
 set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY ON)
-set_target_properties(${PROJECT_NAME} PROPERTIES SKIP_BUILD_RPATH ON)
 
 set(COMMANDDICTIONARY "${CMAKE_CURRENT_SOURCE_DIR}/commandDictionary.plist")
 target_sources(${PROJECT_NAME} PUBLIC ${COMMANDDICTIONARY})
@@ -188,14 +178,6 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 )
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy "${CLANGRT}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/lib/wasi/libclang_rt.builtins-wasm32.a"
-)
-
-# Because finding the bootstrapped libclang framework with bundled libLLVM is pain
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/libLLVM.framework/libLLVM" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Frameworks/libclang.framework/libclang"
-)
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND install_name_tool -change "@rpath/libclang.dylib" "@rpath/libclang.framework/libclang" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Tide"
 )
 
 install(TARGETS ${PROJECT_NAME}

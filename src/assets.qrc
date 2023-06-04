@@ -22,5 +22,6 @@
         <file>assets/function@2x.png</file>
         <file>assets/c.square@2x.png</file>
         <file>assets/v.square@2x.png</file>
+        <file>assets/checkmark.circle@2x.png</file>
     </qresource>
 </RCC>

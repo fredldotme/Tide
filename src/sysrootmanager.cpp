@@ -16,9 +16,13 @@ void SysrootManager::installBundledSysroot()
     const QString target = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                            QStringLiteral("/Library/usr/lib/clang/14.0.0");
 
-    QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
+    qDebug() << "Clearing old sysroot";
+    QDir targetDir(target);
+    if (targetDir.exists())
+        targetDir.removeRecursively();
 
     qDebug() << "Copying bundled sysroot";
+    QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
 
     while (it.hasNext()) {
         const QString sourcePath = it.next();

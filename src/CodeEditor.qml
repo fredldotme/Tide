@@ -10,7 +10,6 @@ Item {
     property DirectoryListing file : null
     property bool invalidated : false
     property bool showAutoCompletor : false
-    property alias autoCompleter: autoCompleter
 
     signal saveRequested()
 

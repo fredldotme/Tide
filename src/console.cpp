@@ -11,6 +11,14 @@ Console::Console(QObject *parent) : QObject{parent}
     QObject::connect(&m_readThreadErr, &QThread::started, this, &Console::readError, Qt::DirectConnection);
 }
 
+Console::~Console()
+{
+    fclose(m_spec.stdout);
+    m_readThreadOut.terminate();
+    fclose(m_spec.stderr);
+    m_readThreadErr.terminate();
+}
+
 void Console::feedProgramSpec(ProgramSpec spec)
 {
     m_spec.stdin = spec.stdin;

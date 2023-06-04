@@ -177,8 +177,10 @@ QList<DirectoryListing> ExternalProjectPicker::listBookmarkContents(const QByteA
         return QList<DirectoryListing>();
     }
 
-    RaiiExec([=](){closeFile(path);});
-    return listDirectoryContents(path, bookmark);
+    auto ret = listDirectoryContents(path, bookmark);
+    closeFile(path);
+
+    return ret;
 }
 
 QList<DirectoryListing> ExternalProjectPicker::listDirectoryContents(const QString path, const QByteArray bookmark)

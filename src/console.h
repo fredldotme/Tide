@@ -11,6 +11,7 @@ class Console : public QObject
     Q_OBJECT
 public:
     explicit Console(QObject *parent = nullptr);
+    ~Console();
 
 public slots:
     void feedProgramSpec(ProgramSpec spec);

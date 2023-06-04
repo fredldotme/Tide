@@ -10,6 +10,7 @@
 class AutoCompleter : public QObject
 {
     Q_OBJECT
+
     Q_PROPERTY(QVariantList decls MEMBER m_decls NOTIFY declsChanged)
 
 public:
@@ -20,11 +21,27 @@ public:
     };
     Q_ENUM(CompletionKind)
 
-public:
     explicit AutoCompleter(QObject *parent = nullptr);
-
-public:
+    ~AutoCompleter();
     void foundKind(CompletionKind kind, const QString name);
+
+    // Public because the child visitor needs those
+    void* handle;
+    CXIndex (*clang_createIndex)(int, int);
+    CXTranslationUnit (*clang_createTranslationUnitFromSourceFile)(
+        CXIndex, const char *, int,
+        const char *const *, unsigned ,
+        struct CXUnsavedFile *);
+    CXCursor (*clang_getTranslationUnitCursor)(CXTranslationUnit);
+    unsigned (*clang_visitChildren)(CXCursor,
+                                    CXCursorVisitor,
+                                    CXClientData);
+    void (*clang_disposeTranslationUnit)(CXTranslationUnit);
+    void (*clang_disposeIndex)(CXIndex);
+    enum CXCursorKind (*clang_getCursorKind)(CXCursor);
+    CXString (*clang_getCursorSpelling)(CXCursor);
+    const char* (*clang_getCString)(CXString);
+    void (*clang_disposeString)(CXString);
 
 public slots:
     void reloadAst(const QString path);
