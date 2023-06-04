@@ -9,7 +9,8 @@ Item {
     property ExternalProjectPicker projectPicker : null
     property DirectoryListing file : null
     property ProjectBuilder projectBuilder : null
-    property bool invalidated : false
+    property OpenFilesManager openFiles : null
+    property bool invalidated : true
     property bool showAutoCompletor : false
 
     signal saveRequested()
@@ -128,9 +129,18 @@ Item {
         lineNumberRepeater.model = lineNumbersHelper.lineCount
     }
 
+    Label {
+        visible: codeEditor.invalidated
+        text: qsTr("Select a file to edit")
+        font.pixelSize: 32
+        anchors.centerIn: parent
+        color: root.palette.mid
+    }
+
     ScrollView {
         id: scrollView
         anchors.fill: parent
+        visible: openFiles.files.length > 0
 
         Row {
             Column {
@@ -186,7 +196,7 @@ Item {
 
                     Behavior on opacity {
                         NumberAnimation {
-                            duration: consoleShadow.consoleAnimation
+                            duration: dialogShadow.consoleAnimation
                             easing.type: Easing.OutCubic
                         }
                     }

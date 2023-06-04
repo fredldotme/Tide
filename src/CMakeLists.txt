@@ -44,6 +44,8 @@ qt_add_executable(${PROJECT_NAME}
     projectbuilder.cpp
     autocompleter.cpp
     clangwrapper.cpp
+    projectcreator.cpp
+    projectlist.mm
 
     # Header-only code
     programspec.h
@@ -179,6 +181,14 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 )
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy "${CLANGRT}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/lib/wasi/libclang_rt.builtins-wasm32.a"
+)
+
+# Set a few properties for file sharing
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND plutil -replace UIFileSharingEnabled -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
+)
+add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    COMMAND plutil -replace LSSupportsOpeningDocumentsInPlace -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
 )
 
 install(TARGETS ${PROJECT_NAME}

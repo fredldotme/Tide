@@ -23,5 +23,8 @@
         <file>assets/c.square@2x.png</file>
         <file>assets/v.square@2x.png</file>
         <file>assets/checkmark.circle@2x.png</file>
+        <file>assets/plus.app@2x.png</file>
+        <file>assets/plus.rectangle.on.folder@2x.png</file>
+        <file>assets/doc.badge.plus@2x.png</file>
     </qresource>
 </RCC>

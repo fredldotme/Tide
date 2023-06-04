@@ -1,7 +1,8 @@
 #include "fileio.h"
 
-#include <QDebug>
 #include <QFile>
+#include <QDebug>
+#include <QDir>
 
 FileIo::FileIo(QObject *parent)
     : QObject{parent}
@@ -29,4 +30,39 @@ bool FileIo::writeFile(const QString path, const QByteArray content)
     }
 
     return file.write(content) == content.size();
+}
+
+void FileIo::createDirectory(const QString path)
+{
+    QDir dir(path);
+    if (!dir.mkpath(path)) {
+        qWarning() << "Failed to create directory" << path;
+        return;
+    }
+
+    dir.cdUp();
+    const auto parent = dir.absolutePath();
+
+    emit directoryCreated(path, parent);
+}
+
+void FileIo::createFile(const QString path)
+{
+    const auto parent = QFileInfo(path).absolutePath();
+    if (writeFile(path, ""))
+        emit fileCreated(path, parent);
+}
+
+void FileIo::deleteFileOrDirectory(const QString path)
+{
+    QFileInfo info(path);
+    if (info.isDir()) {
+        QDir dir(path);
+        dir.removeRecursively();
+    } else {
+        QFile file(path);
+        file.remove(path);
+    }
+
+    emit pathDeleted(path);
 }

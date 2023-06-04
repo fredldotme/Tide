@@ -18,6 +18,8 @@
 #include "imfixerinstaller.h"
 #include "projectbuilder.h"
 #include "autocompleter.h"
+#include "projectcreator.h"
+#include "projectlist.h"
 
 int main(int argc, char *argv[])
 {
@@ -43,6 +45,8 @@ int main(int argc, char *argv[])
     qmlRegisterType<DirectoryListing>("Tide", 1, 0, "DirectoryListing");
     qmlRegisterType<ProjectBuilder>("Tide", 1, 0, "ProjectBuilder");
     qmlRegisterType<AutoCompleter>("Tide", 1, 0, "AutoCompleter");
+    qmlRegisterType<ProjectCreator>("Tide", 1, 0, "ProjectCreator");
+    qmlRegisterType<ProjectList>("Tide", 1, 0, "ProjectList");
 
     qmlRegisterUncreatableType<IosSystemGlue>("Tide", 1, 0, "IosSystemGlue", "Created in main() as 'iosSystem'.");
     qmlRegisterUncreatableType<ImFixerInstaller>("Tide", 1, 0, "ImFixerInstaller", "Instantiated in main() as 'imFixer'.");
@@ -52,10 +56,11 @@ int main(int argc, char *argv[])
     IosSystemGlue iosSystemGlue;
     ImFixerInstaller imFixer;
 
-    QFont fixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    fixedFont.setPixelSize(16);
+    QFont standardFixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    standardFixedFont.setPixelSize(15);
+    standardFixedFont.setStyleHint(QFont::Monospace);
 
-    engine.rootContext()->setContextProperty("fixedFont", fixedFont);
+    engine.rootContext()->setContextProperty("standardFixedFont", standardFixedFont);
     engine.rootContext()->setContextProperty("imFixer", &imFixer);
     engine.rootContext()->setContextProperty("sysroot", sysroot);
     engine.rootContext()->setContextProperty("iosSystem", &iosSystemGlue);

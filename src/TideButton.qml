@@ -12,19 +12,21 @@ RowLayout {
     property alias elide: labelControl.elide
     property alias icon: iconControl.icon
     readonly property bool pressed: iconControl.pressed || labelControlMouseArea.pressed
+    property bool flat: true
 
     signal clicked()
     signal pressAndHold()
 
     Button {
         id: iconControl
-        flat: true
+        flat: itemRoot.flat
         onClicked: itemRoot.clicked()
         onPressAndHold: itemRoot.pressAndHold()
     }
 
     Text {
         id: labelControl
+        Layout.fillWidth: true
         MouseArea {
             id: labelControlMouseArea
             anchors.fill: parent

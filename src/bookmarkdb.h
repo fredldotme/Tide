@@ -17,10 +17,10 @@ public slots:
     bool importProject(QByteArray bookmark);
     bool removeBookmark(QByteArray bookmark);
     bool bookmarkExists(QByteArray bookmark);
+    QByteArrayList bookmarks();
 
 private:
     void createDb();
-    QByteArrayList bookmarks();
 
     QSqlDatabase m_importedProjectDb;
 

@@ -12,6 +12,14 @@ public:
 public slots:
     QString readFile(const QString path);
     bool writeFile(const QString path, const QByteArray content);
+    void createDirectory(const QString path);
+    void createFile(const QString path);
+    void deleteFileOrDirectory(const QString path);
+
+signals:
+    void directoryCreated(const QString path, const QString parent);
+    void fileCreated(const QString path, const QString parent);
+    void pathDeleted(const QString path);
 };
 
 #endif // FILEIO_H
