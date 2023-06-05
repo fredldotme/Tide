@@ -6,11 +6,12 @@
 
 static const auto PROJECT_TEMPLATE =
     QStringLiteral("TARGET = %1\n\n") +
-    QStringLiteral("SOURCES += \\\n    main.cpp");
+    QStringLiteral("#INCLUDEPATH += $$PWD/lib\n") +
+    QStringLiteral("SOURCES += \\\n    $$PWD/main.cpp");
 
 static const auto MAIN_TEMPLATE =
     QStringLiteral("#include <stdio.h>\n\n") +
-    QStringLiteral("int main(int argc, char *argv[]) {\n") +
+    QStringLiteral("int main(int argc, char *argv[]) {\n") +
     QStringLiteral("   printf(\"Hello World!\\n\");\n") +
     QStringLiteral("   return 0;\n") +
     QStringLiteral("}\n");
@@ -24,7 +25,7 @@ ProjectCreator::ProjectCreator(QObject *parent)
 bool ProjectCreator::projectExists(const QString targetName)
 {
     const auto projectDirPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
-                            QStringLiteral("/%1").arg(targetName);
+                                QStringLiteral("/%1").arg(targetName);
     QDir projectDir(projectDirPath);
     return projectDir.exists();
 }

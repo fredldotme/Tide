@@ -20,6 +20,7 @@
 #include "autocompleter.h"
 #include "projectcreator.h"
 #include "projectlist.h"
+#include "iosintegrationdelegate.h""
 
 int main(int argc, char *argv[])
 {
@@ -28,9 +29,8 @@ int main(int argc, char *argv[])
     qputenv("SYSROOT", sysroot.toUtf8().data());
     qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi");
 
-    QGuiApplication app(argc, argv);
     QQuickStyle::setStyle("iOS");
-
+    QGuiApplication app(argc, argv);
     QQmlApplicationEngine engine;
 
     qmlRegisterType<ExternalProjectPicker>("Tide", 1, 0, "ExternalProjectPicker");
@@ -52,9 +52,11 @@ int main(int argc, char *argv[])
     qmlRegisterUncreatableType<ImFixerInstaller>("Tide", 1, 0, "ImFixerInstaller", "Instantiated in main() as 'imFixer'.");
     qmlRegisterUncreatableType<ProgramSpec>("Tide", 1, 0, "ProgramSpec", "ProgramSpec is protocol between 'iosSystem' and 'Console'.");
     qmlRegisterUncreatableType<QSourceHighliter>("Tide", 1, 0, "SourceHighliter", "Use 'SyntaxHighlighter' instead.");
+    qmlRegisterUncreatableType<IosIntegrationDelegate>("Tide", 1, 0, "IosKeyboardReactorDelegate", "Created in main() as 'oskReactor'.");
 
     IosSystemGlue iosSystemGlue;
     ImFixerInstaller imFixer;
+    IosIntegrationDelegate oskReactor;
 
     QFont standardFixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     standardFixedFont.setPixelSize(15);
@@ -64,6 +66,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("imFixer", &imFixer);
     engine.rootContext()->setContextProperty("sysroot", sysroot);
     engine.rootContext()->setContextProperty("iosSystem", &iosSystemGlue);
+    engine.rootContext()->setContextProperty("oskReactor", &oskReactor);
 
     const QUrl url(u"qrc:/Tide/Main.qml"_qs);
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,

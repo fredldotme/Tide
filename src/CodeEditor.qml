@@ -169,7 +169,7 @@ Item {
                     refreshLineNumbers()
                 }
                 font: fixedFont
-                focus: !showAutoCompletor
+                focus: true
                 wrapMode: TextEdit.WrapAnywhere
                 Component.onCompleted: imFixer.setupImEventFilter(codeField)
 
@@ -226,7 +226,7 @@ Item {
                     color: root.palette.base
                     border.color: root.palette.text
                     border.width: 1
-                    radius: root.roundedCornersRadius
+                    radius: root.roundedCornersRadiusSmall
 
                     ListView {
                         id: autoCompletionList

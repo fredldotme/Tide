@@ -46,6 +46,7 @@ qt_add_executable(${PROJECT_NAME}
     clangwrapper.cpp
     projectcreator.cpp
     projectlist.mm
+    iosintegrationdelegate.mm
 
     # Header-only code
     programspec.h
@@ -108,6 +109,11 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
     WIN32_EXECUTABLE TRUE
     XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
 )
+
+if(IOS)
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        QT_IOS_LAUNCH_SCREEN "${CMAKE_CURRENT_SOURCE_DIR}/assets/LaunchScreen.storyboard")
+endif()
 
 # Qt6
 find_package(Qt6 REQUIRED COMPONENTS QuickControls2 Sql)
@@ -183,7 +189,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy "${CLANGRT}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/lib/wasi/libclang_rt.builtins-wasm32.a"
 )
 
-# Set a few properties for file sharing
+# Set a few properties for file sharing & UI tweaks
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
     COMMAND plutil -replace UIFileSharingEnabled -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
 )
