@@ -31,6 +31,7 @@ public:
 public slots:
     void reloadAst(const QString path);
     void setIncludePaths(const QStringList paths);
+    QVariantList filteredDecls(const QString str);
 
 private:
     void run();

@@ -12,6 +12,8 @@
 #include <m3_api_wasi.h>
 #include <m3_env.h>
 
+#include "raiiexec.h"
+
 typedef uint32_t wasm_ptr_t;
 typedef uint32_t wasm_size_t;
 
@@ -96,6 +98,9 @@ public:
 
 void WasmRunner::executeInThread()
 {
+    m_running = true;
+    emit runningChanged();
+
     try {
         m_runtime = m_env.new_runtime(stack_size);
 
@@ -114,14 +119,15 @@ void WasmRunner::executeInThread()
         wasm3::function main_fn = m_runtime.find_function("main");
         auto res = main_fn.call<int>(m_binary.toUtf8().data(), m_args.data());
         std::cout << "result: " << res << std::endl;
+        qDebug() << "Run successful";
     }
     catch(std::runtime_error &e) {
         std::cerr << "WASM3 error: " << e.what() << std::endl;
         emit errorOccured(e.what());
-        return;
     }
 
-    qDebug() << "Run successful";
+    m_running = false;
+    emit runningChanged();
 }
 
 void WasmRunner::run(const QString binary, const QStringList args)
@@ -138,9 +144,7 @@ void WasmRunner::run(const QString binary, const QStringList args)
 
 void WasmRunner::kill()
 {
-    m_runThread.terminate();
-    m_runThread.wait(1000);
-    m_runtime = m_env.new_runtime(stack_size);
+    // TODO
 }
 
 void WasmRunner::printStatement(QString content)

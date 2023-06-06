@@ -11,6 +11,9 @@
 class WasmRunner : public QObject
 {
     Q_OBJECT
+
+    Q_PROPERTY(bool running MEMBER m_running NOTIFY runningChanged CONSTANT)
+
 public:
     explicit WasmRunner(QObject *parent = nullptr);
     void printStatement(QString content);
@@ -28,10 +31,12 @@ private:
     QString m_binary;
     QStringList m_args;
     QThread m_runThread;
+    bool m_running;
 
 signals:
     void printfReceived(QString str);
     void errorOccured(QString str);
+    void runningChanged();
 };
 
 #endif // WASMRUNNER_H

@@ -25,6 +25,7 @@ private:
     QThread m_readThreadOut;
     QThread m_readThreadErr;
     ProgramSpec m_spec;
+    bool m_quitting;
 
 signals:
     void contentRead(const QString line, const bool isStdout);

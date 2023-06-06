@@ -54,25 +54,29 @@ int main(int argc, char *argv[])
     qmlRegisterUncreatableType<QSourceHighliter>("Tide", 1, 0, "SourceHighliter", "Use 'SyntaxHighlighter' instead.");
     qmlRegisterUncreatableType<IosIntegrationDelegate>("Tide", 1, 0, "IosKeyboardReactorDelegate", "Created in main() as 'oskReactor'.");
 
-    IosSystemGlue iosSystemGlue;
-    ImFixerInstaller imFixer;
-    IosIntegrationDelegate oskReactor;
+    int ret;
+    {
+        IosSystemGlue iosSystemGlue;
+        ImFixerInstaller imFixer;
+        IosIntegrationDelegate oskReactor;
 
-    QFont standardFixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    standardFixedFont.setPixelSize(15);
-    standardFixedFont.setStyleHint(QFont::Monospace);
+        QFont standardFixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+        standardFixedFont.setPixelSize(15);
+        standardFixedFont.setStyleHint(QFont::Monospace);
 
-    engine.rootContext()->setContextProperty("standardFixedFont", standardFixedFont);
-    engine.rootContext()->setContextProperty("imFixer", &imFixer);
-    engine.rootContext()->setContextProperty("sysroot", sysroot);
-    engine.rootContext()->setContextProperty("iosSystem", &iosSystemGlue);
-    engine.rootContext()->setContextProperty("oskReactor", &oskReactor);
+        engine.rootContext()->setContextProperty("standardFixedFont", standardFixedFont);
+        engine.rootContext()->setContextProperty("imFixer", &imFixer);
+        engine.rootContext()->setContextProperty("sysroot", sysroot);
+        engine.rootContext()->setContextProperty("iosSystem", &iosSystemGlue);
+        engine.rootContext()->setContextProperty("oskReactor", &oskReactor);
 
-    const QUrl url(u"qrc:/Tide/Main.qml"_qs);
-    QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
-        &app, []() { QCoreApplication::exit(-1); },
-        Qt::QueuedConnection);
-    engine.load(url);
+        const QUrl url(u"qrc:/Tide/Main.qml"_qs);
+        QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
+            &app, []() { QCoreApplication::exit(-1); },
+            Qt::QueuedConnection);
+        engine.load(url);
 
-    return app.exec();
+        ret = app.exec();
+    }
+    return ret;
 }

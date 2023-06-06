@@ -17,10 +17,13 @@ ApplicationWindow {
     readonly property int paddingMedium: 16
     readonly property int roundedCornersRadius: 8
     readonly property int roundedCornersRadiusSmall: 8
-    readonly property int sideBarWidth: 324
+    readonly property int sideBarExpandedDefault: 324
+    readonly property int sideBarWidth: Math.min(sideBarExpandedDefault, width)
+    readonly property int hideSideBarAutomatically: sideBarWidth < sideBarExpandedDefault ||
+                                                    width < height
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
                                                 openFiles.files.length > 0)
-    readonly property bool padStatusBar : Screen.height === height
+    readonly property bool padStatusBar : true
 
     property bool showLeftSideBar: true
     property bool compiling: false
@@ -65,14 +68,13 @@ ApplicationWindow {
             anchors.fill: parent
             spacing: paddingSmall * 2
 
-            ToolButton {
+            TideToolButton {
                 id: sideBarButton
                 icon.source: Qt.resolvedUrl("qrc:/assets/sidebar.left@2x.png")
                 icon.color: root.palette.button
                 onClicked: showLeftSideBar = !showLeftSideBar
                 visible: shouldAllowSidebar
                 leftPadding: paddingMedium * 2
-                hoverEnabled: true
             }
 
             Label {
@@ -87,8 +89,9 @@ ApplicationWindow {
                 verticalAlignment: Label.AlignVCenter
             }
 
-            ToolButton {
+            TideToolButton {
                 visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
+                enabled: !projectBuilder.building
                 icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
                 icon.color: root.palette.button
                 onClicked: {
@@ -99,10 +102,17 @@ ApplicationWindow {
                     projectBuilder.build()
                 }
             }
-            ToolButton {
+            TideToolButton {
                 visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
+                enabled: !wasmRunner.running
                 icon.source: Qt.resolvedUrl("qrc:/assets/play.fill@2x.png")
                 icon.color: root.palette.button
+
+                BusyIndicator {
+                    visible: wasmRunner.running
+                    running: wasmRunner.running
+                    anchors.centerIn: parent
+                }
 
                 WasmRunner {
                     id: wasmRunner
@@ -127,7 +137,7 @@ ApplicationWindow {
                     wasmRunner.run(projectBuilder.runnableFile(), [])
                 }
             }
-            ToolButton {
+            TideToolButton {
                 icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
                 icon.color: root.palette.button
                 rightPadding: paddingMedium * 2
@@ -243,6 +253,9 @@ ApplicationWindow {
         // Also load project in case it's a .pro
         if (modelData.path.endsWith(".pro"))
             projectBuilder.loadProject(modelData.path)
+
+        if (hideSideBarAutomatically)
+            showLeftSideBar = false
     }
 
     // Main container
@@ -311,7 +324,6 @@ ApplicationWindow {
                 id: leftSideBar
                 width: showLeftSideBar ? sideBarWidth : 0
                 height: parent.height
-                //color: root.palette.base
                 clip: true
 
                 Behavior on width {
@@ -336,7 +348,7 @@ ApplicationWindow {
                             width: parent.width
                             height: openFilesArea.height == 0 ?
                                         parent.height :
-                                        (parent.height - fileSeperator.height) / 2
+                                        parent.height / 2
 
                             Behavior on height {
                                 NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
@@ -347,6 +359,22 @@ ApplicationWindow {
                                 width: parent.width
                                 height: parent.height
                                 initialItem: projectsComponent
+                                popEnter: Transition {
+                                    NumberAnimation {
+                                        from: 0.0
+                                        to: 1.0
+                                        properties: "opacity"
+                                        duration: 100
+                                    }
+                                }
+                                pushExit: Transition {
+                                    NumberAnimation {
+                                        from: 1.0
+                                        to: 0.0
+                                        properties: "opacity"
+                                        duration: 100
+                                    }
+                                }
 
                                 Component {
                                     id: projectsComponent
@@ -395,6 +423,9 @@ ApplicationWindow {
                                                       modelData.name
                                             font.pixelSize: 20
                                             color: root.palette.button
+                                            icon.source: modelData.isBookmark ?
+                                                             Qt.resolvedUrl("qrc:/assets/bookmark@2x.png") :
+                                                             Qt.resolvedUrl("qrc:/assets/folder@2x.png")
 
                                             anchors {
                                                 left: parent.left
@@ -472,7 +503,7 @@ ApplicationWindow {
                                             RowLayout {
                                                 anchors.fill: parent
                                                 spacing: paddingSmall * 2
-                                                ToolButton {
+                                                TideToolButton {
                                                     text: qsTr("New file")
                                                     icon.source: Qt.resolvedUrl("qrc:/assets/doc.badge.plus@2x.png")
                                                     icon.color: root.palette.button
@@ -482,7 +513,7 @@ ApplicationWindow {
                                                         newFileDialog.open();
                                                     }
                                                 }
-                                                ToolButton {
+                                                TideToolButton {
                                                     text: qsTr("New directory")
                                                     icon.source: Qt.resolvedUrl("qrc:/assets/plus.rectangle.on.folder@2x.png")
                                                     icon.color: root.palette.button
@@ -510,6 +541,8 @@ ApplicationWindow {
                                                                                : isProject ? Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
                                                                                            : Qt.resolvedUrl("qrc:/assets/doc@2x.png"))
                                             text: isBackButton ? qsTr("Back") : modelData.name
+                                            pressAnimation: !isBackButton
+                                            longPressEnabled: !isBackButton
 
                                             anchors {
                                                 left: parent.left
@@ -575,20 +608,11 @@ ApplicationWindow {
                             }
                         }
 
-                        Rectangle {
-                            id: fileSeperator
-                            color: root.palette.window
-                            height: 1
-                            width: parent.width
-                            visible: openFilesArea.visible
-                        }
-
                         Column {
                             id: openFilesArea
-                            readonly property int usualHeight: (parent.height - fileSeperator.height) / 2
+                            readonly property int usualHeight: (parent.height) / 2
                             width: parent.width
                             height: 0
-                            visible: height > 0
 
                             Behavior on height {
                                 NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
@@ -608,10 +632,18 @@ ApplicationWindow {
                                     RowLayout {
                                         anchors.fill: parent
                                         spacing: paddingSmall * 2
-                                        Label {
-                                            text: qsTr("Open files:")
+                                        TideToolButton {
+                                            Layout.fillWidth: true
+                                            icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
+                                            text: qsTr("Close all")
                                             font.pixelSize: 16
-                                            leftPadding: paddingMedium
+                                            onClicked: {
+                                                console.log("Closing all " + openFiles.files.length + " files")
+                                                for (let i = openFiles.files.length - 1; i >= 0; i--) {
+                                                    console.log("Closing: " + i)
+                                                    openFiles.close(openFiles.files[i])
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -630,7 +662,7 @@ ApplicationWindow {
                                                            : Qt.resolvedUrl("qrc:/assets/doc@2x.png")
                                     color: (editor.file.path === modelData.path) ?
                                                root.palette.button :
-                                               root.palette.text
+                                               root.palette.dark
                                     text: modelData.name
                                     font.pixelSize: 20
                                     onClicked: {
@@ -668,7 +700,7 @@ ApplicationWindow {
 
             Rectangle {
                 color: root.palette.base
-                width: parent.width - leftSideBar.width - paddingSmall
+                width: parent.width - leftSideBar.width
                 height: parent.height
                 clip: true
                 visible: projectList.projects.length > 0
@@ -723,6 +755,7 @@ ApplicationWindow {
             height: (parent.height / 8) * 6
             x: (parent.width - width) / 2
             y: visibility ? ((parent.height - height) / 2) : parent.height
+            opacity: visibility ? 1.0 : 0.0
             border.color: root.palette.text
             border.width: 1
             visible: true
@@ -847,15 +880,10 @@ ApplicationWindow {
                     background: Item { }
                     placeholderText: qsTr("Input:")
                     focus: consoleView.visibility
-                    Keys.onPressed:
-                        (event) => {
-                            if (event.key !== Qt.Key_Return) {
-                                return;
-                            }
-
-                            consoleHandler.write(text + "\n")
-                            text = ""
-                        }
+                    onAccepted: {
+                        consoleHandler.write(text + "\n")
+                        text = ""
+                    }
                     Component.onCompleted: {
                         imFixer.setupImEventFilter(consoleInputField)
                     }

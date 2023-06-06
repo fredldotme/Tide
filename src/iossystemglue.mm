@@ -18,6 +18,14 @@ IosSystemGlue::IosSystemGlue(QObject* parent) : QObject(parent)
     joinMainThread = true;
 }
 
+IosSystemGlue::~IosSystemGlue()
+{
+    fwrite("\n", sizeof(char), 1, m_spec.stdout);
+    fflush(m_spec.stdout);
+    fwrite("\n", sizeof(char), 1, m_spec.stderr);
+    fflush(m_spec.stderr);
+}
+
 void IosSystemGlue::setupStdIo()
 {
     FILE* inWriteEnd = nullptr;

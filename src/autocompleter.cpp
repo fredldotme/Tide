@@ -78,6 +78,20 @@ void AutoCompleter::setIncludePaths(const QStringList paths)
     this->m_includePaths = paths;
 }
 
+QVariantList AutoCompleter::filteredDecls(const QString str)
+{
+    qDebug() << "Filter:" << str;
+    QVariantList ret;
+    for (const auto& decl : m_decls) {
+        const auto declMap = decl.toMap();
+        const auto declName = declMap.value("name").toString();
+        if (declName.contains(str)) {
+            ret << declMap;
+        }
+    }
+    return ret;
+}
+
 void AutoCompleter::foundKind(CompletionKind kind, const QString name)
 {
     QVariantMap decl;

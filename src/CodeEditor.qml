@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import Tide
 
 Item {
@@ -10,8 +11,21 @@ Item {
     property DirectoryListing file : null
     property ProjectBuilder projectBuilder : null
     property OpenFilesManager openFiles : null
+
     property bool invalidated : true
     property bool showAutoCompletor : false
+    onShowAutoCompletorChanged: {
+        codeField.startCursorPosition = codeField.cursorPosition
+    }
+
+    Connections {
+        target: openFiles
+        function onFilesChanged() {
+            if (openFiles.files.length === 0) {
+                invalidate()
+            }
+        }
+    }
 
     signal saveRequested()
 
@@ -129,20 +143,32 @@ Item {
         lineNumberRepeater.model = lineNumbersHelper.lineCount
     }
 
-    Label {
-        visible: codeEditor.invalidated
-        text: qsTr("Select a file to edit")
-        font.pixelSize: 32
+    ColumnLayout {
         anchors.centerIn: parent
-        color: root.palette.mid
+        visible: codeEditor.invalidated
+        spacing: paddingMedium
+        Image {
+            Layout.alignment: Qt.AlignCenter
+            source: Qt.resolvedUrl("qrc:/assets/TideNaked@2x.png")
+            Layout.preferredWidth: Math.min(128, parent.width)
+            Layout.preferredHeight: width
+        }
+        Label {
+            Layout.alignment: Qt.AlignCenter
+            text: qsTr("Select a project or file to edit")
+            font.pixelSize: 32
+            color: root.palette.midlight
+        }
     }
 
     ScrollView {
         id: scrollView
+        contentWidth: -1
         anchors.fill: parent
-        visible: openFiles.files.length > 0
+        visible: !codeEditor.invalidated
 
         Row {
+            id: codeView
             Column {
                 id: lineNumbersColumn
                 width: childrenRect.width
@@ -169,9 +195,16 @@ Item {
                     refreshLineNumbers()
                 }
                 font: fixedFont
-                focus: true
+                focus: !showAutoCompletor
                 wrapMode: TextEdit.WrapAnywhere
                 Component.onCompleted: imFixer.setupImEventFilter(codeField)
+                property int startCursorPosition : 0
+                onCursorPositionChanged: {
+                    if (codeField.cursorPosition < codeField.startCursorPosition)
+                        showAutoCompletor = false
+                }
+
+                readonly property string filterString: autoCompletionInput.text
 
                 Shortcut {
                     sequence: "Ctrl+Shift+S"
@@ -218,8 +251,9 @@ Item {
                 }
 
                 Rectangle {
+                    id: autoCompletorFrame
                     width: Math.min(autoCompletionList.contentItem.childrenRect.width, 300)
-                    height: Math.min(autoCompletionList.contentItem.childrenRect.height, 300)
+                    height: Math.min(autoCompletionList.contentItem.childrenRect.height, 300) + autoCompletionInput.height
                     x: codeField.cursorRectangle.x
                     y: codeField.cursorRectangle.y
                     visible: showAutoCompletor
@@ -228,39 +262,66 @@ Item {
                     border.width: 1
                     radius: root.roundedCornersRadiusSmall
 
-                    ListView {
-                        id: autoCompletionList
+                    Column {
                         anchors.fill: parent
-                        model: autoCompleter.decls
-                        focus: showAutoCompletor
-                        keyNavigationEnabled: true
 
-                        function iconForKind(kind) {
-                            if (kind === AutoCompleter.Function)
-                                return Qt.resolvedUrl("qrc:/assets/function@2x.png");
-                            else if (kind === AutoCompleter.Variable)
-                                return Qt.resolvedUrl("qrc:/assets/v.square@2x.png");
-                            return ""
-                        }
+                        TextField {
+                            id: autoCompletionInput
+                            width: autoCompletionList.width
+                            focus: showAutoCompletor
+                            onFocusChanged: {
+                                if (focus)
+                                    text = ""
+                            }
 
-                        function insertable(name, kind) {
-                            if (kind === AutoCompleter.Function)
-                                return name + "(";
-                            return name;
-                        }
-
-                        delegate: TideButton {
-                            icon.source: autoCompletionList.iconForKind(modelData.kind)
-                            text: modelData.name
-                            font.styleName: "Monospace"
-                            font.bold: true
-                            font.pixelSize: 24
-                            color: root.palette.button
-                            elide: Text.ElideRight
-                            onClicked: {
-                                codeField.insert(codeField.cursorPosition,
-                                                 autoCompletionList.insertable(modelData.name, modelData.kind))
+                            onAccepted: {
+                                codeField.insert(codeField.startCursorPosition,
+                                                 autoCompletionList.insertable(
+                                                     autoCompletionList.model[autoCompletionList.currentIndex].name,
+                                                     autoCompletionList.model[autoCompletionList.currentIndex].kind))
                                 showAutoCompletor = false
+                                text = ""
+                            }
+                        }
+
+                        ListView {
+                            id: autoCompletionList
+                            model: (codeField.filterString === "") ?
+                                       autoCompleter.decls :
+                                       autoCompleter.filteredDecls(codeField.filterString)
+                            width: Math.min(autoCompletionList.contentItem.childrenRect.width, 300)
+                            height: Math.min(autoCompletionList.contentItem.childrenRect.height, 300)
+
+                            function iconForKind(kind) {
+                                if (kind === AutoCompleter.Function)
+                                    return Qt.resolvedUrl("qrc:/assets/function@2x.png");
+                                else if (kind === AutoCompleter.Variable)
+                                    return Qt.resolvedUrl("qrc:/assets/v.square@2x.png");
+                                return ""
+                            }
+
+                            function insertable(name, kind) {
+                                if (kind === AutoCompleter.Function)
+                                    return name + "(";
+                                return name;
+                            }
+
+                            delegate: TideButton {
+                                icon.source: autoCompletionList.iconForKind(modelData.kind)
+                                text: modelData.name
+                                font.styleName: "Monospace"
+                                font.bold: true
+                                font.pixelSize: 24
+                                color: index === autoCompletionList.currentIndex ? root.palette.button : root.palette.dark
+                                elide: Text.ElideRight
+                                onClicked: {
+                                    insertCompletion()
+                                    showAutoCompletor = false
+                                }
+                                function insertCompletion() {
+                                    codeField.insert(codeField.cursorPosition,
+                                                     autoCompletionList.insertable(modelData.name, modelData.kind))
+                                }
                             }
                         }
                     }
