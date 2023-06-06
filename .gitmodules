@@ -8,3 +8,9 @@
 [submodule "3rdparty/libqmakeparser"]
 	path = 3rdparty/libqmakeparser
 	url = https://github.com/fredldotme/libqmakeparser.git
+[submodule "3rdparty/yaml-cpp"]
+	path = 3rdparty/yaml-cpp
+	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "3rdparty/jsoncpp"]
+	path = 3rdparty/jsoncpp
+	url = https://github.com/open-source-parsers/jsoncpp.git
