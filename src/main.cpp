@@ -30,6 +30,7 @@ int main(int argc, char *argv[])
     QQuickStyle::setStyle("iOS");
 #elif defined(Q_OS_LINUX)
     const QString sysroot = QStringLiteral("/usr");
+    QQuickStyle::setStyle("Material");
 #endif
 
     QGuiApplication app(argc, argv);
