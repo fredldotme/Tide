@@ -1,16 +1,22 @@
 cmake_minimum_required(VERSION 3.20)
 
-set(PROJECT_NAME Tide)
+if(IOS)
+    set(PROJECT_NAME Tide)
+endif()
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set(PROJECT_NAME tide)
+endif()
 
 project(${PROJECT_NAME} VERSION 0.1 LANGUAGES CXX)
 project(${PROJECT_NAME} VERSION 0.1 LANGUAGES C)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
+set(CMAKE_AUTOMOC ON)
 
-find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
-
-qt_standard_project_setup()
+# Qt6
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Qml Quick Sql QuickControls2)
 
 include_directories(${PROJECT_NAME}
     # QMake parser
@@ -39,12 +45,6 @@ qt_add_executable(${PROJECT_NAME}
     projects/bookmarkdb.cpp
     projects/projectbuilder.cpp
     projects/projectcreator.cpp
-    platform/ios/projectlist.mm
-    platform/ios/iosintegrationdelegate.mm
-    platform/ios/externalprojectpicker.mm
-    platform/ios/iossystemglue.mm
-    platform/ios/imeventfixer.cpp
-    platform/ios/imfixerinstaller.cpp
 
     # Header-only code
     common/stdiospec.h
@@ -93,6 +93,18 @@ if(IOS)
     set (WAMR_BUILD_LIBC_WASI 1)
     set (WAMR_DISABLE_HW_BOUND_CHECK 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
+
+    qt_add_library(${PROJECT_NAME}-platform
+        STATIC
+
+        # Code
+        platform/ios/iosprojectlist.mm
+        platform/ios/iosintegrationdelegate.mm
+        platform/ios/externalprojectpicker.mm
+        platform/ios/iossystemglue.mm
+        platform/ios/imeventfixer.cpp
+        platform/ios/imfixerinstaller.cpp
+    )
 
     include_directories(${PROJECT_NAME}
         # system() replacement through ios_system (with ios_error.h)
@@ -157,15 +169,34 @@ if(IOS)
 
     # libclang for C++ ASTs
     find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+endif()
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set (WAMR_BUILD_PLATFORM "linux")
+    set (WAMR_BUILD_TARGET "AARCH64")
+    set (WAMR_BUILD_INTERP 1)
+    set (WAMR_BUILD_FAST_INTERP 1)
+    set (WAMR_BUILD_AOT 0)
+    set (WAMR_BUILD_JIT 0)
+    set (WAMR_BUILD_LIBC_BUILTIN 0)
+    set (WAMR_BUILD_LIBC_WASI 1)
+    set (WAMR_DISABLE_HW_BOUND_CHECK 0)
+    set (WAMR_ROOT_DIR ${WAMR_DIR})
+
+    qt_add_library(${PROJECT_NAME}-platform
+        STATIC
+
+        platform/posix/posixsystemglue.cpp
+        platform/posix/projectdirectorypicker.cpp
+        platform/posix/posixintegrationdelegate.cpp
+        platform/posix/nullinputmethodfixerinstaller.cpp
+        platform/posix/posixprojectlist.cpp
+    )
 endif()
 
 # WAMR
 include (${WAMR_DIR}/build-scripts/runtime_lib.cmake)
 add_library(vmlib ${WAMR_RUNTIME_LIB_SOURCE})
-
-# Qt6
-find_package(Qt6 REQUIRED COMPONENTS QuickControls2 Sql)
 
 include_directories(${PROJECT_NAME}
     # Wasm3 runtime
@@ -179,6 +210,13 @@ include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/utility
 )
 
+target_link_libraries(${PROJECT_NAME}-platform
+    PRIVATE
+    Qt6::Core
+    Qt6::Gui
+    Qt6::Sql
+)
+
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
     Qt6::Core
@@ -188,9 +226,11 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::QuickControls2
     Qt6::Sql
     ${IOS_SYSTEM}
+    ${PROJECT_NAME}-platform
     vmlib
 )
 
+# Deployment on iOS
 if(IOS)
     set_property(TARGET ${PROJECT_NAME}
         PROPERTY XCODE_EMBED_FRAMEWORKS

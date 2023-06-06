@@ -1,5 +1,5 @@
-#ifndef PROJECTLIST_H
-#define PROJECTLIST_H
+#ifndef IOSPROJECTLIST_H
+#define IOSPROJECTLIST_H
 
 #include <QObject>
 
@@ -32,4 +32,4 @@ signals:
 
 };
 
-#endif // PROJECTLIST_H
+#endif // IOSPROJECTLIST_H

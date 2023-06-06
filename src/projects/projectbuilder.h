@@ -5,13 +5,13 @@
 
 #include <qmakeparser.h>
 
-#include "iossystemglue.h"
+#include "platform/systemglue.h"
 
 class ProjectBuilder : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(IosSystemGlue* commandRunner MEMBER m_iosSystem NOTIFY commandRunnerChanged)
+    Q_PROPERTY(SystemGlue* commandRunner MEMBER m_iosSystem NOTIFY commandRunnerChanged)
     Q_PROPERTY(bool building MEMBER m_building NOTIFY buildingChanged)
 
 public:
@@ -30,7 +30,7 @@ private:
     QString buildRoot();
     QString hash();
 
-    IosSystemGlue* m_iosSystem;
+    SystemGlue* m_iosSystem;
     QString m_sysroot;
     QString m_projectFile;
     bool m_building;

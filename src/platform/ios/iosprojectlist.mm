@@ -1,4 +1,4 @@
-#include "projectlist.h"
+#include "iosprojectlist.h"
 
 #include <QDirIterator>
 #include <QStandardPaths>

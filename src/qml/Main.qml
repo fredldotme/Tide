@@ -2,7 +2,6 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Window
-import QtQuick.Shapes
 import Tide
 
 ApplicationWindow {
@@ -323,7 +322,7 @@ ApplicationWindow {
                 clip: true
 
                 Behavior on width {
-                    NumberAnimation { duration: 250; easing.type: Easing.OutCubic; }
+                    NumberAnimation { duration: 250; easing.type: Easing.OutCubic; }
                 }
 
                 onWidthChanged: {
@@ -400,7 +399,7 @@ ApplicationWindow {
                                             }
                                         }
 
-                                        Connections {
+                                        Connections {
                                             target: projectCreator
                                             function onProjectCreated() {
                                                 projectList.refresh()
@@ -470,7 +469,7 @@ ApplicationWindow {
                                         function refresh() {
                                             if (project.isBookmark) {
                                                 model = projectPicker.listBookmarkContents(project.bookmark)
-                                            } else {
+                                            } else {
                                                 model = projectList.listDirectoryContents(project.path)
                                             }
                                         }
@@ -714,7 +713,7 @@ ApplicationWindow {
             }
         }
 
-        Rectangle {
+        Rectangle {
             id: dialogShadow
             anchors.fill: parent
             color: root.palette.shadow
@@ -896,7 +895,7 @@ ApplicationWindow {
             standardButtons: Dialog.Ok | Dialog.Cancel
             Component.onCompleted: imFixer.setupImEventFilter(projectName)
 
-            ProjectCreator {
+            ProjectCreator {
                 id: projectCreator
             }
 
