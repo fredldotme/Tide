@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 constexpr uint32_t stack_size = 1048576;
-constexpr uint32_t heap_size = 524288;
+constexpr uint32_t heap_size = 1048576;
 
 WasmRunner::WasmRunner(QObject *parent)
     : QObject{parent}, m_module{nullptr}, m_module_inst{nullptr}, m_exec_env{nullptr}, m_running{false}
