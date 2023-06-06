@@ -3,7 +3,7 @@
 
 #include <QtGlobal>
 
-#ifdef Q_OS_LINUX
+#if defined(Q_OS_LINUX)
 #include "platform/posix/posixsystemglue.h"
 #include "platform/posix/projectdirectorypicker.h"
 #include "platform/posix/posixintegrationdelegate.h"
@@ -15,12 +15,12 @@ typedef ProjectDirectoryPicker ProjectPicker;
 typedef PosixIntegrationDelegate PlatformIntegrationDelegate;
 typedef NullInputMethodFixerInstaller InputMethodFixerInstaller;
 typedef PosixProjectList ProjectList;
-#elif Q_OS_IOS
+#elif defined(Q_OS_IOS)
 #include "platform/ios/iossystemglue.h"
 #include "platform/ios/externalprojectpicker.h"
 #include "platform/ios/iosintegrationdelegate.h"
 #include "platform/ios/imfixerinstaller.h"
-#include "platform/ios/projectlist.h"
+#include "platform/ios/iosprojectlist.h"
 
 typedef IosSystemGlue SystemGlue;
 typedef ExternalProjectPicker ProjectPicker;

@@ -215,6 +215,7 @@ target_link_libraries(${PROJECT_NAME}-platform
     Qt6::Core
     Qt6::Gui
     Qt6::Sql
+    Qt6::Quick
 )
 
 target_link_libraries(${PROJECT_NAME}

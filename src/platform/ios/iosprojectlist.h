@@ -6,7 +6,7 @@
 #include "bookmarkdb.h"
 #include "directorylisting.h"
 
-class ProjectList : public QObject
+class IosProjectList : public QObject
 {
     Q_OBJECT
 
@@ -14,7 +14,7 @@ class ProjectList : public QObject
     Q_PROPERTY(BookmarkDb* bookmarkDb MEMBER m_bookmarkDb NOTIFY bookmarkDbChanged)
 
 public:
-    explicit ProjectList(QObject *parent = nullptr);
+    explicit IosProjectList(QObject *parent = nullptr);
 
     QVariantList projects();
 

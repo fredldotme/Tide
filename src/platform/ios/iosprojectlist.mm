@@ -8,21 +8,21 @@
 
 #import <Foundation/Foundation.h>
 
-ProjectList::ProjectList(QObject *parent)
+IosProjectList::IosProjectList(QObject *parent)
     : QObject{parent}, m_bookmarkDb{nullptr}
 {
-    QObject::connect(this, &ProjectList::bookmarkDbChanged, this, &ProjectList::projectsChanged);
-    QObject::connect(this, &ProjectList::bookmarkDbChanged, this, [=](){
-        QObject::connect(this->m_bookmarkDb, &BookmarkDb::bookmarksChanged, this, &ProjectList::projectsChanged);
+    QObject::connect(this, &IosProjectList::bookmarkDbChanged, this, &IosProjectList::projectsChanged);
+    QObject::connect(this, &IosProjectList::bookmarkDbChanged, this, [=](){
+        QObject::connect(this->m_bookmarkDb, &BookmarkDb::bookmarksChanged, this, &IosProjectList::projectsChanged);
     });
 }
 
-void ProjectList::refresh()
+void IosProjectList::refresh()
 {
     emit projectsChanged();
 }
 
-QVariantList ProjectList::projects()
+QVariantList IosProjectList::projects()
 {
     QVariantList ret;
 
@@ -48,7 +48,7 @@ QVariantList ProjectList::projects()
     return ret;
 }
 
-QList<DirectoryListing> ProjectList::listDirectoryContents(const QString path)
+QList<DirectoryListing> IosProjectList::listDirectoryContents(const QString path)
 {
     QList<DirectoryListing> ret;
     qDebug() << "Iterating through" << path;
@@ -80,7 +80,7 @@ QList<DirectoryListing> ProjectList::listDirectoryContents(const QString path)
     return ret;
 }
 
-void ProjectList::removeProject(const QString path)
+void IosProjectList::removeProject(const QString path)
 {
     QDir dir(path);
     if (!dir.removeRecursively()) {
