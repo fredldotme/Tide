@@ -4,7 +4,7 @@
 #include <QObject>
 #include <QThread>
 
-#include "programspec.h"
+#include "stdiospec.h"
 
 class Console : public QObject
 {
@@ -14,7 +14,7 @@ public:
     ~Console();
 
 public slots:
-    void feedProgramSpec(ProgramSpec spec);
+    void feedProgramSpec(StdioSpec spec);
     void write(const QString str);
 
 private:
@@ -24,7 +24,7 @@ private:
 
     QThread m_readThreadOut;
     QThread m_readThreadErr;
-    ProgramSpec m_spec;
+    StdioSpec m_spec;
     bool m_quitting;
 
 signals:

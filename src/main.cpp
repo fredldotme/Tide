@@ -50,7 +50,7 @@ int main(int argc, char *argv[])
 
     qmlRegisterUncreatableType<IosSystemGlue>("Tide", 1, 0, "IosSystemGlue", "Created in main() as 'iosSystem'.");
     qmlRegisterUncreatableType<ImFixerInstaller>("Tide", 1, 0, "ImFixerInstaller", "Instantiated in main() as 'imFixer'.");
-    qmlRegisterUncreatableType<ProgramSpec>("Tide", 1, 0, "ProgramSpec", "ProgramSpec is protocol between 'iosSystem' and 'Console'.");
+    qmlRegisterUncreatableType<StdioSpec>("Tide", 1, 0, "ProgramSpec", "StdioSpec is protocol between 'iosSystem' and 'Console'.");
     qmlRegisterUncreatableType<QSourceHighliter>("Tide", 1, 0, "SourceHighliter", "Use 'SyntaxHighlighter' instead.");
     qmlRegisterUncreatableType<IosIntegrationDelegate>("Tide", 1, 0, "IosKeyboardReactorDelegate", "Created in main() as 'oskReactor'.");
 
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
         engine.rootContext()->setContextProperty("iosSystem", &iosSystemGlue);
         engine.rootContext()->setContextProperty("oskReactor", &oskReactor);
 
-        const QUrl url(u"qrc:/Tide/Main.qml"_qs);
+        const QUrl url(u"qrc:/Tide/qml/Main.qml"_qs);
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
             &app, []() { QCoreApplication::exit(-1); },
             Qt::QueuedConnection);

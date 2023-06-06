@@ -119,7 +119,7 @@ void WasmRunner::kill()
     }
 }
 
-void WasmRunner::prepareStdio(ProgramSpec spec)
+void WasmRunner::prepareStdio(StdioSpec spec)
 {
     m_spec = spec;
     qDebug() << "stdio prepared";

@@ -22,7 +22,7 @@ Console::~Console()
     m_readThreadErr.wait(1000);
 }
 
-void Console::feedProgramSpec(ProgramSpec spec)
+void Console::feedProgramSpec(StdioSpec spec)
 {
     m_spec.stdin = spec.stdin;
     m_spec.stdout = spec.stdout;

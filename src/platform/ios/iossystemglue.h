@@ -3,7 +3,7 @@
 
 #include <QObject>
 
-#include "programspec.h"
+#include "stdiospec.h"
 
 class IosSystemGlue : public QObject
 {
@@ -18,11 +18,11 @@ public:
     Q_INVOKABLE void setupStdIo();
 
 private:
-    ProgramSpec m_spec;
+    StdioSpec m_spec;
 
 signals:
-    void stdioWritersPrepared(ProgramSpec spec);
-    void stdioCreated(ProgramSpec spec);
+    void stdioWritersPrepared(StdioSpec spec);
+    void stdioCreated(StdioSpec spec);
     void commandEnded(int returnCode);
 };
 

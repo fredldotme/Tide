@@ -3,7 +3,7 @@
 
 #include <QObject>
 
-class ProgramSpec {
+class StdioSpec {
     Q_GADGET
 
 public:
@@ -12,6 +12,6 @@ public:
     FILE* stderr = nullptr;
 };
 
-Q_DECLARE_METATYPE(ProgramSpec)
+Q_DECLARE_METATYPE(StdioSpec)
 
 #endif // PROGRAMSPEC_H

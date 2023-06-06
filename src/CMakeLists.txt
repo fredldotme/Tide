@@ -12,8 +12,6 @@ find_package(Qt6 6.4 REQUIRED COMPONENTS Core Gui Qml Quick Sql)
 
 qt_standard_project_setup()
 
-add_definitions(-Dd_m3HasWASI)
-
 include_directories(${PROJECT_NAME}
     # QMake parser
     ${QMAKEPARSER_DIR}/lib/include
@@ -25,31 +23,31 @@ include_directories(${PROJECT_NAME}
 qt_add_executable(${PROJECT_NAME}
     # Code
     main.cpp
-    externalprojectpicker.mm
-    linenumbershelper.cpp
-    qsourcehighliter.cpp
-    languagedata.cpp
-    qsourcehighliterthemes.cpp
-    syntaxhighlighter.cpp
-    iossystemglue.mm
-    fileio.cpp
-    bookmarkdb.cpp
-    directorylisting.cpp
-    console.cpp
-    openfilesmanager.cpp
-    sysrootmanager.cpp
-    wasmrunner.cpp
-    imeventfixer.cpp
-    imfixerinstaller.cpp
-    projectbuilder.cpp
-    autocompleter.cpp
-    clangwrapper.cpp
-    projectcreator.cpp
-    projectlist.mm
-    iosintegrationdelegate.mm
+    common/directorylisting.cpp
+    common/clangwrapper.cpp
+    editor/linenumbershelper.cpp
+    editor/qsourcehighliter.cpp
+    editor/languagedata.cpp
+    editor/qsourcehighliterthemes.cpp
+    editor/syntaxhighlighter.cpp
+    autocomplete/autocompleter.cpp
+    utility/fileio.cpp
+    utility/console.cpp
+    utility/openfilesmanager.cpp
+    utility/sysrootmanager.cpp
+    utility/wasmrunner.cpp
+    projects/bookmarkdb.cpp
+    projects/projectbuilder.cpp
+    projects/projectcreator.cpp
+    platform/ios/projectlist.mm
+    platform/ios/iosintegrationdelegate.mm
+    platform/ios/externalprojectpicker.mm
+    platform/ios/iossystemglue.mm
+    platform/ios/imeventfixer.cpp
+    platform/ios/imfixerinstaller.cpp
 
     # Header-only code
-    programspec.h
+    common/stdiospec.h
 
     # QMake parser
     ${QMAKEPARSER_DIR}/lib/include/qmakeblock.h
@@ -69,10 +67,10 @@ qt_add_qml_module(${PROJECT_NAME}
     URI Tide
     VERSION 1.0
     QML_FILES
-    Main.qml
-    CodeEditor.qml
-    TideButton.qml
-    TideToolButton.qml
+    qml/Main.qml
+    qml/CodeEditor.qml
+    qml/TideButton.qml
+    qml/TideToolButton.qml
 )
 
 # Build toolchain itself
@@ -95,6 +93,15 @@ if(IOS)
     set (WAMR_BUILD_LIBC_WASI 1)
     set (WAMR_DISABLE_HW_BOUND_CHECK 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
+
+    include_directories(${PROJECT_NAME}
+        # system() replacement through ios_system (with ios_error.h)
+        ${IOS_SYSTEM}
+        ${LLVM_DIR}
+
+        # Platform abstraction
+        ${CMAKE_CURRENT_SOURCE_DIR}/platform/ios
+    )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         MACOSX_BUNDLE_GUI_IDENTIFIER me.fredl.tide
@@ -147,6 +154,10 @@ if(IOS)
     find_library(LINK REQUIRED NAMES link PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(NM REQUIRED NAMES nm PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(OPT REQUIRED NAMES opt PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+
+    # libclang for C++ ASTs
+    find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+
 endif()
 
 # WAMR
@@ -156,16 +167,16 @@ add_library(vmlib ${WAMR_RUNTIME_LIB_SOURCE})
 # Qt6
 find_package(Qt6 REQUIRED COMPONENTS QuickControls2 Sql)
 
-# libclang for C++ ASTs
-find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
-
 include_directories(${PROJECT_NAME}
-    # system() replacement through ios_system (with ios_error.h)
-    ${IOS_SYSTEM}
-    ${LLVM_DIR}
-
     # Wasm3 runtime
     ${WAMR_DIR}/core/iwasm/include
+
+    # App headers
+    ${CMAKE_CURRENT_SOURCE_DIR}/common
+    ${CMAKE_CURRENT_SOURCE_DIR}/autocomplete
+    ${CMAKE_CURRENT_SOURCE_DIR}/editor
+    ${CMAKE_CURRENT_SOURCE_DIR}/projects
+    ${CMAKE_CURRENT_SOURCE_DIR}/utility
 )
 
 target_link_libraries(${PROJECT_NAME}

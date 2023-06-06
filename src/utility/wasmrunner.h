@@ -7,7 +7,7 @@
 #include <wasm_c_api.h>
 #include <wasm_export.h>
 
-#include "programspec.h"
+#include "stdiospec.h"
 
 class WasmRunner : public QObject
 {
@@ -22,7 +22,7 @@ public:
 public slots:
     void run(const QString binary, const QStringList args);
     void kill();
-    void prepareStdio(ProgramSpec spec);
+    void prepareStdio(StdioSpec spec);
 
 private:
     void runInThread();
@@ -31,7 +31,7 @@ private:
     wasm_module_inst_t m_module_inst;
     wasm_exec_env_t m_exec_env;
 
-    ProgramSpec m_spec;
+    StdioSpec m_spec;
 
     QString m_binary;
     QStringList m_args;
