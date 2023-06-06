@@ -1,6 +1,7 @@
 #include "wasmrunner.h"
 
 #include <QDebug>
+#include <QFile>
 #include <QStandardPaths>
 
 #include <iostream>
@@ -8,126 +9,19 @@
 
 #include <unistd.h>
 
-#include <wasm3.h>
-#include <m3_api_wasi.h>
-#include <m3_env.h>
-
-#include "raiiexec.h"
-
-typedef uint32_t wasm_ptr_t;
-typedef uint32_t wasm_size_t;
-
 constexpr uint32_t stack_size = 1048576;
-
-static WasmRunner* g_wasmRunner = nullptr;
+constexpr uint32_t heap_size = 524288;
 
 WasmRunner::WasmRunner(QObject *parent)
-    : QObject{parent}, m_runtime(m_env.new_runtime(stack_size))
+    : QObject{parent}, m_module{nullptr}, m_module_inst{nullptr}, m_exec_env{nullptr}, m_running{false}
 {
-    g_wasmRunner = this;
-    QObject::connect(&m_runThread, &QThread::started, this, &WasmRunner::executeInThread, Qt::DirectConnection);
+    QObject::connect(&m_runThread, &QThread::started, this, &WasmRunner::runInThread, Qt::DirectConnection);
+    wasm_runtime_init();
 }
 
-#if 0
-namespace wasm3 {
-namespace detail {
-template<> struct m3_type_to_sig<char *> : m3_sig<'s'> {};
-template<> struct m3_type_to_sig<const char *> : m3_sig<'s'> {};
-}
-}
-#endif
-
-static M3Result SuppressLookupFailure (M3Result i_result)
+WasmRunner::~WasmRunner()
 {
-    if (i_result == m3Err_functionLookupFailed)
-        return m3Err_none;
-    else
-        return i_result;
-}
-
-m3ApiRawFunction(wasm3_print)
-{
-    m3ApiReturnType (uint32_t);
-
-    m3ApiGetArgMem  (void*,           i_ptr);
-    m3ApiGetArg     (wasm_size_t,     i_size);
-
-    m3ApiCheckMem(i_ptr, i_size);
-
-    qDebug() << Q_FUNC_INFO;
-    const QString content = QString::fromRawData((QChar*)i_ptr, i_size);
-    g_wasmRunner->printStatement(content);
-
-    m3ApiReturn(i_size);
-}
-
-m3ApiRawFunction(wasm3_printf)
-{
-    m3ApiReturnType (int32_t);
-
-    m3ApiGetArgMem  (const char*,    i_fmt);
-    m3ApiGetArgMem  (wasm_ptr_t*,    i_args);
-
-    qDebug() << Q_FUNC_INFO;
-
-    if (m3ApiIsNullPtr(i_fmt)) {
-        m3ApiReturn(0);
-    }
-
-    m3ApiCheckMem(i_fmt, 1);
-    size_t fmt_len = strnlen(i_fmt, 1024);
-    m3ApiCheckMem(i_fmt, fmt_len+1); // include `\0`
-
-    QByteArray buf;
-    buf.reserve(1024);
-    const int length = sprintf(buf.data(), i_fmt, i_args);
-
-    const QString content = QString::fromRawData((QChar*)buf.data(), length);
-    g_wasmRunner->printStatement(content);
-
-    m3ApiReturn(length);
-}
-
-class wasi_module: public wasm3::module
-{
-public:
-    void link_wasi() {
-        m3_LinkWASI(m_module.get());
-    }
-};
-
-void WasmRunner::executeInThread()
-{
-    m_running = true;
-    emit runningChanged();
-
-    try {
-        m_runtime = m_env.new_runtime(stack_size);
-
-        const auto fullPath = m_binary;
-
-        std::ifstream wasm_file(fullPath.toUtf8().data(), std::ios::binary | std::ios::in);
-        if (!wasm_file.is_open()) {
-            throw std::runtime_error("Failed to open wasm file");
-        }
-        wasm3::module mod = m_env.parse_module(wasm_file);
-        m_runtime.load(mod);
-
-        /* hack, this should be upstreamed to wasm3_cpp.h */
-        ((wasi_module*) &mod)->link_wasi();
-
-        wasm3::function main_fn = m_runtime.find_function("main");
-        auto res = main_fn.call<int>(m_binary.toUtf8().data(), m_args.data());
-        std::cout << "result: " << res << std::endl;
-        qDebug() << "Run successful";
-    }
-    catch(std::runtime_error &e) {
-        std::cerr << "WASM3 error: " << e.what() << std::endl;
-        emit errorOccured(e.what());
-    }
-
-    m_running = false;
-    emit runningChanged();
+    wasm_runtime_destroy();
 }
 
 void WasmRunner::run(const QString binary, const QStringList args)
@@ -137,23 +31,96 @@ void WasmRunner::run(const QString binary, const QStringList args)
     m_binary = binary;
     m_args = args;
 
+    kill();
+
     m_runThread.terminate();
     m_runThread.wait(1000);
     m_runThread.start();
 }
 
-void WasmRunner::kill()
+void WasmRunner::runInThread()
 {
-    // TODO
+    char error_buf[128];
+    int main_result;
+    std::vector<char*> args;
+
+    QFile m_binaryFile(m_binary);
+    if (!m_binaryFile.open(QFile::ReadOnly)) {
+        emit errorOccured("Failed to read binary");
+        return;
+    }
+
+    const QByteArray binaryContents = m_binaryFile.readAll();
+
+    m_module = wasm_runtime_load((uint8_t*)binaryContents.data(), binaryContents.size(), error_buf, sizeof(error_buf));
+    if (!m_module) {
+        emit errorOccured("Failed to load wasm module");
+        goto fail;
+    }
+
+    for (const auto& arg : m_args) {
+        args.push_back(arg.toUtf8().data());
+    }
+
+    wasm_runtime_set_wasi_args_ex(m_module,
+                                  nullptr, 0,
+                                  nullptr, 0,
+                                  nullptr, 0,
+                                  args.data(), args.size(),
+                                  dup(fileno(m_spec.stdin)),
+                                  dup(fileno(m_spec.stdout)),
+                                  dup(fileno(m_spec.stderr)));
+
+    m_module_inst = wasm_runtime_instantiate(m_module, stack_size, heap_size, error_buf, sizeof(error_buf));
+    if (!m_module_inst) {
+        const auto error = QString::fromUtf8(error_buf);
+        emit errorOccured("Failed to create module runtime: " + error);
+        goto fail;
+    }
+
+    m_exec_env = wasm_runtime_create_exec_env(m_module_inst, stack_size);
+    if (!m_exec_env) {
+        emit errorOccured("Create wasm execution environment failed.");
+        goto fail;
+    }
+
+    m_running = true;
+    emit runningChanged();
+    if (!wasm_application_execute_main(m_module_inst, 0, NULL)) {
+        const QString err = QStringLiteral("call wasm function main failed. error: %1\n").arg(wasm_runtime_get_exception(m_module_inst));
+        emit errorOccured(err);
+        goto fail;
+    }
+
+    main_result = wasm_runtime_get_wasi_exit_code(m_module_inst);
+    emit runEnded(main_result);
+
+fail:
+    kill();
 }
 
-void WasmRunner::printStatement(QString content)
+void WasmRunner::kill()
 {
-    qDebug() << Q_FUNC_INFO << content;
-    emit printfReceived(content);
+    if (m_running) {
+        m_running = false;
+        emit runningChanged();
+    }
+    if (m_exec_env) {
+        wasm_runtime_destroy_exec_env(m_exec_env);
+        m_exec_env = nullptr;
+    }
+    if (m_module_inst) {
+        wasm_runtime_deinstantiate(m_module_inst);
+        m_module_inst = nullptr;
+    }
+    if (m_module) {
+        wasm_runtime_unload(m_module);
+        m_module = nullptr;
+    }
 }
 
 void WasmRunner::prepareStdio(ProgramSpec spec)
 {
-    m3_SetStreams(spec.stdin, spec.stdout, spec.stderr);
+    m_spec = spec;
+    qDebug() << "stdio prepared";
 }

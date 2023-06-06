@@ -7,9 +7,9 @@ class ProgramSpec {
     Q_GADGET
 
 public:
-    FILE* stdin;
-    FILE* stdout;
-    FILE* stderr;
+    FILE* stdin = nullptr;
+    FILE* stdout = nullptr;
+    FILE* stderr = nullptr;
 };
 
 Q_DECLARE_METATYPE(ProgramSpec)

@@ -4,7 +4,8 @@
 #include <QObject>
 #include <QThread>
 
-#include <wasm3_cpp.h>
+#include <wasm_c_api.h>
+#include <wasm_export.h>
 
 #include "programspec.h"
 
@@ -16,7 +17,7 @@ class WasmRunner : public QObject
 
 public:
     explicit WasmRunner(QObject *parent = nullptr);
-    void printStatement(QString content);
+    ~WasmRunner();
 
 public slots:
     void run(const QString binary, const QStringList args);
@@ -24,10 +25,14 @@ public slots:
     void prepareStdio(ProgramSpec spec);
 
 private:
-    void executeInThread();
+    void runInThread();
 
-    wasm3::environment m_env;
-    wasm3::runtime m_runtime;
+    wasm_module_t m_module;
+    wasm_module_inst_t m_module_inst;
+    wasm_exec_env_t m_exec_env;
+
+    ProgramSpec m_spec;
+
     QString m_binary;
     QStringList m_args;
     QThread m_runThread;
@@ -37,6 +42,7 @@ signals:
     void printfReceived(QString str);
     void errorOccured(QString str);
     void runningChanged();
+    void runEnded(int exitCode);
 };
 
 #endif // WASMRUNNER_H

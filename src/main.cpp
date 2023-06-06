@@ -20,7 +20,7 @@
 #include "autocompleter.h"
 #include "projectcreator.h"
 #include "projectlist.h"
-#include "iosintegrationdelegate.h""
+#include "iosintegrationdelegate.h"
 
 int main(int argc, char *argv[])
 {

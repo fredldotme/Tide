@@ -51,23 +51,6 @@ qt_add_executable(${PROJECT_NAME}
     # Header-only code
     programspec.h
 
-    # Wasm3
-    ${WASM_DIR}/source/m3_api_libc.c
-    ${WASM_DIR}/source/m3_api_meta_wasi.c
-    ${WASM_DIR}/source/m3_api_tracer.c
-    ${WASM_DIR}/source/m3_api_uvwasi.c
-    ${WASM_DIR}/source/m3_api_wasi.c
-    ${WASM_DIR}/source/m3_bind.c
-    ${WASM_DIR}/source/m3_code.c
-    ${WASM_DIR}/source/m3_compile.c
-    ${WASM_DIR}/source/m3_core.c
-    ${WASM_DIR}/source/m3_env.c
-    ${WASM_DIR}/source/m3_exec.c
-    ${WASM_DIR}/source/m3_function.c
-    ${WASM_DIR}/source/m3_info.c
-    ${WASM_DIR}/source/m3_module.c
-    ${WASM_DIR}/source/m3_parse.c
-
     # QMake parser
     ${QMAKEPARSER_DIR}/lib/include/qmakeblock.h
     ${QMAKEPARSER_DIR}/lib/include/qmakecursor.h
@@ -101,17 +84,28 @@ set(WASI_HEADERS ${WASI_DIR}/include)
 set(LLVM_HEADERS ${LLVM_DIR}/build-iphoneos/lib/clang/14.0.0/include)
 set(CLANGRT ${CLANGRT_DIR}/lib/wasi/libclang_rt.builtins-wasm32.a)
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    MACOSX_BUNDLE_GUI_IDENTIFIER me.fredl.tide
-    PRODUCT_BUNDLE_IDENTIFIER me.fredl.tide
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
-    XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
-)
-
 if(IOS)
+    set (WAMR_BUILD_PLATFORM "darwin")
+    set (WAMR_BUILD_TARGET "AARCH64")
+    set (WAMR_BUILD_INTERP 1)
+    set (WAMR_BUILD_FAST_INTERP 1)
+    set (WAMR_BUILD_AOT 0)
+    set (WAMR_BUILD_JIT 0)
+    set (WAMR_BUILD_LIBC_BUILTIN 0)
+    set (WAMR_BUILD_LIBC_WASI 1)
+    set (WAMR_DISABLE_HW_BOUND_CHECK 1)
+    set (WAMR_ROOT_DIR ${WAMR_DIR})
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE_GUI_IDENTIFIER me.fredl.tide
+        PRODUCT_BUNDLE_IDENTIFIER me.fredl.tide
+        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+        MACOSX_BUNDLE TRUE
+        WIN32_EXECUTABLE TRUE
+        XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
+    )
+
     set_target_properties(${PROJECT_NAME} PROPERTIES
         QT_IOS_LAUNCH_SCREEN "${CMAKE_CURRENT_SOURCE_DIR}/assets/LaunchScreen.storyboard")
     target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/assets/Tide@2x.png)
@@ -140,23 +134,27 @@ if(IOS)
     )
 
     set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")
+
+    # LLVM & Clang
+    find_library(IOS_SYSTEM REQUIRED NAMES ios_system PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CLANG REQUIRED NAMES clang PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LLD REQUIRED NAMES lld PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(AR REQUIRED NAMES ar PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(DIS REQUIRED NAMES dis PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LLD REQUIRED NAMES lld PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LLI REQUIRED NAMES lli PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LINK REQUIRED NAMES link PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(NM REQUIRED NAMES nm PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(OPT REQUIRED NAMES opt PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
 endif()
+
+# WAMR
+include (${WAMR_DIR}/build-scripts/runtime_lib.cmake)
+add_library(vmlib ${WAMR_RUNTIME_LIB_SOURCE})
 
 # Qt6
 find_package(Qt6 REQUIRED COMPONENTS QuickControls2 Sql)
-
-# LLVM & Clang
-find_library(IOS_SYSTEM REQUIRED NAMES ios_system PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
-find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
-find_library(CLANG REQUIRED NAMES clang PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
-find_library(LLD REQUIRED NAMES lld PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
-find_library(AR REQUIRED NAMES ar PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
-find_library(DIS REQUIRED NAMES dis PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
-find_library(LLD REQUIRED NAMES lld PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
-find_library(LLI REQUIRED NAMES lli PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
-find_library(LINK REQUIRED NAMES link PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
-find_library(NM REQUIRED NAMES nm PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
-find_library(OPT REQUIRED NAMES opt PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
 
 # libclang for C++ ASTs
 find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
@@ -167,8 +165,7 @@ include_directories(${PROJECT_NAME}
     ${LLVM_DIR}
 
     # Wasm3 runtime
-    ${WASM_DIR}/source
-    ${WASM_DIR}/platforms/cpp/wasm3_cpp/include
+    ${WAMR_DIR}/core/iwasm/include
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -180,49 +177,52 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::QuickControls2
     Qt6::Sql
     ${IOS_SYSTEM}
+    vmlib
 )
 
-set_property(TARGET ${PROJECT_NAME}
-    PROPERTY XCODE_EMBED_FRAMEWORKS
-    ${IOS_SYSTEM}
-    ${LLVM}
-    ${CLANG}
-    ${LLD}
-    ${LLI}
-    ${AR}
-    ${DIS}
-    ${LLD}
-    ${LINK}
-    ${NM}
-    ${OPT}
-    ${LIBCLANG_CPP}
-)
+if(IOS)
+    set_property(TARGET ${PROJECT_NAME}
+        PROPERTY XCODE_EMBED_FRAMEWORKS
+        ${IOS_SYSTEM}
+        ${LLVM}
+        ${CLANG}
+        ${LLD}
+        ${LLI}
+        ${AR}
+        ${DIS}
+        ${LLD}
+        ${LINK}
+        ${NM}
+        ${OPT}
+        ${LIBCLANG_CPP}
+    )
 
-set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY OFF)
-set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY ON)
+    set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY OFF)
+    set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY ON)
 
-set(COMMANDDICTIONARY "${CMAKE_CURRENT_SOURCE_DIR}/commandDictionary.plist")
-target_sources(${PROJECT_NAME} PUBLIC ${COMMANDDICTIONARY})
-set_source_files_properties(${COMMANDDICTIONARY} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+    set(COMMANDDICTIONARY "${CMAKE_CURRENT_SOURCE_DIR}/commandDictionary.plist")
+    target_sources(${PROJECT_NAME} PUBLIC ${COMMANDDICTIONARY})
+    set_source_files_properties(${COMMANDDICTIONARY} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
-# Bundle sysroot
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${WASI_LIBS}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/lib"
-)
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${WASI_HEADERS}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/include"
-)
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy "${CLANGRT}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/lib/wasi/libclang_rt.builtins-wasm32.a"
-)
+    # Bundle sysroot
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${WASI_LIBS}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/lib"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${WASI_HEADERS}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/include"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy "${CLANGRT}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/lib/wasi/libclang_rt.builtins-wasm32.a"
+    )
 
-# Set a few properties for file sharing & UI tweaks
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND plutil -replace UIFileSharingEnabled -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
-)
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND plutil -replace LSSupportsOpeningDocumentsInPlace -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
-)
+    # Set a few properties for file sharing & UI tweaks
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND plutil -replace UIFileSharingEnabled -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND plutil -replace LSSupportsOpeningDocumentsInPlace -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
+    )
+endif()
 
 install(TARGETS ${PROJECT_NAME}
     BUNDLE DESTINATION .

@@ -29,5 +29,6 @@
         <file>assets/bookmark@2x.png</file>
         <file>assets/Tide@2x.png</file>
         <file>assets/TideNaked@2x.png</file>
+        <file>assets/stop.fill@2x.png</file>
     </qresource>
 </RCC>

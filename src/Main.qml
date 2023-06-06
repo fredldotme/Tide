@@ -116,10 +116,6 @@ ApplicationWindow {
 
                 WasmRunner {
                     id: wasmRunner
-                    onPrintfReceived:
-                        (str) => {
-                            console.log("PRINTF: " + str)
-                        }
                     onErrorOccured:
                         (str) => {
                             consoleOutput.append({"content": str, "stdout": false})
@@ -882,7 +878,8 @@ ApplicationWindow {
                     focus: consoleView.visibility
                     onAccepted: {
                         consoleHandler.write(text + "\n")
-                        text = ""
+                        clear()
+                        forceActiveFocus()
                     }
                     Component.onCompleted: {
                         imFixer.setupImEventFilter(consoleInputField)

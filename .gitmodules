@@ -14,3 +14,12 @@
 [submodule "3rdparty/jsoncpp"]
 	path = 3rdparty/jsoncpp
 	url = https://github.com/open-source-parsers/jsoncpp.git
+[submodule "3rdparty/wamr"]
+	path = 3rdparty/wamr
+	url = https://github.com/bytecodealliance/wasm-micro-runtime.git
+[submodule "3rdparty/curl"]
+	path = 3rdparty/curl
+	url = https://github.com/curl/curl.git
+[submodule "3rdparty/openssl"]
+	path = 3rdparty/openssl
+	url = https://github.com/openssl/openssl.git
