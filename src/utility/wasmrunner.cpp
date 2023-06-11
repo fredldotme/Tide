@@ -26,7 +26,7 @@ WasmRunner::~WasmRunner()
 
 void WasmRunner::run(const QString binary, const QStringList args)
 {
-    qDebug() << "Running" << binary;
+    qDebug() << "Running" << binary << args;
 
     m_binary = binary;
     m_args = args;
@@ -42,7 +42,14 @@ void WasmRunner::runInThread()
 {
     char error_buf[128];
     int main_result;
-    std::vector<char*> args;
+    const char *addr_pool[8] = { "0.0.0.0/0" };
+    uint32_t addr_pool_size = 1;
+    const char *ns_lookup_pool[8] = { "*" };
+    uint32_t ns_lookup_pool_size = 1;
+
+    std::vector<std::string> args;
+    std::vector<const char*> cargs;
+    std::vector<const char*> env;
 
     QFile m_binaryFile(m_binary);
     if (!m_binaryFile.open(QFile::ReadOnly)) {
@@ -54,22 +61,30 @@ void WasmRunner::runInThread()
 
     m_module = wasm_runtime_load((uint8_t*)binaryContents.data(), binaryContents.size(), error_buf, sizeof(error_buf));
     if (!m_module) {
-        emit errorOccured("Failed to load wasm module");
+        const auto err = QString::fromUtf8(error_buf, strlen(error_buf));
+        emit errorOccured(QStringLiteral("Failed to load wasm module: %1").arg(err));
         goto fail;
     }
 
+    args.push_back(m_binary.toStdString());
     for (const auto& arg : m_args) {
-        args.push_back(arg.toUtf8().data());
+        args.push_back(arg.toStdString());
+    }
+    for (const auto& arg : args) {
+        cargs.push_back(arg.c_str());
     }
 
     wasm_runtime_set_wasi_args_ex(m_module,
                                   nullptr, 0,
                                   nullptr, 0,
-                                  nullptr, 0,
-                                  args.data(), args.size(),
+                                  env.data(), env.size(),
+                                  (char**)cargs.data(), cargs.size(),
                                   dup(fileno(m_spec.stdin)),
                                   dup(fileno(m_spec.stdout)),
                                   dup(fileno(m_spec.stderr)));
+
+    wasm_runtime_set_wasi_addr_pool(m_module, addr_pool, addr_pool_size);
+    wasm_runtime_set_wasi_ns_lookup_pool(m_module, ns_lookup_pool, ns_lookup_pool_size);
 
     m_module_inst = wasm_runtime_instantiate(m_module, stack_size, heap_size, error_buf, sizeof(error_buf));
     if (!m_module_inst) {

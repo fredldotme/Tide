@@ -26,7 +26,7 @@ QVariantList IosProjectList::projects()
 {
     QVariantList ret;
 
-    const auto documentsRoot = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+    const auto documentsRoot = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + QStringLiteral("/Projects");
     QDirIterator it(documentsRoot, QDir::NoDotAndDotDot | QDir::AllDirs);
     while (it.hasNext()) {
         const auto path = it.next();

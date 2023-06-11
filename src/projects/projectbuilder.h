@@ -28,7 +28,7 @@ public slots:
 
 private:
     QString buildRoot();
-    QString hash();
+    QString projectBuildRoot();
 
     SystemGlue* m_iosSystem;
     QString m_sysroot;

@@ -39,7 +39,13 @@ bool ProjectBuilder::loadProject(const QString path)
 
 void ProjectBuilder::clean()
 {
-    const auto buildDirPath = buildRoot() + "/" + hash();
+    const auto buildDirPath = projectBuildRoot();
+    if (buildDirPath.isEmpty()) {
+        const auto err = "Project's TARGET is not set.";
+        qWarning() << err;
+        return;
+    }
+
     QDir buildDir(buildDirPath);
 
     if (!buildDir.exists()) {
@@ -53,7 +59,13 @@ void ProjectBuilder::clean()
 
 void ProjectBuilder::build()
 {
-    const auto buildDirPath = buildRoot() + "/" + hash();
+    const auto buildDirPath = projectBuildRoot();
+    if (buildDirPath.isEmpty()) {
+        const auto err = "Project's TARGET is not set.";
+        emit buildError(err);
+        return;
+    }
+
     QDir buildDir(buildDirPath);
 
     if (!buildDir.exists()) {
@@ -135,10 +147,10 @@ void ProjectBuilder::build()
     }
 
     const QString linkCommand = QStringLiteral("clang++") +
-                            QStringLiteral(" --sysroot=") + m_sysroot +
-                            objectFlags +
-                            libraryFlags +
-                            QStringLiteral(" -o %1").arg(runnableFile());
+                                QStringLiteral(" --sysroot=") + m_sysroot +
+                                objectFlags +
+                                libraryFlags +
+                                QStringLiteral(" -o %1").arg(runnableFile());
 
     qDebug() << "Link command:" << linkCommand;
     buildCommands << linkCommand;
@@ -167,8 +179,31 @@ void ProjectBuilder::cancel()
 
 QString ProjectBuilder::runnableFile()
 {
-    const auto buildDirPath = buildRoot() + QDir::separator() + hash();
-    const auto runnableFilePath = buildDirPath + QDir::separator() + "a.out";
+    const auto buildDirPath = projectBuildRoot();
+    if (buildDirPath.isEmpty()) {
+        const auto err = "Project's TARGET is not set.";
+        qWarning() << err;
+        return QString();
+    }
+
+    QMakeParser projectParser;
+    projectParser.setProjectFile(m_projectFile);
+
+    const auto variables = projectParser.getVariables();
+    if (variables.find("TARGET") == variables.end()) {
+        const auto err = "No TARGET found in project file.";
+        qWarning() << err;
+        return QString();
+    }
+
+    const auto target = variables.at("TARGET");
+    if (target.values.empty()) {
+        const auto err = "TARGET is empty";
+        qWarning() << err;
+        return QString();
+    }
+
+    const auto runnableFilePath = buildDirPath + QDir::separator() + target.values.front();
     return runnableFilePath;
 }
 
@@ -178,7 +213,7 @@ QStringList ProjectBuilder::includePaths()
     QMakeParser projectParser;
     projectParser.setProjectFile(m_projectFile);
 
-    const auto buildDirPath = buildRoot() + "/" + hash();
+    const auto buildDirPath = projectBuildRoot();
     const auto sourceDirPath = QFileInfo(m_projectFile).absolutePath();
     const auto variables = projectParser.getVariables();
 
@@ -196,10 +231,30 @@ QStringList ProjectBuilder::includePaths()
 
 QString ProjectBuilder::buildRoot()
 {
-    return QStandardPaths::writableLocation(QStandardPaths::CacheLocation) + QStringLiteral("/build");
+    return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+           QStringLiteral("/Artifacts");
+
 }
 
-QString ProjectBuilder::hash()
+QString ProjectBuilder::projectBuildRoot()
 {
-    return QCryptographicHash::hash(m_projectFile.toUtf8(), QCryptographicHash::Sha256).toHex();
+    QString ret = buildRoot() + QDir::separator();
+    QMakeParser projectParser;
+    projectParser.setProjectFile(m_projectFile);
+
+    const auto variables = projectParser.getVariables();
+    if (variables.find("TARGET") == variables.end()) {
+        const auto err = "No TARGET found in project file.";
+        qWarning() << err;
+        return QString();
+    }
+
+    const auto target = variables.at("TARGET");
+    if (target.values.empty()) {
+        const auto err = "TARGET is empty";
+        qWarning() << err;
+        return QString();
+    }
+
+    return ret + target.values.front();
 }

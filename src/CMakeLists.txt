@@ -36,12 +36,14 @@ qt_add_executable(${PROJECT_NAME}
     editor/languagedata.cpp
     editor/qsourcehighliterthemes.cpp
     editor/syntaxhighlighter.cpp
+    editor/cppformatter.cpp
     autocomplete/autocompleter.cpp
     utility/fileio.cpp
     utility/console.cpp
     utility/openfilesmanager.cpp
     utility/sysrootmanager.cpp
     utility/wasmrunner.cpp
+    utility/linuxruntimemanager.cpp
     projects/bookmarkdb.cpp
     projects/projectbuilder.cpp
     projects/projectcreator.cpp
@@ -71,10 +73,15 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/CodeEditor.qml
     qml/TideButton.qml
     qml/TideToolButton.qml
+    qml/SettingsDialog.qml
+    qml/ConsoleView.qml
 )
 
 # Build toolchain itself
 set(LLVM_FRAMEWORKS ${LLVM_DIR}/build-iphoneos/build/Release-iphoneos)
+set(LLVM_LIBS ${LLVM_DIR}/build-iphoneos/lib)
+set(LLVM_INCLUDES ${LLVM_DIR}/build-iphoneos/include)
+set(LLVM_CLANG_INCLUDES ${LLVM_DIR}/build-iphoneos/tools/clang/include)
 
 # Sysroot files
 set(WASI_LIBS ${WASI_DIR}/lib)
@@ -91,6 +98,7 @@ if(IOS)
     set (WAMR_BUILD_JIT 0)
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
+    set (WAMR_BUILD_LIBC_UVWASI 0)
     set (WAMR_DISABLE_HW_BOUND_CHECK 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
 
@@ -123,6 +131,7 @@ if(IOS)
         MACOSX_BUNDLE TRUE
         WIN32_EXECUTABLE TRUE
         XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
+        XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/Tide.entitlements"
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -167,8 +176,27 @@ if(IOS)
     find_library(NM REQUIRED NAMES nm PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(OPT REQUIRED NAMES opt PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
 
+    # Clang's formatting lib and dependencies
+    set(LIBCLANGBASIC "${LLVM_LIBS}/libclangBasic.a")
+    set(LIBCLANGLEX "${LLVM_LIBS}/libclangLex.a")
+    set(LIBCLANGTOOLINGCORE "${LLVM_LIBS}/libclangToolingCore.a")
+    set(LIBCLANGTOOLINGINCLUSIONS "${LLVM_LIBS}/libclangToolingInclusions.a")
+    set(LIBCLANGREWRITE "${LLVM_LIBS}/libclangRewrite.a")
+    set(LIBCLANGFORMAT "${LLVM_LIBS}/libclangFormat.a")
+    include_directories(${PROJECT_NAME}
+        ${LLVM_DIR}/llvm/include
+        ${LLVM_INCLUDES}
+        ${LLVM_FRAMEWORKS}/clang/lib/Format
+        ${LLVM_CLANG_INCLUDES}
+    )
+
     # libclang for C++ ASTs
     find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+
+    # Because CMake doesn't find the Header itself currently
+    include_directories(${PROJECT_NAME}
+        ${LLVM_FRAMEWORKS}/ios_system.framework/Headers
+    )
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -180,7 +208,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set (WAMR_BUILD_JIT 0)
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
-    set (WAMR_DISABLE_HW_BOUND_CHECK 0)
+    set (WAMR_BUILD_LIBC_UVWASI 0)
+    set (WAMR_DISABLE_HW_BOUND_CHECK 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
 
     qt_add_library(${PROJECT_NAME}-platform
@@ -195,7 +224,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 endif()
 
 # WAMR
-include (${WAMR_DIR}/build-scripts/runtime_lib.cmake)
+include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
 add_library(vmlib ${WAMR_RUNTIME_LIB_SOURCE})
 
 include_directories(${PROJECT_NAME}
@@ -227,6 +256,14 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::QuickControls2
     Qt6::Sql
     ${IOS_SYSTEM}
+    ${LLVM}
+    ${LIBCLANGBASIC}
+    ${LIBCLANGLEX}
+    ${LIBCLANGTOOLINGCORE}
+    ${LIBCLANGTOOLINGINCLUSIONS}
+    ${LIBCLANGREWRITE}
+    ${LIBCLANGFORMAT}
+    #LSPClient
     ${PROJECT_NAME}-platform
     vmlib
 )
@@ -256,15 +293,20 @@ if(IOS)
     target_sources(${PROJECT_NAME} PUBLIC ${COMMANDDICTIONARY})
     set_source_files_properties(${COMMANDDICTIONARY} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
-    # Bundle sysroot
+    # Bundle sysroot parts
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${WASI_LIBS}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/lib"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory "${WASI_HEADERS}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/include"
     )
+
+    # Also bundle Clang parts
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy "${CLANGRT}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/lib/wasi/libclang_rt.builtins-wasm32.a"
+        COMMAND ${CMAKE_COMMAND} -E copy "${CLANGRT}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Clang/lib/wasi/libclang_rt.builtins-wasm32.a"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory "${LLVM_HEADERS}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Clang/include"
     )
 
     # Set a few properties for file sharing & UI tweaks

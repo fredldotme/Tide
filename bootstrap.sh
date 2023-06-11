@@ -7,14 +7,40 @@ if [ ! -d tmp ]; then
     mkdir tmp
 fi
 
-# 1) LLVM
 OLD_PWD=$(pwd)
+
+function cmake_wasi_build {
+    if [ -d build ]; then
+        rm -rf build
+    fi
+    mkdir build
+    cd build
+    cmake \
+        -G Ninja \
+        -DCMAKE_SYSTEM_NAME=WASI \
+        -DCMAKE_SYSTEM_VERSION=1 \
+        -DCMAKE_SYSTEM_PROCESSOR=wasm32 \
+        -DCMAKE_C_COMPILER=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang \
+        -DCMAKE_CXX_COMPILER=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang++ \
+        -DCMAKE_ASM_COMPILER=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang \
+        -DCMAKE_AR=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ar \
+        -DCMAKE_RANLIB=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ranlib \
+        -DCMAKE_C_COMPILER_TARGET=wasm32-wasi \
+        -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi \
+        -DCMAKE_ASM_COMPILER_TARGET=wasm32-wasi \
+        -DCMAKE_SYSROOT=$OLD_PWD/tmp/wasi-sysroot \
+        "$1" \
+    ..
+    ninja
+    cd ..
+}
+
+# 1) LLVM
 cd 3rdparty/llvm/
 ./bootstrap.sh
 cd $OLD_PWD
 
 # 2) libclang
-OLD_PWD=$(pwd)
 LIBNAME=libclang
 cd tmp
 rm -rf libclang.framework || true
@@ -27,23 +53,25 @@ plutil -convert binary1 Info.plist
 cd $OLD_PWD
 
 # 3) wasi-sdk
-OLD_PWD=$(pwd)
 cd tmp
 curl -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sysroot-20.0.tar.gz --output wasi-sdk.tar.gz
 tar xvf wasi-sdk.tar.gz
 cd $OLD_PWD
 
 # 4) libclang_rt
-OLD_PWD=$(pwd)
+# ATTENTION: This meddles with the build result of the LLVM build on the macOS side
 cd tmp
 curl -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/libclang_rt.builtins-wasm32-wasi-20.0.tar.gz --output clangrt.tar.gz
 tar xvf clangrt.tar.gz
+cp -a $OLD_PWD/tmp/lib/wasi $OLD_PWD/3rdparty/llvm/build_osx/lib/clang/14.0.0/lib/
 cd $OLD_PWD
 
-# 5) LLVM Header inclusion
-OLD_PWD=$(pwd)
-cp -a $OLD_PWD/3rdparty/llvm/build-iphoneos/lib/clang/14.0.0/include $OLD_PWD/tmp/wasi-sysroot/
-cd $OLD_PWD
+# 5) Posix/Berkely socket support
+cd aux/lib-socket
+cmake_wasi_build
+cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
+cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
+cp $OLD_PWD/3rdparty/wamr/core/iwasm/libraries/lib-socket/inc/wasi_socket_ext.h $OLD_PWD/tmp/wasi-sysroot/include/
 
 # Done!
 exit 0

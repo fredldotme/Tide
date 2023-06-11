@@ -131,6 +131,10 @@ Item {
         id: autoCompleter
     }
 
+    CppFormatter {
+        id: cppFormatter
+    }
+
     Connections {
         target: root.palette
         function onChanged() {
@@ -140,6 +144,9 @@ Item {
 
     function refreshLineNumbers() {
         lineNumberRepeater.model = 0
+        if (invalidated)
+            return;
+
         lineNumberRepeater.model = lineNumbersHelper.lineCount
     }
 
@@ -209,6 +216,9 @@ Item {
                 Shortcut {
                     sequence: "Ctrl+Shift+S"
                     onActivated: {
+                        if (!settings.autocomplete)
+                            return;
+
                         showAutoCompletor = !showAutoCompletor
                         if (showAutoCompletor) {
                             codeEditor.saveRequested() // Implicitly calls reloadAst
@@ -219,6 +229,21 @@ Item {
                 Shortcut {
                     sequence: "Ctrl+S"
                     onActivated: codeEditor.saveRequested()
+                }
+
+                Shortcut {
+                    sequence: "Ctrl+F"
+                    onActivated: {
+                        if (!settings.autoformat)
+                            return;
+
+                        const lang = languageForLowerCaseFileName(file.name.toLowerCase())
+                        if (lang === SourceHighliter.CodeC || lang === SourceHighliter.CodeCpp) {
+                            const replacement = cppFormatter.format(codeField.text, settings.formatStyle)
+                            // TODO: Flash red on formatError() signal
+                            codeField.text = replacement
+                        }
+                    }
                 }
 
                 Rectangle {
@@ -330,3 +355,4 @@ Item {
         }
     }
 }
+

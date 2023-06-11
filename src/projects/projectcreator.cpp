@@ -25,7 +25,7 @@ ProjectCreator::ProjectCreator(QObject *parent)
 bool ProjectCreator::projectExists(const QString targetName)
 {
     const auto projectDirPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
-                                QStringLiteral("/%1").arg(targetName);
+                                QStringLiteral("/Projects/%1").arg(targetName);
     QDir projectDir(projectDirPath);
     return projectDir.exists();
 }
@@ -36,7 +36,7 @@ void ProjectCreator::createProject(const QString targetName)
         return;
 
     const auto projectDirPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
-                                QStringLiteral("/%1").arg(targetName);
+                                QStringLiteral("/Projects/%1").arg(targetName);
     QDir projectDir(projectDirPath);
 
     if (!projectDir.mkpath(projectDirPath)) {

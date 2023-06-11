@@ -1,5 +1,6 @@
 #include <QGuiApplication>
 #include <QFontDatabase>
+#include <QFont>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -17,6 +18,7 @@
 #include "projectbuilder.h"
 #include "autocompleter.h"
 #include "projectcreator.h"
+#include "cppformatter.h"
 
 #include "platform/systemglue.h"
 
@@ -24,7 +26,11 @@ int main(int argc, char *argv[])
 {
 #ifdef Q_OS_IOS
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
-                            QStringLiteral("/Library/usr/lib/clang/14.0.0");
+                            QStringLiteral("/Library/wasi-sysroot");
+
+    const QString runtime = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                            QStringLiteral("/Runtimes/Linux");
+
     qputenv("SYSROOT", sysroot.toUtf8().data());
     qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi");
     QQuickStyle::setStyle("iOS");
@@ -34,8 +40,10 @@ int main(int argc, char *argv[])
 #endif
 
     QGuiApplication app(argc, argv);
-    QQmlApplicationEngine engine;
+    app.setOrganizationDomain("fredl.me");
+    app.setApplicationName("Tide");
 
+    QQmlApplicationEngine engine;
     qmlRegisterType<ProjectPicker>("Tide", 1, 0, "ExternalProjectPicker");
     qmlRegisterType<LineNumbersHelper>("Tide", 1, 0, "LineNumbersHelper");
     qmlRegisterType<SyntaxHighlighter>("Tide", 1, 0, "SyntaxHighlighter");
@@ -50,6 +58,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<AutoCompleter>("Tide", 1, 0, "AutoCompleter");
     qmlRegisterType<ProjectCreator>("Tide", 1, 0, "ProjectCreator");
     qmlRegisterType<ProjectList>("Tide", 1, 0, "ProjectList");
+    qmlRegisterType<CppFormatter>("Tide", 1, 0, "CppFormatter");
 
     qmlRegisterUncreatableType<SystemGlue>("Tide", 1, 0, "IosSystemGlue", "Created in main() as 'iosSystem'.");
     qmlRegisterUncreatableType<StdioSpec>("Tide", 1, 0, "ProgramSpec", "StdioSpec is protocol between 'iosSystem' and 'Console'.");
@@ -69,11 +78,10 @@ int main(int argc, char *argv[])
 
         engine.rootContext()->setContextProperty("standardFixedFont", standardFixedFont);
         engine.rootContext()->setContextProperty("imFixer", &imFixer);
-#ifdef Q_OS_IOS
         engine.rootContext()->setContextProperty("sysroot", sysroot);
-#endif
         engine.rootContext()->setContextProperty("oskReactor", &oskReactor);
         engine.rootContext()->setContextProperty("iosSystem", &iosSystemGlue);
+        engine.rootContext()->setContextProperty("runtime", runtime);
 
         const QUrl url(u"qrc:/Tide/qml/Main.qml"_qs);
 #ifdef Q_OS_IOS

@@ -30,5 +30,6 @@
         <file>assets/Tide@2x.png</file>
         <file>assets/TideNaked@2x.png</file>
         <file>assets/stop.fill@2x.png</file>
+        <file>assets/gearshape.fill@2x.png</file>
     </qresource>
 </RCC>

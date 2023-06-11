@@ -1,3 +1,4 @@
+import QtCore
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -14,7 +15,7 @@ ApplicationWindow {
 
     readonly property int paddingSmall: 8
     readonly property int paddingMedium: 16
-    readonly property int roundedCornersRadius: 8
+    readonly property int roundedCornersRadius: 16
     readonly property int roundedCornersRadiusSmall: 8
     readonly property int sideBarExpandedDefault: 324
     readonly property int sideBarWidth: Math.min(sideBarExpandedDefault, width)
@@ -23,6 +24,7 @@ ApplicationWindow {
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
                                                 openFiles.files.length > 0)
     readonly property bool padStatusBar : true
+    readonly property int defaultFontSize : 14
 
     property bool showLeftSideBar: true
     property bool compiling: false
@@ -40,7 +42,7 @@ ApplicationWindow {
     }
 
     function clearConsoleOutput() {
-        consoleOutput.clear()
+        consoleView.consoleOutput.clear()
     }
 
     onActiveChanged: {
@@ -76,6 +78,20 @@ ApplicationWindow {
                 leftPadding: paddingMedium * 2
             }
 
+            TideToolButton {
+                id: settingsButton
+                icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
+                icon.color: root.palette.button
+                leftPadding: !shouldAllowSidebar ? paddingMedium * 2 : 0
+                onClicked: {
+                    if (settingsDialog.visibility) {
+                        settingsDialog.hide()
+                    } else {
+                        settingsDialog.show()
+                    }
+                }
+            }
+
             Label {
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
@@ -101,6 +117,34 @@ ApplicationWindow {
                     projectBuilder.build()
                 }
             }
+            /*
+            TideToolButton {
+                visible: true
+                enabled: !runtimeRunner.running
+                icon.source: Qt.resolvedUrl("qrc:/assets/xmark.circle.fill@2x.png")
+                icon.color: root.palette.button
+
+                BusyIndicator {
+                    visible: runtimeRunner.running
+                    running: runtimeRunner.running
+                    anchors.centerIn: parent
+                }
+
+                WasmRunner {
+                    id: runtimeRunner
+                    onErrorOccured:
+                        (str) => {
+                            consoleView.consoleOutput.append({"content": str, "stdout": false})
+                            consoleView.show()
+                            consoleView.consoleScrollView.positionViewAtEnd()
+                        }
+                }
+
+                onClicked: {
+                    runtimeRunner.run(runtime + "/out.wasm", ["/bin/bash"])
+                }
+            }
+            */
             TideToolButton {
                 visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
                 enabled: !wasmRunner.running
@@ -117,9 +161,9 @@ ApplicationWindow {
                     id: wasmRunner
                     onErrorOccured:
                         (str) => {
-                            consoleOutput.append({"content": str, "stdout": false})
+                            consoleView.consoleOutput.append({"content": str, "stdout": false})
                             consoleView.show()
-                            consoleScrollView.positionViewAtEnd()
+                            consoleView.consoleScrollView.positionViewAtEnd()
                         }
                 }
 
@@ -189,8 +233,8 @@ ApplicationWindow {
         onContentRead:
             (line, stdout) => {
                 console.log("Output: " + line);
-                consoleOutput.append({"content": line, "stdout": stdout})
-                consoleScrollView.positionViewAtEnd()
+                consoleView.consoleOutput.append({"content": line, "stdout": stdout})
+                consoleView.consoleScrollView.positionViewAtEnd()
             }
     }
 
@@ -200,8 +244,8 @@ ApplicationWindow {
             (str) => {
                 compiling = false
                 console.log("Output: " + str);
-                consoleOutput.append({"content": str, "stdout": false})
-                consoleScrollView.positionViewAtEnd()
+                consoleView.consoleOutput.append({"content": str, "stdout": false})
+                consoleView.consoleScrollView.positionViewAtEnd()
                 consoleView.show()
                 warningSign.flashWarning(qsTr("Build failed!"))
             }
@@ -218,6 +262,7 @@ ApplicationWindow {
         });
         iosSystem.stdioWritersPrepared.connect(function(spec) {
             wasmRunner.prepareStdio(spec)
+            //runtimeRunner.prepareStdio(spec)
         });
         iosSystem.setupStdIo()
 
@@ -707,7 +752,6 @@ ApplicationWindow {
                     projectPicker: projectPicker
                     projectBuilder: projectBuilder
                     openFiles: openFiles
-
                     onSaveRequested: saveCurrentFile()
                 }
             }
@@ -742,149 +786,29 @@ ApplicationWindow {
             }
         }
 
-        Rectangle {
+        SettingsDialog {
+            id: settingsDialog
+            width: (parent.width / 2)
+            height: (parent.height / 2)
+        }
+
+        Settings {
+            id: settings
+            property int fontSize: defaultFontSize
+            onFontSizeChanged: {
+                fixedFont.pixelSize = fontSize
+                editor.refreshLineNumbers()
+            }
+
+            property bool autocomplete: true
+            property bool autoformat: true
+            property int formatStyle : CppFormatter.LLVM
+        }
+
+        ConsoleView {
             id: consoleView
-            color: root.palette.base
-            radius: roundedCornersRadius
             width: (parent.width / 8) * 6
             height: (parent.height / 8) * 6
-            x: (parent.width - width) / 2
-            y: visibility ? ((parent.height - height) / 2) : parent.height
-            opacity: visibility ? 1.0 : 0.0
-            border.color: root.palette.text
-            border.width: 1
-            visible: true
-            clip: true
-
-            property bool hideStdOut: false
-            property bool visibility : false
-
-            function show() {
-                dialogShadow.opacity = 0.3
-                visibility = true;
-                hideStdOut = false
-            }
-
-            function hide() {
-                dialogShadow.opacity = 0.0
-                visibility = false
-            }
-
-            ListModel {
-                id: consoleOutput
-            }
-
-            Behavior on y {
-                NumberAnimation {
-                    duration: dialogShadow.consoleAnimation
-                    easing.type: Easing.OutCubic
-                }
-            }
-
-            Column {
-                anchors.fill: parent
-                clip: true
-
-                ToolBar {
-                    id: consoleToolBar
-                    width: parent.width
-                    RowLayout {
-                        anchors.fill: parent
-                        ToolButton {
-                            icon.source: Qt.resolvedUrl("qrc:/assets/xmark.circle@2x.png")
-                            icon.color: root.palette.button
-                            leftPadding: paddingMedium
-                            onClicked: {
-                                clearConsoleOutput()
-                            }
-                        }
-                        ToolButton {
-                            icon.source: !consoleView.hideStdOut ?
-                                             Qt.resolvedUrl("qrc:/assets/line.3.horizontal.decrease.circle@2x.png")
-                                           : Qt.resolvedUrl("qrc:/assets/line.3.horizontal.decrease.circle.fill@2x.png")
-                            icon.color: !consoleView.hideStdOut ? root.palette.link : root.palette.linkVisited
-                            onClicked: {
-                                consoleView.hideStdOut = !consoleView.hideStdOut
-                            }
-                        }
-
-                        Label {
-                            Layout.fillWidth: true
-                            color: root.palette.text
-                            text: qsTr("Console")
-                            elide: Text.ElideRight
-                            font.bold: true
-                            horizontalAlignment: Label.AlignHCenter
-                            verticalAlignment: Label.AlignVCenter
-                        }
-
-                        ToolButton {
-                            text: qsTr("Close")
-                            font.bold: true
-                            rightPadding: paddingMedium
-                            onClicked: {
-                                consoleView.hide()
-                            }
-                        }
-                    }
-                }
-
-                ScrollView {
-                    width: parent.width
-                    height: parent.height - consoleToolBar.height - consoleInputField.height - (paddingSmall*2)
-                    ListView {
-                        id: consoleScrollView
-                        model: consoleOutput
-                        width: parent.width
-                        clip: true
-                        delegate: Text {
-                            readonly property bool isAllowedLine: !stdout || (stdout && !consoleView.hideStdOut)
-                            id: consoleContentLine
-                            wrapMode: TextArea.WrapAnywhere
-                            font: fixedFont
-                            text: content
-                            color: root.palette.text
-                            width: consoleScrollView.width
-                            height: isAllowedLine ? contentHeight : 0
-                            visible: height > 0
-
-                            Behavior on height {
-                                NumberAnimation {
-                                    duration: 100
-                                    easing.type: Easing.OutCubic
-                                }
-                            }
-
-                            Connections {
-                                target: consoleView
-                                function onHideStdOutChanged() {
-                                    consoleContentLine.height =
-                                            consoleContentLine.isAllowedLine ?
-                                                consoleContentLine.contentHeight : 0
-                                }
-                            }
-                        }
-                    }
-                }
-
-                TextField {
-                    id: consoleInputField
-                    font: fixedFont
-                    width: parent.width
-                    height: font.pixelSize + (paddingSmall*2)
-                    background: Item { }
-                    placeholderText: qsTr("Input:")
-                    focus: consoleView.visibility
-                    onAccepted: {
-                        consoleHandler.write(text + "\n")
-                        clear()
-                        forceActiveFocus()
-                    }
-                    Component.onCompleted: {
-                        imFixer.setupImEventFilter(consoleInputField)
-                    }
-                }
-            }
         }
 
         Dialog {
