@@ -23,3 +23,9 @@
 [submodule "3rdparty/openssl"]
 	path = 3rdparty/openssl
 	url = https://github.com/openssl/openssl.git
+[submodule "3rdparty/lsp-cpp"]
+	path = 3rdparty/lsp-cpp
+	url = https://github.com/fredldotme/lsp-cpp.git
+[submodule "3rdparty/json-c"]
+	path = 3rdparty/json-c
+	url = https://github.com/json-c/json-c.git
