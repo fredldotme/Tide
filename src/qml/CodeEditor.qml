@@ -237,6 +237,9 @@ Item {
                         if (!settings.autoformat)
                             return;
 
+                        if (file.name.endsWith(".pro"))
+                            return;
+
                         const lang = languageForLowerCaseFileName(file.name.toLowerCase())
                         if (lang === SourceHighliter.CodeC || lang === SourceHighliter.CodeCpp) {
                             const replacement = cppFormatter.format(codeField.text, settings.formatStyle)

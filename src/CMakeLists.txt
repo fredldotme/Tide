@@ -15,6 +15,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOMOC ON)
 
+add_subdirectory(lib)
+
 # Qt6
 find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Qml Quick Sql QuickControls2)
 
@@ -176,20 +178,6 @@ if(IOS)
     find_library(NM REQUIRED NAMES nm PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(OPT REQUIRED NAMES opt PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
 
-    # Clang's formatting lib and dependencies
-    set(LIBCLANGBASIC "${LLVM_LIBS}/libclangBasic.a")
-    set(LIBCLANGLEX "${LLVM_LIBS}/libclangLex.a")
-    set(LIBCLANGTOOLINGCORE "${LLVM_LIBS}/libclangToolingCore.a")
-    set(LIBCLANGTOOLINGINCLUSIONS "${LLVM_LIBS}/libclangToolingInclusions.a")
-    set(LIBCLANGREWRITE "${LLVM_LIBS}/libclangRewrite.a")
-    set(LIBCLANGFORMAT "${LLVM_LIBS}/libclangFormat.a")
-    include_directories(${PROJECT_NAME}
-        ${LLVM_DIR}/llvm/include
-        ${LLVM_INCLUDES}
-        ${LLVM_FRAMEWORKS}/clang/lib/Format
-        ${LLVM_CLANG_INCLUDES}
-    )
-
     # libclang for C++ ASTs
     find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
@@ -256,13 +244,6 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::QuickControls2
     Qt6::Sql
     ${IOS_SYSTEM}
-    ${LLVM}
-    ${LIBCLANGBASIC}
-    ${LIBCLANGLEX}
-    ${LIBCLANGTOOLINGCORE}
-    ${LIBCLANGTOOLINGINCLUSIONS}
-    ${LIBCLANGREWRITE}
-    ${LIBCLANGFORMAT}
     #LSPClient
     ${PROJECT_NAME}-platform
     vmlib
@@ -284,6 +265,7 @@ if(IOS)
         ${NM}
         ${OPT}
         ${LIBCLANG_CPP}
+        ${PROJECT_NAME}-Formatter
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY OFF)

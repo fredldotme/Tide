@@ -24,7 +24,6 @@ ApplicationWindow {
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
                                                 openFiles.files.length > 0)
     readonly property bool padStatusBar : true
-    readonly property int defaultFontSize : 14
 
     property bool showLeftSideBar: true
     property bool compiling: false
@@ -792,11 +791,51 @@ ApplicationWindow {
             height: (parent.height / 2)
         }
 
+        ListModel {
+            id: availableFontSizes
+            ListElement {
+                text: "10"
+            }
+            ListElement {
+                text: "12"
+            }
+            ListElement {
+                text: "14"
+            }
+            ListElement {
+                text: "16"
+            }
+            ListElement {
+                text: "18"
+            }
+            ListElement {
+                text: "20"
+            }
+            ListElement {
+                text: "22"
+            }
+            ListElement {
+                text: "24"
+            }
+            ListElement {
+                text: "26"
+            }
+            ListElement {
+                text: "28"
+            }
+            ListElement {
+                text: "30"
+            }
+            ListElement {
+                text: "32"
+            }
+        }
+
         Settings {
             id: settings
-            property int fontSize: defaultFontSize
+            property int fontSize: 2
             onFontSizeChanged: {
-                fixedFont.pixelSize = fontSize
+                fixedFont.pixelSize = parseInt(availableFontSizes.get(fontSize).text)
                 editor.refreshLineNumbers()
             }
 

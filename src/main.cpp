@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
         PlatformIntegrationDelegate oskReactor;
 
         QFont standardFixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-        standardFixedFont.setPixelSize(15);
+        standardFixedFont.setPixelSize(14);
         standardFixedFont.setStyleHint(QFont::Monospace);
 
         engine.rootContext()->setContextProperty("standardFixedFont", standardFixedFont);

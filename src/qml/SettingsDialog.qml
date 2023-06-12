@@ -11,7 +11,7 @@ Rectangle {
     visible: true
     clip: true
 
-    readonly property bool paneHeight : mainColumn.height
+    readonly property bool paneHeight : mainPane.height
 
     property bool visibility : false
 
@@ -64,6 +64,7 @@ Rectangle {
         }
 
         Pane {
+            id: mainPane
             width: parent.width
             contentWidth: -1
 
@@ -76,34 +77,10 @@ Rectangle {
                     ComboBox {
                         id: fontSizeComboBox
                         editable: false
-                        model: ListModel {
-                            ListElement {
-                                text: "10"
-                            }
-                            ListElement {
-                                text: "12"
-                            }
-                            ListElement {
-                                text: "14"
-                            }
-                            ListElement {
-                                text: "16"
-                            }
-                            ListElement {
-                                text: "18"
-                            }
-                            ListElement {
-                                text: "20"
-                            }
-                            ListElement {
-                                text: "22"
-                            }
-                            ListElement {
-                                text: "24"
-                            }
-                        }
+                        model: availableFontSizes
+                        currentIndex: settings.fontSize
                         onCurrentIndexChanged: {
-                            settings.fontSize = parseInt(currentText)
+                            settings.fontSize = currentIndex
                         }
                     }
                 }
@@ -142,29 +119,13 @@ Rectangle {
                                 text: "Chromium"
                             }
                         }
-
+                        currentIndex: settings.formatStyle
                         onCurrentIndexChanged: {
                             settings.formatStyle = currentIndex
                         }
                     }
                 }
             }
-        }
-
-        Component.onCompleted: {
-            // Format style
-            formatStyleComboBox.currentIndex = settings.formatStyle
-
-            // Font size
-            let index = 0;
-            for (let data in fontSizeComboBox.model) {
-                if (parseInt(data.text) === settings.fontSize) {
-                    fontSizeComboBox.currentIndex = index;
-                    return;
-                }
-                ++index;
-            }
-            fontSizeComboBox.currentIndex = 2;
         }
     }
 }

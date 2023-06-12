@@ -1,56 +1,38 @@
 #include "cppformatter.h"
 
+#include <QCoreApplication>
 #include <QDebug>
 
-#include <clang/Basic/FileManager.h>
-#include <clang/Basic/Diagnostic.h>
-#include <clang/Basic/DiagnosticIDs.h>
-#include <clang/Basic/SourceManager.h>
-#include <clang/Format/Format.h>
-
-using namespace clang;
+#include <dlfcn.h>
 
 CppFormatter::CppFormatter(QObject *parent)
-    : QObject{parent}
+    : QObject{parent}, handle{nullptr}
 {
-
 }
 
 QString CppFormatter::format(QString text, FormattingStyle formatStyle)
 {
-    QString ret;
-    QByteArray buffer = text.toUtf8();
-    format::FormatStyle style;
+    const auto libPath = qApp->applicationDirPath() + "/Frameworks/Tide-Formatter.framework/Tide-Formatter";
+    this->handle = dlopen(libPath.toUtf8().data(), RTLD_NOW);
 
-    switch (formatStyle) {
-    case LLVM:
-        style = format::getLLVMStyle(format::FormatStyle::LK_Cpp);
-        break;
-    case Google:
-        style = format::getGoogleStyle(format::FormatStyle::LK_Cpp);
-        break;
-    case Chromium:
-        style = format::getChromiumStyle(format::FormatStyle::LK_Cpp);
-        break;
-    default:
-        qWarning() << "No known format style? Defaulting to LLVM";
-        style = format::getLLVMStyle(format::FormatStyle::LK_Cpp);
-        break;
-    }
-
-    auto range = clang::tooling::Range(0, buffer.size());
-
-    auto includeReplaces = format::sortIncludes(style, buffer.data(), {range}, "<stdin>");
-    auto codeReplaces = reformat(style, buffer.data(), range);
-
-    auto replaces = includeReplaces.merge(codeReplaces);
-    auto result = applyAllReplacements(buffer.data(), replaces);
-
-    if (!result) {
-        qWarning() << "Formatted garbage, returning original";
+    if (!this->handle) {
+        qWarning() << "Failed to load TideFormatter from" << libPath;
         emit formatError();
         return text;
     }
 
-    return result.get().c_str();
+    *(void**)(&formatCode) = dlsym(this->handle, "formatCode");
+    char* formattedCode = formatCode(text.toUtf8().data(), (int)formatStyle);
+    dlclose(this->handle);
+    this->handle = nullptr;
+
+    if (!formattedCode) {
+        emit formatError();
+        return text;
+    }
+
+    QString ret = QString::fromUtf8(formattedCode, strlen(formattedCode));
+    delete[] formattedCode;
+
+    return ret;
 }

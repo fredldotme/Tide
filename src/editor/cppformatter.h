@@ -20,6 +20,10 @@ public:
 public slots:
     QString format(QString text, FormattingStyle formatStyle);
 
+private:
+    void* handle;
+    char* (*formatCode)(const char* text, int formatting);
+
 signals:
     void formatError();
 };
