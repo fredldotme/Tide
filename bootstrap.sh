@@ -25,10 +25,12 @@ function cmake_wasi_build {
         -DCMAKE_ASM_COMPILER=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang \
         -DCMAKE_AR=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ar \
         -DCMAKE_RANLIB=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ranlib \
-        -DCMAKE_C_COMPILER_TARGET=wasm32-wasi \
-        -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi \
-        -DCMAKE_ASM_COMPILER_TARGET=wasm32-wasi \
+        -DCMAKE_C_COMPILER_TARGET=wasm32-wasi-threads \
+        -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi-threads \
+        -DCMAKE_ASM_COMPILER_TARGET=wasm32-wasi-threads \
         -DCMAKE_SYSROOT=$OLD_PWD/tmp/wasi-sysroot \
+        -DCMAKE_C_FLAGS="-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory" \
+        -DCMAKE_CXX_FLAGS="-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory" \
         "$1" \
     ..
     ninja
@@ -69,9 +71,14 @@ cd $OLD_PWD
 # 5) Posix/Berkely socket support
 cd aux/lib-socket
 cmake_wasi_build
-cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
 cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
 cp $OLD_PWD/3rdparty/wamr/core/iwasm/libraries/lib-socket/inc/wasi_socket_ext.h $OLD_PWD/tmp/wasi-sysroot/include/
+cd $OLD_PWD
+
+# 6) Rust
+#cd 3rdparty/rust
+#./bootstrap.sh
+#cd $OLD_PWD
 
 # Done!
 exit 0

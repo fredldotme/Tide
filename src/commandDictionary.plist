@@ -99,13 +99,20 @@
 		<string>main</string>
 		<string></string>
 		<string>file</string>
-	</array>
-	<key>clang++</key>
-	<array>
-		<string>clang.framework/clang</string>
-		<string>main</string>
-		<string></string>
-		<string>file</string>
-	</array>
+        </array>
+        <key>clang++</key>
+        <array>
+                <string>clang.framework/clang</string>
+                <string>main</string>
+                <string></string>
+                <string>file</string>
+        </array>
+        <key>rustc</key>
+        <array>
+                <string>rustc.framework/rustc</string>
+                <string>main</string>
+                <string></string>
+                <string>file</string>
+        </array>
 </dict>
 </plist>

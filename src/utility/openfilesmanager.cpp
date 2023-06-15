@@ -60,3 +60,9 @@ QVariantList OpenFilesManager::files()
     }
     return ret;
 }
+
+DirectoryListing OpenFilesManager::open(const QString path)
+{
+    DirectoryListing listing(DirectoryListing::File, path);
+    return listing;
+}

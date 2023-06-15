@@ -2,10 +2,9 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Rectangle {
+Pane {
     id: settingsDialog
     x: (parent.width - width) / 2
-    radius: roundedCornersRadius
     y: visibility ? ((parent.height - height) / 2) : parent.height
     opacity: visibility ? 1.0 : 0.0
     visible: true

@@ -101,6 +101,7 @@ void WasmRunner::runInThread()
 
     m_running = true;
     emit runningChanged();
+
     if (!wasm_application_execute_main(m_module_inst, 0, NULL)) {
         const QString err = QStringLiteral("call wasm function main failed. error: %1\n").arg(wasm_runtime_get_exception(m_module_inst));
         emit errorOccured(err);

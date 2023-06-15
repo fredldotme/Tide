@@ -31,5 +31,13 @@
         <file>assets/TideNaked@2x.png</file>
         <file>assets/stop.fill@2x.png</file>
         <file>assets/gearshape.fill@2x.png</file>
+        <file>assets/magnifyingglass.circle.fill@2x.png</file>
+        <file>assets/hammer.circle@2x.png</file>
+        <file>assets/pencil.line@2x.png</file>
+        <file>assets/doc.on.doc@2x.png</file>
+        <file>assets/link@2x.png</file>
+        <file>assets/square.and.arrow.up@2x.png</file>
+        <file>assets/square.and.arrow.up.circle.fill@2x.png</file>
+        <file>assets/briefcase.circle.fill@2x.png</file>
     </qresource>
 </RCC>

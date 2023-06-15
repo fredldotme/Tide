@@ -19,6 +19,7 @@ public slots:
     void push(DirectoryListing listing);
     void close(DirectoryListing listing);
     void closeAllByBookmark(QByteArray bookmark);
+    DirectoryListing open(const QString path);
 
 private:
     QVariantList files();

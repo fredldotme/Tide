@@ -2,6 +2,7 @@
 #define PROJECTBUILDER_H
 
 #include <QObject>
+#include <QString>
 
 #include <qmakeparser.h>
 
@@ -13,6 +14,7 @@ class ProjectBuilder : public QObject
 
     Q_PROPERTY(SystemGlue* commandRunner MEMBER m_iosSystem NOTIFY commandRunnerChanged)
     Q_PROPERTY(bool building MEMBER m_building NOTIFY buildingChanged)
+    Q_PROPERTY(QString projectFile MEMBER m_projectFile NOTIFY projectFileChanged)
 
 public:
     explicit ProjectBuilder(QObject *parent = nullptr);
@@ -25,9 +27,10 @@ public slots:
     void cancel();
     QString runnableFile();
     QStringList includePaths();
+    QString buildRoot();
+    QString sourceRoot();
 
 private:
-    QString buildRoot();
     QString projectBuildRoot();
 
     SystemGlue* m_iosSystem;
@@ -36,6 +39,7 @@ private:
     bool m_building;
 
 signals:
+    void projectFileChanged();
     void commandRunnerChanged();
     void buildingChanged();
     void buildSuccess();

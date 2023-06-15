@@ -18,15 +18,14 @@ ApplicationWindow {
     readonly property int roundedCornersRadius: 16
     readonly property int roundedCornersRadiusSmall: 8
     readonly property int sideBarExpandedDefault: 324
-    readonly property int sideBarWidth: Math.min(sideBarExpandedDefault, width)
-    readonly property int hideSideBarAutomatically: sideBarWidth < sideBarExpandedDefault ||
-                                                    width < height
+    readonly property int sideBarWidth: width > height ? Math.min(sideBarExpandedDefault, width) : width
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
                                                 openFiles.files.length > 0)
     readonly property bool padStatusBar : true
 
     property bool showLeftSideBar: true
     property bool compiling: false
+    property bool releaseRequested : false
     property font fixedFont: standardFixedFont
 
     function saveCurrentFile() {
@@ -64,127 +63,139 @@ ApplicationWindow {
     header: ToolBar {
         topPadding: padStatusBar ? oskReactor.statusBarHeight : 0
         width: parent.width
-        RowLayout {
+        Column {
             anchors.fill: parent
             spacing: paddingSmall * 2
 
-            TideToolButton {
-                id: sideBarButton
-                icon.source: Qt.resolvedUrl("qrc:/assets/sidebar.left@2x.png")
-                icon.color: root.palette.button
-                onClicked: showLeftSideBar = !showLeftSideBar
-                visible: shouldAllowSidebar
-                leftPadding: paddingMedium * 2
-            }
+            RowLayout {
+                spacing: paddingSmall * 2
+                width: parent.width
 
-            TideToolButton {
-                id: settingsButton
-                icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
-                icon.color: root.palette.button
-                leftPadding: !shouldAllowSidebar ? paddingMedium * 2 : 0
-                onClicked: {
-                    if (settingsDialog.visibility) {
-                        settingsDialog.hide()
-                    } else {
-                        settingsDialog.show()
+                TideToolButton {
+                    id: sideBarButton
+                    icon.source: Qt.resolvedUrl("qrc:/assets/sidebar.left@2x.png")
+                    icon.color: root.palette.button
+                    onClicked: showLeftSideBar = !showLeftSideBar
+                    visible: shouldAllowSidebar
+                    leftPadding: paddingMedium * 2
+                }
+
+                TideToolButton {
+                    id: settingsButton
+                    icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
+                    icon.color: root.palette.button
+                    leftPadding: !shouldAllowSidebar ? paddingMedium * 2 : 0
+                    onClicked: {
+                        if (settingsDialog.visibility) {
+                            settingsDialog.hide()
+                        } else {
+                            settingsDialog.show()
+                        }
                     }
                 }
-            }
 
-            Label {
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignHCenter
-                color: root.palette.button
-                text: compiling ? qsTr("Compiling... get your swords!") :
-                                  ""
-                elide: Text.ElideRight
-                font.bold: true
-                horizontalAlignment: Label.AlignHCenter
-                verticalAlignment: Label.AlignVCenter
-            }
-
-            TideToolButton {
-                visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
-                enabled: !projectBuilder.building
-                icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
-                icon.color: root.palette.button
-                onClicked: {
-                    saveCurrentFile()
-                    compiling = true
-
-                    projectBuilder.clean()
-                    projectBuilder.build()
-                }
-            }
-            /*
-            TideToolButton {
-                visible: true
-                enabled: !runtimeRunner.running
-                icon.source: Qt.resolvedUrl("qrc:/assets/xmark.circle.fill@2x.png")
-                icon.color: root.palette.button
-
-                BusyIndicator {
-                    visible: runtimeRunner.running
-                    running: runtimeRunner.running
-                    anchors.centerIn: parent
+                Label {
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignHCenter
+                    color: root.palette.button
+                    text: compiling ? qsTr("Compiling... get your swords!") :
+                                      ""
+                    elide: Text.ElideRight
+                    font.bold: true
+                    horizontalAlignment: Label.AlignHCenter
+                    verticalAlignment: Label.AlignVCenter
                 }
 
-                WasmRunner {
-                    id: runtimeRunner
-                    onErrorOccured:
-                        (str) => {
-                            consoleView.consoleOutput.append({"content": str, "stdout": false})
+                TideToolButton {
+                    visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
+                    enabled: !projectBuilder.building
+                    icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
+                    icon.color: root.palette.button
+                    onClicked: {
+                        saveCurrentFile()
+                        compiling = true
+
+                        projectBuilder.clean()
+                        projectBuilder.build()
+                    }
+                }
+
+                /*
+                TideToolButton {
+                    visible: true
+                    enabled: !runtimeRunner.running
+                    icon.source: Qt.resolvedUrl("qrc:/assets/xmark.circle.fill@2x.png")
+                    icon.color: root.palette.button
+
+                    BusyIndicator {
+                        visible: runtimeRunner.running
+                        running: runtimeRunner.running
+                        anchors.centerIn: parent
+                    }
+
+                    WasmRunner {
+                        id: runtimeRunner
+                        onErrorOccured:
+                            (str) => {
+                                consoleView.consoleOutput.append({"content": str, "stdout": false})
+                                consoleView.show()
+                                consoleView.consoleScrollView.positionViewAtEnd()
+                            }
+                    }
+
+                    onClicked: {
+                        runtimeRunner.run(runtime + "/out.wasm", ["/bin/bash"])
+                    }
+                }
+                */
+
+                TideToolButton {
+                    visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
+                    enabled: !wasmRunner.running
+                    icon.source: Qt.resolvedUrl("qrc:/assets/play.fill@2x.png")
+                    icon.color: root.palette.button
+
+                    BusyIndicator {
+                        visible: wasmRunner.running
+                        running: wasmRunner.running
+                        anchors.centerIn: parent
+                    }
+
+                    WasmRunner {
+                        id: wasmRunner
+                        onErrorOccured:
+                            (str) => {
+                                consoleView.consoleOutput.append({"content": str, "stdout": false})
+                                consoleView.show()
+                                consoleView.consoleScrollView.positionViewAtEnd()
+                            }
+                    }
+
+                    onClicked: {
+                        if (!editor)
+                            return;
+
+                        const killOnly = wasmRunner.running
+
+                        wasmRunner.kill();
+                        if (killOnly)
+                            return;
+
+                        consoleView.show();
+                        wasmRunner.run(projectBuilder.runnableFile(), [])
+                    }
+                }
+                TideToolButton {
+                    icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
+                    icon.color: root.palette.button
+                    rightPadding: paddingMedium * 2
+
+                    onClicked: {
+                        if (consoleView.visibility)
+                            consoleView.hide()
+                        else
                             consoleView.show()
-                            consoleView.consoleScrollView.positionViewAtEnd()
-                        }
-                }
-
-                onClicked: {
-                    runtimeRunner.run(runtime + "/out.wasm", ["/bin/bash"])
-                }
-            }
-            */
-            TideToolButton {
-                visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
-                enabled: !wasmRunner.running
-                icon.source: Qt.resolvedUrl("qrc:/assets/play.fill@2x.png")
-                icon.color: root.palette.button
-
-                BusyIndicator {
-                    visible: wasmRunner.running
-                    running: wasmRunner.running
-                    anchors.centerIn: parent
-                }
-
-                WasmRunner {
-                    id: wasmRunner
-                    onErrorOccured:
-                        (str) => {
-                            consoleView.consoleOutput.append({"content": str, "stdout": false})
-                            consoleView.show()
-                            consoleView.consoleScrollView.positionViewAtEnd()
-                        }
-                }
-
-                onClicked: {
-                    if (!editor)
-                        return;
-
-                    consoleView.show()
-                    wasmRunner.kill();
-                    wasmRunner.run(projectBuilder.runnableFile(), [])
-                }
-            }
-            TideToolButton {
-                icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
-                icon.color: root.palette.button
-                rightPadding: paddingMedium * 2
-
-                onClicked: {
-                    if (consoleView.visibility)
-                        consoleView.hide()
-                    else
-                        consoleView.show()
+                    }
                 }
             }
         }
@@ -199,6 +210,10 @@ ApplicationWindow {
         bookmarkDb: BookmarkDb {
             id: bookmarkDb
         }
+    }
+
+    ProjectCreator {
+        id: projectCreator
     }
 
     FileIo {
@@ -246,11 +261,17 @@ ApplicationWindow {
                 consoleView.consoleOutput.append({"content": str, "stdout": false})
                 consoleView.consoleScrollView.positionViewAtEnd()
                 consoleView.show()
+                releaseRequested = false
                 warningSign.flashWarning(qsTr("Build failed!"))
             }
         onBuildSuccess: {
             compiling = false
             warningSign.flashSuccess(qsTr("Build successful!"))
+
+            if (releaseRequested) {
+                releaseRequested = false
+                Qt.openUrlExternally("shareddocuments://" + projectBuilder.runnableFile())
+            }
         }
     }
 
@@ -293,8 +314,13 @@ ApplicationWindow {
         if (modelData.path.endsWith(".pro"))
             projectBuilder.loadProject(modelData.path)
 
-        if (hideSideBarAutomatically)
+        if (root.width < root.height)
             showLeftSideBar = false
+    }
+
+    function openEditorFile(file) {
+        const listing = openFiles.open(file);
+        openEditor(listing)
     }
 
     // Main container
@@ -337,7 +363,13 @@ ApplicationWindow {
                     height: startPage.sideLength
                     color: root.palette.button
                     text: qsTr("Create")
-                    onClicked: createProjectDialog.open()
+                    onClicked: {
+                        let createProjectDialog = createProjectDialogComponent.createObject(root)
+                        createProjectDialog.done.connect(function() {
+                            createProjectDialog.destroy()
+                        })
+                        createProjectDialog.open()
+                    }
                 }
                 TideButton {
                     icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.down.on.square@2x.png")
@@ -364,6 +396,10 @@ ApplicationWindow {
                 width: showLeftSideBar ? sideBarWidth : 0
                 height: parent.height
                 clip: true
+                topInset: 0
+                topPadding: 0
+                leftPadding: 0
+                rightPadding: 0
 
                 Behavior on width {
                     NumberAnimation { duration: 250; easing.type: Easing.OutCubic; }
@@ -378,16 +414,90 @@ ApplicationWindow {
 
                 Pane {
                     anchors.fill: parent
+                    topInset: 0
+                    topPadding: contextField.visibility ? 0 : paddingMedium
 
                     Column {
                         width: parent.width
                         height: parent.height
 
                         Column {
+                            id: contextField
+                            width: parent.width
+                            clip: true
+
+                            readonly property bool visibility: openFiles.files.length > 0
+                            height: visibility ? childrenRect.height : 0
+                            visible: height > 0
+                            Behavior on height {
+                                NumberAnimation {
+                                    duration: 100
+                                    easing.type: Easing.OutCubic
+                                }
+                            }
+
+                            TideToolButton {
+                                id: contextFieldSearchButton
+                                leftPadding: paddingMedium * 2
+                                text: qsTr("Find and replace")
+                                icon.source: Qt.resolvedUrl("qrc:/assets/magnifyingglass.circle.fill@2x.png")
+                                icon.color: root.palette.button
+                                flat: true
+
+                                //Layout.alignment: Qt.AlignHCenter
+
+                                onClicked: {
+                                    let root = editor.file.path
+                                    if (contextDialog.visibility)
+                                        contextDialog.hide()
+                                    else
+                                        contextDialog.show(root)
+                                }
+                            }
+
+                            TideToolButton {
+                                id: shareButton
+                                leftPadding: paddingMedium * 2
+                                text: qsTr("Share")
+                                icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.up.circle.fill@2x.png")
+                                icon.color: root.palette.button
+                                flat: false
+
+                                Layout.alignment: Qt.AlignHCenter
+
+                                onClicked: {
+                                    const coords = shareButton.mapToGlobal(0, 0)
+                                    const pos = Qt.rect(coords.x, coords.y, width, height)
+                                    saveCurrentFile()
+                                    iosSystem.share("", "file://" + editor.file.path, pos)
+                                }
+                            }
+
+                            TideToolButton {
+                                id: releaseButton
+                                leftPadding: paddingMedium * 2
+                                text: qsTr("Release")
+                                icon.source: Qt.resolvedUrl("qrc:/assets/briefcase.circle.fill@2x.png")
+                                icon.color: root.palette.button
+                                flat: false
+                                readonly property bool visibility : editor.file.name.endsWith(".pro")
+                                height: visibility ? implicitHeight : 0
+
+                                Layout.alignment: Qt.AlignHCenter
+
+                                onClicked: {
+                                    releaseRequested = true
+                                    projectBuilder.clean()
+                                    projectBuilder.build()
+                                }
+                            }
+                        }
+
+                        Column {
                             width: parent.width
                             height: openFilesArea.height == 0 ?
                                         parent.height :
-                                        parent.height / 2
+                                        (parent.height / 2) - (contextField.height / 2)
 
                             Behavior on height {
                                 NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
@@ -431,7 +541,13 @@ ApplicationWindow {
                                                     icon.source: Qt.resolvedUrl("qrc:/assets/plus.app@2x.png")
                                                     icon.color: root.palette.button
                                                     leftPadding: paddingMedium
-                                                    onClicked: createProjectDialog.open()
+                                                    onClicked: {
+                                                        let createProjectDialog = createProjectDialogComponent.createObject(root)
+                                                        createProjectDialog.done.connect(function() {
+                                                            createProjectDialog.destroy()
+                                                        })
+                                                        createProjectDialog.open()
+                                                    }
                                                 }
                                                 ToolButton {
                                                     text: qsTr("Import")
@@ -477,26 +593,30 @@ ApplicationWindow {
                                                                             {project: modelData})
                                             }
                                             onPressAndHold: {
+                                                let projectsContextMenu = projectsContextMenuComponent.createObject(bookmarkButton);
                                                 projectsContextMenu.selectedProject = modelData
                                                 projectsContextMenu.open()
                                             }
                                         }
 
-                                        Menu {
-                                            id: projectsContextMenu
-                                            property var selectedProject: null
-                                            MenuItem {
-                                                text: qsTr("Remove")
-                                                icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
-                                                onClicked: {
-                                                    if (projectsContextMenu.selectedProject.isBookmark) {
-                                                        const bookmark = projectsContextMenu.selectedProject.bookmark
-                                                        openFiles.closeAllByBookmark(bookmark)
-                                                        bookmarkDb.removeBookmark(bookmark)
-                                                    } else {
-                                                        projectList.removeProject(projectsContextMenu.selectedProject.path)
+                                        Component {
+                                            id: projectsContextMenuComponent
+                                            Menu {
+                                                id: projectsContextMenu
+                                                property var selectedProject: null
+                                                MenuItem {
+                                                    text: qsTr("Remove")
+                                                    icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
+                                                    onClicked: {
+                                                        if (projectsContextMenu.selectedProject.isBookmark) {
+                                                            const bookmark = projectsContextMenu.selectedProject.bookmark
+                                                            openFiles.closeAllByBookmark(bookmark)
+                                                            bookmarkDb.removeBookmark(bookmark)
+                                                        } else {
+                                                            projectList.removeProject(projectsContextMenu.selectedProject.path)
+                                                        }
+                                                        projectsContextMenu.selectedProject = null
                                                     }
-                                                    projectsContextMenu.selectedProject = null
                                                 }
                                             }
                                         }
@@ -548,6 +668,10 @@ ApplicationWindow {
                                                     icon.color: root.palette.button
                                                     leftPadding: paddingMedium
                                                     onClicked: {
+                                                        let newFileDialog = newFileDialogComponent.createObject(root)
+                                                        newFileDialog.done.connect(function() {
+                                                            newFileDialog.destroy()
+                                                        })
                                                         newFileDialog.rootPath = directoryListView.project.path
                                                         newFileDialog.open();
                                                     }
@@ -558,6 +682,10 @@ ApplicationWindow {
                                                     icon.color: root.palette.button
                                                     leftPadding: paddingSmall
                                                     onClicked: {
+                                                        let newDirectoryDialog = newDirectoryDialogComponent.createObject(root)
+                                                        newDirectoryDialog.done.connect(function() {
+                                                            newDirectoryDialog.destroy()
+                                                        })
                                                         newDirectoryDialog.rootPath = directoryListView.project.path
                                                         newDirectoryDialog.open();
                                                     }
@@ -649,7 +777,7 @@ ApplicationWindow {
 
                         Column {
                             id: openFilesArea
-                            readonly property int usualHeight: (parent.height) / 2
+                            readonly property int usualHeight: ((parent.height) / 2) // - (contextField.height / 2)
                             width: parent.width
                             height: 0
 
@@ -658,6 +786,7 @@ ApplicationWindow {
                             }
 
                             ListView {
+                                id: openfilesListView
                                 width: parent.width
                                 height: parent.height
                                 topMargin: paddingMedium
@@ -690,6 +819,7 @@ ApplicationWindow {
                                 clip: true
                                 delegate: TideButton {
                                     readonly property bool isProject : modelData.name.endsWith(".pro")
+                                    readonly property bool isActiveProject: modelData.path === projectBuilder.projectFile
 
                                     anchors {
                                         left: parent.left
@@ -697,7 +827,9 @@ ApplicationWindow {
                                         leftMargin: paddingMedium
                                     }
                                     id: openFilesEntryButton
-                                    icon.source: isProject ? Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
+                                    icon.source: isProject ? (isActiveProject ?
+                                                                  Qt.resolvedUrl("qrc:/assets/hammer.circle@2x.png") :
+                                                                  Qt.resolvedUrl("qrc:/assets/hammer@2x.png"))
                                                            : Qt.resolvedUrl("qrc:/assets/doc@2x.png")
                                     color: (editor.file.path === modelData.path) ?
                                                root.palette.button :
@@ -752,6 +884,7 @@ ApplicationWindow {
                     projectBuilder: projectBuilder
                     openFiles: openFiles
                     onSaveRequested: saveCurrentFile()
+                    onFindRequested: contextDialog.show()
                 }
             }
         }
@@ -850,89 +983,118 @@ ApplicationWindow {
             height: (parent.height / 8) * 6
         }
 
-        Dialog {
-            id: createProjectDialog
-            title: qsTr("Create project:");
-            modal: true
-            anchors.centerIn: parent
-            standardButtons: Dialog.Ok | Dialog.Cancel
-            Component.onCompleted: imFixer.setupImEventFilter(projectName)
-
-            ProjectCreator {
-                id: projectCreator
-            }
-
-            TextField {
-                id: projectName
-                width: parent.width
-                placeholderText: qsTr("Name:")
-                validator: RegularExpressionValidator {
-                    regularExpression: /^[a-zA-Z0-9_.-]*$/
-                }
-            }
-
-            onAccepted: projectCreator.createProject(projectName.text)
-        }
-
-        Dialog {
-            id: newFileDialog
-            title: qsTr("New file:");
-            modal: true
-            anchors.centerIn: parent
-            standardButtons: Dialog.Ok | Dialog.Cancel
-            Component.onCompleted: imFixer.setupImEventFilter(fileName)
-            property string rootPath: ""
-
-            TextField {
-                id: fileName
-                width: parent.width
-                placeholderText: qsTr("Name:")
-                validator: RegularExpressionValidator {
-                    regularExpression: /^[a-zA-Z0-9_.-]*$/
-                }
-                focus: newFileDialog.opened
-            }
-
-            onAccepted: {
-                fileIo.createFile(rootPath + "/" + fileName.text)
-                newFileDialog.rootPath = ""
-                fileName.text = ""
-            }
-
-            onRejected: {
-                newFileDialog.rootPath = ""
-                fileName.text = ""
+        ContextView {
+            id: contextDialog
+            width: (parent.width / 8) * 6
+            height: (parent.height / 8) * 6
+            onOpenRequested: {
+                openEditorFile(contextDialog.currentPath)
+                contextDialog.hide()
             }
         }
 
-        Dialog {
-            id: newDirectoryDialog
-            title: qsTr("New directory:");
-            modal: true
-            anchors.centerIn: parent
-            standardButtons: Dialog.Ok | Dialog.Cancel
-            Component.onCompleted: imFixer.setupImEventFilter(directoryName)
-            property string rootPath: ""
+        Component {
+            id: createProjectDialogComponent
+            Dialog {
+                title: qsTr("Create project:");
+                modal: true
+                anchors.centerIn: parent
+                standardButtons: Dialog.Ok | Dialog.Cancel
+                Component.onCompleted: imFixer.setupImEventFilter(projectName)
 
-            TextField {
-                id: directoryName
-                width: parent.width
-                placeholderText: qsTr("Name:")
-                validator: RegularExpressionValidator {
-                    regularExpression: /^[a-zA-Z0-9_.-]*$/
+                signal done()
+
+                TextField {
+                    id: projectName
+                    width: parent.width
+                    placeholderText: qsTr("Name:")
+                    validator: RegularExpressionValidator {
+                        regularExpression: /^[a-zA-Z0-9_.-]*$/
+                    }
                 }
-                focus: newDirectoryDialog.opened
-            }
 
-            onAccepted: {
-                fileIo.createDirectory(rootPath + "/" + directoryName.text)
-                newDirectoryDialog.rootPath = ""
-                directoryName.text = ""
-            }
+                onAccepted: {
+                    projectCreator.createProject(projectName.text)
+                    done()
+                }
 
-            onRejected: {
-                newDirectoryDialog.rootPath = ""
-                directoryName.text = ""
+                onRejected: {
+                    done()
+                }
+            }
+        }
+
+        Component {
+            id: newFileDialogComponent
+            Dialog {
+                title: qsTr("New file:");
+                modal: true
+                anchors.centerIn: parent
+                standardButtons: Dialog.Ok | Dialog.Cancel
+                Component.onCompleted: imFixer.setupImEventFilter(fileName)
+                property string rootPath: ""
+
+                signal done()
+
+                TextField {
+                    id: fileName
+                    width: parent.width
+                    placeholderText: qsTr("Name:")
+                    validator: RegularExpressionValidator {
+                        regularExpression: /^[a-zA-Z0-9_.-]*$/
+                    }
+                    focus: newFileDialog.opened
+                }
+
+                onAccepted: {
+                    fileIo.createFile(rootPath + "/" + fileName.text)
+                    newFileDialog.rootPath = ""
+                    fileName.text = ""
+                    done()
+                }
+
+                onRejected: {
+                    newFileDialog.rootPath = ""
+                    fileName.text = ""
+                    done()
+                }
+            }
+        }
+
+        Component {
+            id: newDirectoryDialogComponent
+            Dialog {
+                title: qsTr("New directory:");
+                modal: true
+                anchors.centerIn: parent
+                standardButtons: Dialog.Ok | Dialog.Cancel
+                Component.onCompleted: imFixer.setupImEventFilter(directoryName)
+                property string rootPath: ""
+
+                signal done()
+
+                TextField {
+                    id: directoryName
+                    width: parent.width
+                    placeholderText: qsTr("Name:")
+                    validator: RegularExpressionValidator {
+                        regularExpression: /^[a-zA-Z0-9_.-]*$/
+                    }
+                    focus: newDirectoryDialog.opened
+                }
+
+                onAccepted: {
+                    fileIo.createDirectory(rootPath + "/" + directoryName.text)
+                    newDirectoryDialog.rootPath = ""
+                    directoryName.text = ""
+                    done()
+                }
+
+                onRejected: {
+                    newDirectoryDialog.rootPath = ""
+                    directoryName.text = ""
+                    done()
+                }
             }
         }
 

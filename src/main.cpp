@@ -19,6 +19,7 @@
 #include "autocompleter.h"
 #include "projectcreator.h"
 #include "cppformatter.h"
+#include "searchandreplace.h"
 
 #include "platform/systemglue.h"
 
@@ -32,7 +33,7 @@ int main(int argc, char *argv[])
                             QStringLiteral("/Runtimes/Linux");
 
     qputenv("SYSROOT", sysroot.toUtf8().data());
-    qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi");
+    qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi-threads");
     QQuickStyle::setStyle("iOS");
 #elif defined(Q_OS_LINUX)
     const QString sysroot = QStringLiteral("/usr");
@@ -59,12 +60,14 @@ int main(int argc, char *argv[])
     qmlRegisterType<ProjectCreator>("Tide", 1, 0, "ProjectCreator");
     qmlRegisterType<ProjectList>("Tide", 1, 0, "ProjectList");
     qmlRegisterType<CppFormatter>("Tide", 1, 0, "CppFormatter");
+    qmlRegisterType<SearchAndReplace>("Tide", 1, 0, "SearchAndReplace");
 
     qmlRegisterUncreatableType<SystemGlue>("Tide", 1, 0, "IosSystemGlue", "Created in main() as 'iosSystem'.");
     qmlRegisterUncreatableType<StdioSpec>("Tide", 1, 0, "ProgramSpec", "StdioSpec is protocol between 'iosSystem' and 'Console'.");
     qmlRegisterUncreatableType<QSourceHighliter>("Tide", 1, 0, "SourceHighliter", "Use 'SyntaxHighlighter' instead.");
     qmlRegisterUncreatableType<InputMethodFixerInstaller>("Tide", 1, 0, "ImFixerInstaller", "Instantiated in main() as 'imFixer'.");
     qmlRegisterUncreatableType<PlatformIntegrationDelegate>("Tide", 1, 0, "IosKeyboardReactorDelegate", "Created in main() as 'oskReactor'.");
+    qmlRegisterUncreatableType<SearchResult>("Tide", 1, 0, "SearchResult", "Created 'searchAndReplace'.");
 
     int ret;
     {

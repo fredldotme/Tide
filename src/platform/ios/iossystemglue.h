@@ -2,6 +2,7 @@
 #define IOSSYSTEMGLUE_H
 
 #include <QObject>
+#include <QRect>
 
 #include "stdiospec.h"
 
@@ -16,6 +17,8 @@ public:
     Q_INVOKABLE bool runBuildCommands(const QStringList cmds);
     Q_INVOKABLE void killBuildCommands();
     Q_INVOKABLE void setupStdIo();
+    Q_INVOKABLE void copyToClipboard(const QString text);
+    Q_INVOKABLE void share(const QString text, const QUrl url, const QRect pos);
 
 private:
     StdioSpec m_spec;

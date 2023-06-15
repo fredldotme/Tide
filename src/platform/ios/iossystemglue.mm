@@ -85,3 +85,32 @@ void IosSystemGlue::killBuildCommands()
     ios_kill();
 }
 
+void IosSystemGlue::copyToClipboard(const QString text)
+{
+    UIPasteboard *pasteBoard = [UIPasteboard generalPasteboard];
+    if (!pasteBoard)
+        return;
+
+    NSString *nsText = text.toNSString();
+    pasteBoard.string = nsText;
+}
+
+void IosSystemGlue::share(const QString text, const QUrl url, const QRect pos) {
+    NSMutableArray *sharingItems = [NSMutableArray new];
+
+    if (!text.isEmpty()) {
+        [sharingItems addObject:text.toNSString()];
+    }
+
+    if (url.isValid()) {
+        [sharingItems addObject:url.toNSURL()];
+    }
+
+    UIViewController *qtViewController = [[UIApplication sharedApplication].keyWindow rootViewController];
+
+    UIActivityViewController *activityController = [[UIActivityViewController alloc] initWithActivityItems:sharingItems applicationActivities:nil];
+    UIPopoverController *popup = [[UIPopoverController alloc] initWithContentViewController:activityController];
+    [popup presentPopoverFromRect:CGRectMake(pos.x(), pos.y(), pos.width(), pos.height())
+                           inView:qtViewController.view permittedArrowDirections:UIPopoverArrowDirectionAny animated:YES];
+
+}

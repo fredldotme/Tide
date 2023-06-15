@@ -46,12 +46,14 @@ qt_add_executable(${PROJECT_NAME}
     utility/sysrootmanager.cpp
     utility/wasmrunner.cpp
     utility/linuxruntimemanager.cpp
+    utility/searchandreplace.cpp
     projects/bookmarkdb.cpp
     projects/projectbuilder.cpp
     projects/projectcreator.cpp
 
     # Header-only code
     common/stdiospec.h
+    common/searchresult.h
 
     # QMake parser
     ${QMAKEPARSER_DIR}/lib/include/qmakeblock.h
@@ -77,6 +79,8 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/TideToolButton.qml
     qml/SettingsDialog.qml
     qml/ConsoleView.qml
+    qml/ContextView.qml
+    qml/ContextViewButton.qml
 )
 
 # Build toolchain itself
@@ -100,6 +104,8 @@ if(IOS)
     set (WAMR_BUILD_JIT 0)
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
+    set (WAMR_BUILD_LIB_WASI_THREADS 1)
+    set (WAMR_BUILD_SHARED_MEMORY 1)
     set (WAMR_BUILD_LIBC_UVWASI 0)
     set (WAMR_DISABLE_HW_BOUND_CHECK 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
@@ -194,6 +200,8 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set (WAMR_BUILD_FAST_INTERP 1)
     set (WAMR_BUILD_AOT 0)
     set (WAMR_BUILD_JIT 0)
+    set (WAMR_BUILD_LIB_WASI_THREADS 1)
+    set (WAMR_BUILD_SHARED_MEMORY 1)
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
     set (WAMR_BUILD_LIBC_UVWASI 0)

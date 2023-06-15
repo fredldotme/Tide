@@ -29,3 +29,6 @@
 [submodule "3rdparty/json-c"]
 	path = 3rdparty/json-c
 	url = https://github.com/json-c/json-c.git
+[submodule "3rdparty/rust"]
+	path = 3rdparty/rust
+	url = https://github.com/fredldotme/rust.git

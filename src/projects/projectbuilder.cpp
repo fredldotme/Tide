@@ -34,6 +34,8 @@ bool ProjectBuilder::loadProject(const QString path)
         return false;
 
     m_projectFile = path;
+    emit projectFileChanged();
+
     return true;
 }
 
@@ -71,6 +73,8 @@ void ProjectBuilder::build()
     if (!buildDir.exists()) {
         buildDir.mkpath(buildDirPath);
     }
+
+    const auto defaultFlags = QStringLiteral(" -Wl,--shared-memory -pthread ");
 
     QMakeParser projectParser;
     projectParser.setProjectFile(m_projectFile);
@@ -132,6 +136,7 @@ void ProjectBuilder::build()
         const QString command = compiler +
                                 QStringLiteral(" --sysroot=") + m_sysroot +
                                 QStringLiteral(" -c") +
+                                defaultFlags +
                                 includeFlags +
                                 defineFlags +
                                 libraryFlags +
@@ -148,6 +153,7 @@ void ProjectBuilder::build()
 
     const QString linkCommand = QStringLiteral("clang++") +
                                 QStringLiteral(" --sysroot=") + m_sysroot +
+                                defaultFlags +
                                 objectFlags +
                                 libraryFlags +
                                 QStringLiteral(" -o %1").arg(runnableFile());
@@ -234,6 +240,12 @@ QString ProjectBuilder::buildRoot()
     return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
            QStringLiteral("/Artifacts");
 
+}
+
+QString ProjectBuilder::sourceRoot()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+           QStringLiteral("/Projects");
 }
 
 QString ProjectBuilder::projectBuildRoot()

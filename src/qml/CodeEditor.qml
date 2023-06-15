@@ -12,6 +12,8 @@ Item {
     property ProjectBuilder projectBuilder : null
     property OpenFilesManager openFiles : null
 
+    property alias codeField: codeField
+
     property bool invalidated : true
     property bool showAutoCompletor : false
     onShowAutoCompletorChanged: {
@@ -28,11 +30,18 @@ Item {
     }
 
     signal saveRequested()
+    signal findRequested()
+
+    function refreshFromDisk() {
+        if (invalidated)
+            return;
+        codeField.text = fileIo.readFile(editor.file.path)
+    }
 
     function languageForLowerCaseFileName(name) {
-        // Default to C++
+        // Default to Something like makefile until we have Markdown support
         if (name === "")
-            return SourceHighliter.CodeCpp;
+            return SourceHighliter.CodeMake;
 
         if (name === "makefile") {
             return SourceHighliter.CodeMake;
@@ -41,7 +50,7 @@ Item {
             return SourceHighliter.CodeMake;
         }
 
-        if (name.endsWith(".cpp") || name.endsWith(".h") || name.endsWith(".hpp")) {
+        if (name.endsWith(".cpp") || name.endsWith(".h") || name.endsWith(".hpp") || name.endsWith(".cc")) {
             return SourceHighliter.CodeCpp;
         }
         if (name.endsWith(".c")) {
@@ -91,12 +100,19 @@ Item {
         reloadAst()
     }
 
+    function canUseAutocomplete() {
+        if (languageForLowerCaseFileName(file.name.toLowerCase()) === SourceHighliter.CodeC ||
+                languageForLowerCaseFileName(file.name.toLowerCase()) === SourceHighliter.CodeCpp)
+            return true;
+        return false;
+    }
+
     function reloadAst() {
         // libclang and clang++ trip over each other regularly.
         if (projectBuilder.building)
             return;
 
-        if (file.name.toLowerCase().endsWith(".cpp") || file.name.toLowerCase().endsWith(".h") ||
+        if (file.name.toLowerCase().endsWith(".cpp") || file.name.toLowerCase().endsWith(".c") ||
                 file.name.toLowerCase().endsWith(".h")) {
             autoCompleter.setIncludePaths(projectBuilder.includePaths());
             autoCompleter.reloadAst(file.path)
@@ -219,6 +235,10 @@ Item {
                         if (!settings.autocomplete)
                             return;
 
+                        if (!canUseAutocomplete()) {
+                            return;
+                        }
+
                         showAutoCompletor = !showAutoCompletor
                         if (showAutoCompletor) {
                             codeEditor.saveRequested() // Implicitly calls reloadAst
@@ -233,6 +253,11 @@ Item {
 
                 Shortcut {
                     sequence: "Ctrl+F"
+                    onActivated: codeEditor.findRequested()
+                }
+
+                Shortcut {
+                    sequence: "Ctrl+Shift+F"
                     onActivated: {
                         if (!settings.autoformat)
                             return;
@@ -286,6 +311,7 @@ Item {
                     y: codeField.cursorRectangle.y
                     visible: showAutoCompletor
                     color: root.palette.base
+                    clip: true
                     border.color: root.palette.text
                     border.width: 1
                     radius: root.roundedCornersRadiusSmall
