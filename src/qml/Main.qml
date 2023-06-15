@@ -777,7 +777,7 @@ ApplicationWindow {
 
                         Column {
                             id: openFilesArea
-                            readonly property int usualHeight: ((parent.height) / 2) // - (contextField.height / 2)
+                            readonly property int usualHeight: ((parent.height) / 2) - (contextField.height / 2)
                             width: parent.width
                             height: 0
 
@@ -841,25 +841,29 @@ ApplicationWindow {
                                         openEditor(modelData)
                                     }
                                     onPressAndHold: {
+                                        let openFilesContextMenu = openFilesContextMenuComponent.createObject(openFilesEntryButton)
                                         openFilesContextMenu.selectedFile = modelData
                                         openFilesContextMenu.open()
                                     }
                                 }
 
-                                Menu {
-                                    id: openFilesContextMenu
-                                    property var selectedFile: null
-                                    MenuItem {
-                                        text: qsTr("Close")
-                                        icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
-                                        onClicked: {
-                                            let file = openFilesContextMenu.selectedFile
-                                            openFiles.close(file)
-                                            openFilesContextMenu.selectedFile = null
-                                            if (openFiles.files.length > 0)
-                                                editor.file = openFiles.files[0]
-                                            else
-                                                editor.invalidate()
+                                Component {
+                                    id: openFilesContextMenuComponent
+                                    Menu {
+                                        id: openFilesContextMenu
+                                        property var selectedFile: null
+                                        MenuItem {
+                                            text: qsTr("Close")
+                                            icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
+                                            onClicked: {
+                                                let file = openFilesContextMenu.selectedFile
+                                                openFiles.close(file)
+                                                openFilesContextMenu.selectedFile = null
+                                                if (openFiles.files.length > 0)
+                                                    editor.file = openFiles.files[0]
+                                                else
+                                                    editor.invalidate()
+                                            }
                                         }
                                     }
                                 }
