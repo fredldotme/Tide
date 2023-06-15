@@ -73,6 +73,7 @@ qt_add_qml_module(${PROJECT_NAME}
     URI Tide
     VERSION 1.0
     QML_FILES
+
     qml/Main.qml
     qml/CodeEditor.qml
     qml/TideButton.qml
@@ -81,6 +82,8 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/ConsoleView.qml
     qml/ContextView.qml
     qml/ContextViewButton.qml
+
+    NO_LINT
 )
 
 # Build toolchain itself
