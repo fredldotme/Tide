@@ -8,6 +8,11 @@ Welcome to Tide, your new most-favorite IDE for touch devices!
 This project uses LLVM + Clang and the Wasi SDK to provide a compiler toolchain for C & C++ projects. For the WebAssembly runtime it uses WAMR.
 
 
+## Privacy policy
+
+Tide does not automatically send any data to anyone.
+
+
 ## License
 
 Copyright Alfred Neumayer (C) 2023
