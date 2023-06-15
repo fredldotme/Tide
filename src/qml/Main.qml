@@ -151,8 +151,9 @@ ApplicationWindow {
 
                 TideToolButton {
                     visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
-                    enabled: !wasmRunner.running
-                    icon.source: Qt.resolvedUrl("qrc:/assets/play.fill@2x.png")
+                    icon.source: !wasmRunner.running ?
+                                     Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
+                                     Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
                     icon.color: root.palette.button
 
                     BusyIndicator {

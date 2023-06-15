@@ -9,6 +9,19 @@
 
 #include "stdiospec.h"
 
+class WasmRunner;
+
+struct WasmRunnerSharedData {
+    QString binary;
+    QStringList args;
+    int main_result;
+    StdioSpec stdio;
+    wasm_module_t module;
+    wasm_module_inst_t module_inst;
+    wasm_exec_env_t exec_env;
+    WasmRunner* runner;
+};
+
 class WasmRunner : public QObject
 {
     Q_OBJECT
@@ -19,23 +32,19 @@ public:
     explicit WasmRunner(QObject *parent = nullptr);
     ~WasmRunner();
 
+    void signalStart();
+    void signalEnd();
+
 public slots:
     void run(const QString binary, const QStringList args);
     void kill();
     void prepareStdio(StdioSpec spec);
 
 private:
-    void runInThread();
-
-    wasm_module_t m_module;
-    wasm_module_inst_t m_module_inst;
-    wasm_exec_env_t m_exec_env;
-
     StdioSpec m_spec;
+    WasmRunnerSharedData sharedData;
 
-    QString m_binary;
-    QStringList m_args;
-    QThread m_runThread;
+    pthread_t m_runThread;
     bool m_running;
 
 signals:
