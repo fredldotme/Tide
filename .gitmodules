@@ -32,3 +32,9 @@
 [submodule "3rdparty/rust"]
 	path = 3rdparty/rust
 	url = https://github.com/fredldotme/rust.git
+[submodule "3rdparty/CMake"]
+	path = 3rdparty/CMake
+	url = https://github.com/fredldotme/CMake.git
+[submodule "3rdparty/ninja"]
+	path = 3rdparty/ninja
+	url = https://github.com/fredldotme/ninja.git
