@@ -93,7 +93,7 @@ Pane {
                 }
                 Switch {
                     id: autoformatSwitch
-                    text: qsTr("Formatter (⌘+F)")
+                    text: qsTr("Formatter (Shift+⌘+F)")
                     checked: settings.autoformat
                     onCheckedChanged: {
                         settings.autoformat = checked
