@@ -200,6 +200,12 @@ if(IOS)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+        set (WAMR_BUILD_TARGET "X86_64")
+    else()
+        set (WAMR_BUILD_TARGET "AARCH64")
+    endif()
+
     set (WAMR_BUILD_PLATFORM "linux")
     set (WAMR_BUILD_TARGET "AARCH64")
     set (WAMR_BUILD_INTERP 1)
@@ -259,9 +265,9 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::QuickControls2
     Qt6::Sql
     ${IOS_SYSTEM}
-    #LSPClient
     ${PROJECT_NAME}-platform
     vmlib
+    CMakeLib
 )
 
 # Deployment on iOS
