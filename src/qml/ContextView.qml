@@ -107,6 +107,7 @@ Rectangle {
                 width: parent.width
                 height: parent.height - paddingSmall - toolBar.height
                 clip: true
+                spacing: paddingSmall
                 delegate: ScrollView {
                     width: parent.width
                     ContextViewButton {
@@ -121,6 +122,7 @@ Rectangle {
                         }
                         color: root.palette.button
                         font.pixelSize: 20
+                        isProject: modelData.name.toLowerCase().endsWith(".pro")
 
                         onReplaceAll: {
                             let list = []

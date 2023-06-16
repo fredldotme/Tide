@@ -31,6 +31,8 @@ Item {
 
     signal saveRequested()
     signal findRequested()
+    signal buildRequested()
+    signal runRequested()
 
     function refreshFromDisk() {
         if (invalidated)
@@ -100,11 +102,23 @@ Item {
         reloadAst()
     }
 
-    function canUseAutocomplete() {
+    readonly property bool canUseAutocomplete : {
         if (languageForLowerCaseFileName(file.name.toLowerCase()) === SourceHighliter.CodeC ||
                 languageForLowerCaseFileName(file.name.toLowerCase()) === SourceHighliter.CodeCpp)
             return true;
         return false;
+    }
+
+    function format() {
+        if (!settings.autoformat)
+            return;
+
+        const lang = languageForLowerCaseFileName(file.name.toLowerCase())
+        if (lang === SourceHighliter.CodeC || lang === SourceHighliter.CodeCpp) {
+            const replacement = cppFormatter.format(codeField.text, settings.formatStyle)
+            // TODO: Flash red on formatError() signal
+            codeField.text = replacement
+        }
     }
 
     function reloadAst() {
@@ -235,7 +249,7 @@ Item {
                         if (!settings.autocomplete)
                             return;
 
-                        if (!canUseAutocomplete()) {
+                        if (!canUseAutocomplete) {
                             return;
                         }
 
@@ -244,6 +258,16 @@ Item {
                             codeEditor.saveRequested() // Implicitly calls reloadAst
                         }
                     }
+                }
+
+                Shortcut {
+                    sequence: "Ctrl+B"
+                    onActivated: codeEditor.buildRequested()
+                }
+
+                Shortcut {
+                    sequence: "Ctrl+R"
+                    onActivated: codeEditor.runRequested()
                 }
 
                 Shortcut {
@@ -259,18 +283,7 @@ Item {
                 Shortcut {
                     sequence: "Ctrl+Shift+F"
                     onActivated: {
-                        if (!settings.autoformat)
-                            return;
-
-                        if (file.name.endsWith(".pro"))
-                            return;
-
-                        const lang = languageForLowerCaseFileName(file.name.toLowerCase())
-                        if (lang === SourceHighliter.CodeC || lang === SourceHighliter.CodeCpp) {
-                            const replacement = cppFormatter.format(codeField.text, settings.formatStyle)
-                            // TODO: Flash red on formatError() signal
-                            codeField.text = replacement
-                        }
+                        codeEditor.format()
                     }
                 }
 

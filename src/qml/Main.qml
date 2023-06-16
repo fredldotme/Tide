@@ -43,6 +43,20 @@ ApplicationWindow {
         consoleView.consoleOutput.clear()
     }
 
+    function attemptRun() {
+        if (editor.invalidated)
+            return;
+
+        const killOnly = wasmRunner.running
+
+        wasmRunner.kill();
+        if (killOnly)
+            return;
+
+        consoleView.show();
+        wasmRunner.run(projectBuilder.runnableFile(), [])
+    }
+
     onActiveChanged: {
         if (active) {
             cleanObsoleteProjects()
@@ -107,7 +121,7 @@ ApplicationWindow {
                 }
 
                 TideToolButton {
-                    visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
+                    visible: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
                     enabled: !projectBuilder.building
                     icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
                     icon.color: root.palette.button
@@ -150,7 +164,7 @@ ApplicationWindow {
                 */
 
                 TideToolButton {
-                    visible: openFiles.files.length > 0 && editor.file.name.endsWith(".pro")
+                    visible: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
                     icon.source: !wasmRunner.running ?
                                      Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
                                      Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
@@ -173,17 +187,7 @@ ApplicationWindow {
                     }
 
                     onClicked: {
-                        if (!editor)
-                            return;
-
-                        const killOnly = wasmRunner.running
-
-                        wasmRunner.kill();
-                        if (killOnly)
-                            return;
-
-                        consoleView.show();
-                        wasmRunner.run(projectBuilder.runnableFile(), [])
+                        root.attemptRun()
                     }
                 }
                 TideToolButton {
@@ -422,10 +426,23 @@ ApplicationWindow {
                         width: parent.width
                         height: parent.height
 
-                        Column {
+                        Grid {
                             id: contextField
                             width: parent.width
                             clip: true
+                            columns: {
+                                let columns = 0;
+                                let rowWidth = 0;
+                                for (let i = 0; i < children.length; i++) {
+                                    if (rowWidth + children[i].width < width) {
+                                        ++columns
+                                        rowWidth += children[i].width
+                                    } else {
+                                        break
+                                    }
+                                }
+                                return columns;
+                            }
 
                             readonly property bool visibility: openFiles.files.length > 0
                             height: visibility ? childrenRect.height : 0
@@ -439,8 +456,8 @@ ApplicationWindow {
 
                             TideToolButton {
                                 id: contextFieldSearchButton
-                                leftPadding: paddingMedium * 2
-                                text: qsTr("Find and replace")
+                                leftPadding: paddingSmall
+                                text: qsTr("Find/replace")
                                 icon.source: Qt.resolvedUrl("qrc:/assets/magnifyingglass.circle.fill@2x.png")
                                 icon.color: root.palette.button
                                 flat: true
@@ -457,8 +474,25 @@ ApplicationWindow {
                             }
 
                             TideToolButton {
+                                id: formatButton
+                                leftPadding: paddingSmall
+                                text: qsTr("Autoformat")
+                                icon.source: Qt.resolvedUrl("qrc:/assets/line.3.horizontal.circle.fill@2x.png")
+                                icon.color: root.palette.button
+                                flat: false
+                                readonly property bool visibility : editor.canUseAutocomplete
+                                height: visibility ? implicitHeight : 0
+
+                                Layout.alignment: Qt.AlignHCenter
+
+                                onClicked: {
+                                    editor.format()
+                                }
+                            }
+
+                            TideToolButton {
                                 id: shareButton
-                                leftPadding: paddingMedium * 2
+                                leftPadding: paddingSmall
                                 text: qsTr("Share")
                                 icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.up.circle.fill@2x.png")
                                 icon.color: root.palette.button
@@ -476,12 +510,12 @@ ApplicationWindow {
 
                             TideToolButton {
                                 id: releaseButton
-                                leftPadding: paddingMedium * 2
+                                leftPadding: paddingSmall
                                 text: qsTr("Release")
                                 icon.source: Qt.resolvedUrl("qrc:/assets/briefcase.circle.fill@2x.png")
                                 icon.color: root.palette.button
                                 flat: false
-                                readonly property bool visibility : editor.file.name.endsWith(".pro")
+                                readonly property bool visibility : projectBuilder.projectFile !== ""
                                 height: visibility ? implicitHeight : 0
 
                                 Layout.alignment: Qt.AlignHCenter
@@ -889,7 +923,19 @@ ApplicationWindow {
                     projectBuilder: projectBuilder
                     openFiles: openFiles
                     onSaveRequested: saveCurrentFile()
-                    onFindRequested: contextDialog.show()
+                    onFindRequested: contextDialog.show(editor.file.path)
+                    onBuildRequested: {
+                        projectBuilder.clean()
+                        projectBuilder.build()
+                    }
+                    onRunRequested: {
+                        wasmRunner.run()
+                    }
+
+                    onInvalidatedChanged: {
+                        if (invalidated)
+                            projectBuilder.projectFile = ""
+                    }
                 }
             }
         }

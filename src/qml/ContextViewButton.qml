@@ -23,15 +23,18 @@ Grid {
     signal firstOccurance()
     signal shareRequested()
 
+    property bool isProject : false
+
     Button {
         id: shareButton
-        icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.up@2x.png")
+        icon.source: isProject ? Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
+                               : Qt.resolvedUrl("qrc:/assets/doc@2x.png")
         icon.width: 48
         icon.height: 48
         width: 48
         height: 48
         flat: true
-        onClicked: itemRoot.shareRequested()
+        enabled: false
     }
 
     ColumnLayout {

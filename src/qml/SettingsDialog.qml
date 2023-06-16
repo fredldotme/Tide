@@ -85,7 +85,7 @@ Pane {
                 }
                 Switch {
                     id: autocompleteSwitch
-                    text: qsTr("Autocomplete (Shift+cmd+S)")
+                    text: qsTr("Autocomplete (Shift+⌘+S)")
                     checked: settings.autocomplete
                     onCheckedChanged: {
                         settings.autocomplete = checked
@@ -93,7 +93,7 @@ Pane {
                 }
                 Switch {
                     id: autoformatSwitch
-                    text: qsTr("Formatter (cmd+F)")
+                    text: qsTr("Formatter (⌘+F)")
                     checked: settings.autoformat
                     onCheckedChanged: {
                         settings.autoformat = checked

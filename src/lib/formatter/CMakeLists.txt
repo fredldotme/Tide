@@ -38,8 +38,7 @@ if(IOS)
         MACOSX_FRAMEWORK_IDENTIFIER me.fredl.tideformatter
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-        MACOSX_BUNDLE TRUE
-        XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
+        XCODE_ATTRIBUTE_SKIP_INSTALL "Yes"
     )
 
     # Clang's formatting lib and dependencies

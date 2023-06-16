@@ -39,5 +39,7 @@
         <file>assets/square.and.arrow.up@2x.png</file>
         <file>assets/square.and.arrow.up.circle.fill@2x.png</file>
         <file>assets/briefcase.circle.fill@2x.png</file>
+        <file>assets/increase.indent@2x.png</file>
+        <file>assets/line.3.horizontal.circle.fill@2x.png</file>
     </qresource>
 </RCC>
