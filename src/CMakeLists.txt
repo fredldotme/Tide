@@ -15,8 +15,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOMOC ON)
 
-add_subdirectory(lib)
-
 # Qt6
 find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Qml Quick Sql QuickControls2)
 
@@ -86,21 +84,38 @@ qt_add_qml_module(${PROJECT_NAME}
     NO_LINT
 )
 
+if(IOS OR CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
+    if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
+        set(LLVM_BUILD_DIR "build-iphonesimulator")
+        set(LLVM_MODE "Release-iphonesimulator")
+    else()
+        set(LLVM_BUILD_DIR "build-iphoneos")
+        set(LLVM_MODE "Release-iphoneos")
+    endif()
+endif()
+
 # Build toolchain itself
-set(LLVM_FRAMEWORKS ${LLVM_DIR}/build-iphoneos/build/Release-iphoneos)
-set(LLVM_LIBS ${LLVM_DIR}/build-iphoneos/lib)
-set(LLVM_INCLUDES ${LLVM_DIR}/build-iphoneos/include)
-set(LLVM_CLANG_INCLUDES ${LLVM_DIR}/build-iphoneos/tools/clang/include)
+set(LLVM_FRAMEWORKS ${LLVM_DIR}/${LLVM_BUILD_DIR}/build/${LLVM_MODE})
+set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
+set(LLVM_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/include)
+set(LLVM_CLANG_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/tools/clang/include)
+
+# Include libs after defining a few crucial variables
+add_subdirectory(lib)
 
 # Sysroot files
 set(WASI_LIBS ${WASI_DIR}/lib)
 set(WASI_HEADERS ${WASI_DIR}/include)
-set(LLVM_HEADERS ${LLVM_DIR}/build-iphoneos/lib/clang/14.0.0/include)
+set(LLVM_HEADERS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib/clang/14.0.0/include)
 set(CLANGRT ${CLANGRT_DIR}/lib/wasi/libclang_rt.builtins-wasm32.a)
 
 if(IOS)
     set (WAMR_BUILD_PLATFORM "darwin")
-    set (WAMR_BUILD_TARGET "AARCH64")
+    if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
+        set (WAMR_BUILD_TARGET "X86_64")
+    else()
+        set (WAMR_BUILD_TARGET "AARCH64")
+    endif()
     set (WAMR_BUILD_INTERP 1)
     set (WAMR_BUILD_FAST_INTERP 1)
     set (WAMR_BUILD_AOT 0)

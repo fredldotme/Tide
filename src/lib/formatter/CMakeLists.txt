@@ -26,13 +26,19 @@ add_library(${PROJECT_NAME}
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
 
-# Build toolchain itself
-set(LLVM_FRAMEWORKS ${LLVM_DIR}/build-iphoneos/build/Release-iphoneos)
-set(LLVM_LIBS ${LLVM_DIR}/build-iphoneos/lib)
-set(LLVM_INCLUDES ${LLVM_DIR}/build-iphoneos/include)
-set(LLVM_CLANG_INCLUDES ${LLVM_DIR}/build-iphoneos/tools/clang/include)
+if(IOS OR CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
+    if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
+        set(LLVM_BUILD_DIR "build-iphonesimulator")
+        set(LLVM_MODE "Release-iphonesimulator")
+    else()
+        set(LLVM_BUILD_DIR "build-iphoneos")
+        set(LLVM_MODE "Release-iphoneos")
+    endif()
 
-if(IOS)
+    set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
+
+    find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+
     set_target_properties(${PROJECT_NAME} PROPERTIES
         FRAMEWORK TRUE
         MACOSX_FRAMEWORK_IDENTIFIER me.fredl.tideformatter
@@ -40,22 +46,25 @@ if(IOS)
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
         XCODE_ATTRIBUTE_SKIP_INSTALL "Yes"
     )
-
-    # Clang's formatting lib and dependencies
-    set(LIBCLANGBASIC "${LLVM_LIBS}/libclangBasic.a")
-    set(LIBCLANGLEX "${LLVM_LIBS}/libclangLex.a")
-    set(LIBCLANGTOOLINGCORE "${LLVM_LIBS}/libclangToolingCore.a")
-    set(LIBCLANGTOOLINGINCLUSIONS "${LLVM_LIBS}/libclangToolingInclusions.a")
-    set(LIBCLANGREWRITE "${LLVM_LIBS}/libclangRewrite.a")
-    set(LIBCLANGFORMAT "${LLVM_LIBS}/libclangFormat.a")
-
-    include_directories(${PROJECT_NAME}
-        ${LLVM_DIR}/llvm/include
-        ${LLVM_INCLUDES}
-        ${LLVM_FRAMEWORKS}/clang/lib/Format
-        ${LLVM_CLANG_INCLUDES}
-    )
 endif()
+
+# Clang's formatting lib and dependencies
+set(LIBCLANGBASIC "${LLVM_LIBS}/libclangBasic.a")
+set(LIBCLANGLEX "${LLVM_LIBS}/libclangLex.a")
+set(LIBCLANGTOOLINGCORE "${LLVM_LIBS}/libclangToolingCore.a")
+set(LIBCLANGTOOLINGINCLUSIONS "${LLVM_LIBS}/libclangToolingInclusions.a")
+set(LIBCLANGREWRITE "${LLVM_LIBS}/libclangRewrite.a")
+set(LIBCLANGFORMAT "${LLVM_LIBS}/libclangFormat.a")
+
+message(${LLVM_DIR}/${LLVM_MODE}/include)
+
+include_directories(${PROJECT_NAME}
+    ${LLVM_DIR}/llvm/include
+    ${LLVM_DIR}/${LLVM_BUILD_DIR}/include
+    ${LLVM_INCLUDES}
+    ${LLVM_FRAMEWORKS}/clang/lib/Format
+    ${LLVM_CLANG_INCLUDES}
+)
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
