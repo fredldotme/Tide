@@ -341,8 +341,8 @@ if(IOS)
         ${NM}
         ${OPT}
         ${LIBCLANG_CPP}
-        ${CMAKEFW}
-        ${NINJAFW}
+        #${CMAKEFW}
+        #${NINJAFW}
         ${PROJECT_NAME}-Formatter
     )
 

@@ -65,12 +65,12 @@ function cmake_wasi_build {
     cd ..
 }
 
-# 1) LLVM
+# LLVM
 cd 3rdparty/llvm/
 ./bootstrap.sh
 cd $OLD_PWD
 
-# 2) libclang
+# libclang
 LIBNAME=libclang
 cd tmp
 rm -rf libclang.framework || true
@@ -82,13 +82,13 @@ install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/libLLVM.framework/libLL
 plutil -convert binary1 Info.plist
 cd $OLD_PWD
 
-# 3) wasi-sdk
+# wasi-sdk
 cd tmp
 curl -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sysroot-20.0.tar.gz --output wasi-sdk.tar.gz
 tar xvf wasi-sdk.tar.gz
 cd $OLD_PWD
 
-# 4) libclang_rt
+# libclang_rt
 # ATTENTION: This meddles with the build result of the LLVM build on the macOS side
 cd tmp
 curl -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/libclang_rt.builtins-wasm32-wasi-20.0.tar.gz --output clangrt.tar.gz
@@ -96,7 +96,7 @@ tar xvf clangrt.tar.gz
 cp -a $OLD_PWD/tmp/lib/wasi $OLD_PWD/3rdparty/llvm/build_osx/lib/clang/14.0.0/lib/
 cd $OLD_PWD
 
-# 5) Posix/Berkely socket support
+# Posix/Berkely socket support
 cd aux/lib-socket
 cmake_wasi_build
 cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
@@ -116,19 +116,19 @@ cp -a $OLD_PWD/tmp/lib/wasi/* tmp/the-sysroot/Clang/lib/wasi/
 tar cvf tmp/the-sysroot.tar -C tmp/the-sysroot .
 cd $OLD_PWD
 
-# 6) Rust
+# Rust
 #cd 3rdparty/rust
 #./bootstrap.sh
 #cd $OLD_PWD
 
-# 7) CMake
+# CMake
 cd 3rdparty/CMake
 LIBNAME="cmake"
 cmake_iossystem_build "" "$LIBNAME" "lib${LIBNAME}.dylib"
 cp -a build/Modules $OLD_PWD/tmp/$LIBNAME.framework/
 cd $OLD_PWD
 
-# 8) Ninja
+# Ninja
 cd 3rdparty/ninja
 LIBNAME="ninja"
 cmake_iossystem_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/build-iphoneos/build/Release-iphoneos" "$LIBNAME" "lib${LIBNAME}exe.dylib"
