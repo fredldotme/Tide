@@ -38,3 +38,6 @@
 [submodule "3rdparty/ninja"]
 	path = 3rdparty/ninja
 	url = https://github.com/fredldotme/ninja.git
+[submodule "3rdparty/microtar"]
+	path = 3rdparty/microtar
+	url = https://github.com/rxi/microtar.git
