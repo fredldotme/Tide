@@ -7,7 +7,36 @@ if [ ! -d tmp ]; then
     mkdir tmp
 fi
 
+IOS_SDKROOT=$(xcrun --sdk iphoneos --show-sdk-path)
+SIM_SDKROOT=$(xcrun --sdk iphonesimulator --show-sdk-path)
 OLD_PWD=$(pwd)
+
+function cmake_iossystem_build {
+    echo "Custom args: $1"
+    LIBNAME="$2"
+    DYLIBNAME="$3"
+
+    if [ -d build ]; then
+        rm -rf build
+    fi
+    mkdir build
+    cd build
+    cmake \
+        -G Ninja \
+        -DCMAKE_OSX_SYSROOT=${IOS_SDKROOT} \
+        -DCMAKE_C_COMPILER=$(xcrun --sdk iphoneos -f clang) \
+        -DCMAKE_CXX_COMPILER=$(xcrun --sdk iphoneos -f clang++) \
+        $1 ..
+    ninja
+
+    LIBFILE=$(find . -name ${DYLIBNAME})
+    mkdir -p $OLD_PWD/tmp/$LIBNAME.framework
+    cp -a $OLD_PWD/aux/$LIBNAME/Info.plist $OLD_PWD/tmp/$LIBNAME.framework/Info.plist
+    cp -a $LIBFILE $OLD_PWD/tmp/$LIBNAME.framework/$LIBNAME
+    plutil -convert binary1 $OLD_PWD/tmp/$LIBNAME.framework/Info.plist
+
+    cd ..
+}
 
 function cmake_wasi_build {
     if [ -d build ]; then
@@ -31,8 +60,7 @@ function cmake_wasi_build {
         -DCMAKE_SYSROOT=$OLD_PWD/tmp/wasi-sysroot \
         -DCMAKE_C_FLAGS="-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory" \
         -DCMAKE_CXX_FLAGS="-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory" \
-        "$1" \
-    ..
+        "$1" ..
     ninja
     cd ..
 }
@@ -75,10 +103,36 @@ cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/
 cp $OLD_PWD/3rdparty/wamr/core/iwasm/libraries/lib-socket/inc/wasi_socket_ext.h $OLD_PWD/tmp/wasi-sysroot/include/
 cd $OLD_PWD
 
+# Package up the sysroot
+if [ -d tmp/the-sysroot ]; then
+    rm -rf tmp/the-sysroot
+fi
+mkdir -p tmp/the-sysroot/Clang
+mkdir -p tmp/the-sysroot/Sysroot
+mkdir -p tmp/the-sysroot/Clang/lib/wasi/
+cp -a $OLD_PWD/tmp/wasi-sysroot/* tmp/the-sysroot/Sysroot
+cp -a $OLD_PWD/3rdparty/llvm/build-iphoneos/lib/clang/14.0.0/include tmp/the-sysroot/Clang/
+cp -a $OLD_PWD/tmp/lib/wasi/* tmp/the-sysroot/Clang/lib/wasi/
+tar cvf tmp/the-sysroot.tar -C tmp/the-sysroot .
+cd $OLD_PWD
+
 # 6) Rust
 #cd 3rdparty/rust
 #./bootstrap.sh
 #cd $OLD_PWD
+
+# 7) CMake
+cd 3rdparty/CMake
+LIBNAME="cmake"
+cmake_iossystem_build "" "$LIBNAME" "lib${LIBNAME}.dylib"
+cp -a build/Modules $OLD_PWD/tmp/$LIBNAME.framework/
+cd $OLD_PWD
+
+# 8) Ninja
+cd 3rdparty/ninja
+LIBNAME="ninja"
+cmake_iossystem_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/build-iphoneos/build/Release-iphoneos" "$LIBNAME" "lib${LIBNAME}exe.dylib"
+cd $OLD_PWD
 
 # Done!
 exit 0

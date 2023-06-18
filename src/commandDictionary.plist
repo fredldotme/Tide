@@ -107,9 +107,16 @@
                 <string></string>
                 <string>file</string>
         </array>
-        <key>rustc</key>
+        <key>cmake</key>
         <array>
-                <string>rustc.framework/rustc</string>
+                <string>cmake.framework/cmake</string>
+                <string>main</string>
+                <string></string>
+                <string>file</string>
+        </array>
+        <key>ninja</key>
+        <array>
+                <string>ninja.framework/ninja</string>
                 <string>main</string>
                 <string></string>
                 <string>file</string>

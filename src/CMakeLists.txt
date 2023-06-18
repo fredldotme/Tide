@@ -8,12 +8,54 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(PROJECT_NAME tide)
 endif()
 
-project(${PROJECT_NAME} VERSION 0.1 LANGUAGES CXX)
-project(${PROJECT_NAME} VERSION 0.1 LANGUAGES C)
+project(${PROJECT_NAME} VERSION 0.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOMOC ON)
+
+if(CMAKE_BUILD_TYPE MATCHES "")
+    set(CMAKE_BUILD_TYPE "Release")
+endif()
+message("Build type: ${CMAKE_BUILD_TYPE}")
+
+# Artifacts from LLVM build
+if(IOS OR CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
+    if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
+        set(LLVM_BUILD_DIR "build-iphonesimulator")
+        set(LLVM_MODE "Release-iphonesimulator")
+    else()
+        set(LLVM_BUILD_DIR "build-iphoneos")
+        set(LLVM_MODE "Release-iphoneos")
+    endif()
+endif()
+
+function(resource VAR SOURCE_PATH DESTINATION PATTERN)
+    file(GLOB_RECURSE _LIST CONFIGURE_DEPENDS ${SOURCE_PATH}/${PATTERN})
+    message("${SOURCE_PATH}/${PATTERN}")
+    foreach (RESOURCE ${_LIST})
+        message("Setting up resource: ${RESOURCE}")
+        get_filename_component(_PARENT ${RESOURCE} DIRECTORY)
+        if (${_PARENT} STREQUAL ${SOURCE_PATH})
+            set(_DESTINATION ${DESTINATION})
+        else ()
+            file(RELATIVE_PATH _DESTINATION ${SOURCE_PATH} ${_PARENT})
+            set(_DESTINATION ${DESTINATION}/${_DESTINATION})
+        endif ()
+        set_property(SOURCE ${RESOURCE} PROPERTY MACOSX_PACKAGE_LOCATION ${_DESTINATION})
+    endforeach (RESOURCE)
+    set(${VAR} ${_LIST} PARENT_SCOPE)
+endfunction()
+
+# Sysroot files
+set(WASI_LIBS ${WASI_DIR}/lib)
+set(WASI_HEADERS ${WASI_DIR}/include)
+set(LLVM_HEADERS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib/clang/14.0.0/include)
+set(CLANGRT ${CLANGRT_DIR}/lib/wasi)
+
+if(IOS)
+    resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
+endif()
 
 # Qt6
 find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Qml Quick Sql QuickControls2)
@@ -21,6 +63,9 @@ find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Qml Quick Sql QuickControls2)
 include_directories(${PROJECT_NAME}
     # QMake parser
     ${QMAKEPARSER_DIR}/lib/include
+
+    # tar implementation
+    ${MICROTAR_DIR}/src
 
     # libclang
     ${LLVM_DIR}/clang/include
@@ -63,6 +108,12 @@ qt_add_executable(${PROJECT_NAME}
     ${QMAKEPARSER_DIR}/lib/src/qmakeparser.cpp
     ${QMAKEPARSER_DIR}/lib/src/qmakereader.cpp
 
+    # tar implementation
+    ${MICROTAR_DIR}/src/microtar.c
+
+    # Ship the sysroot
+    ${THE_SYSROOT}
+
     # Assets
     assets.qrc
 )
@@ -84,16 +135,6 @@ qt_add_qml_module(${PROJECT_NAME}
     NO_LINT
 )
 
-if(IOS OR CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
-    if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
-        set(LLVM_BUILD_DIR "build-iphonesimulator")
-        set(LLVM_MODE "Release-iphonesimulator")
-    else()
-        set(LLVM_BUILD_DIR "build-iphoneos")
-        set(LLVM_MODE "Release-iphoneos")
-    endif()
-endif()
-
 # Build toolchain itself
 set(LLVM_FRAMEWORKS ${LLVM_DIR}/${LLVM_BUILD_DIR}/build/${LLVM_MODE})
 set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
@@ -102,12 +143,6 @@ set(LLVM_CLANG_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/tools/clang/include)
 
 # Include libs after defining a few crucial variables
 add_subdirectory(lib)
-
-# Sysroot files
-set(WASI_LIBS ${WASI_DIR}/lib)
-set(WASI_HEADERS ${WASI_DIR}/include)
-set(LLVM_HEADERS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib/clang/14.0.0/include)
-set(CLANGRT ${CLANGRT_DIR}/lib/wasi/libclang_rt.builtins-wasm32.a)
 
 if(IOS)
     set (WAMR_BUILD_PLATFORM "darwin")
@@ -161,10 +196,12 @@ if(IOS)
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/Tide.entitlements"
         XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
         XCODE_ATTRIBUTE_SKIP_INSTALL "No"
+        XCODE_ATTRIBUTE_COPY_PHASE_STRIP "No"
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         QT_IOS_LAUNCH_SCREEN "${CMAKE_CURRENT_SOURCE_DIR}/assets/LaunchScreen.storyboard")
+
     target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/assets/Tide@2x.png)
     set_source_files_properties(
         ${CMAKE_CURRENT_SOURCE_DIR}/assets/Tide@2x.png
@@ -207,6 +244,10 @@ if(IOS)
 
     # libclang for C++ ASTs
     find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+
+    # CMake and Ninja
+    find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(NINJAFW REQUIRED NAMES ninja PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # Because CMake doesn't find the Header itself currently
     include_directories(${PROJECT_NAME}
@@ -282,7 +323,6 @@ target_link_libraries(${PROJECT_NAME}
     ${IOS_SYSTEM}
     ${PROJECT_NAME}-platform
     vmlib
-    CMakeLib
 )
 
 # Deployment on iOS
@@ -301,6 +341,8 @@ if(IOS)
         ${NM}
         ${OPT}
         ${LIBCLANG_CPP}
+        ${CMAKEFW}
+        ${NINJAFW}
         ${PROJECT_NAME}-Formatter
     )
 
@@ -310,30 +352,6 @@ if(IOS)
     set(COMMANDDICTIONARY "${CMAKE_CURRENT_SOURCE_DIR}/commandDictionary.plist")
     target_sources(${PROJECT_NAME} PUBLIC ${COMMANDDICTIONARY})
     set_source_files_properties(${COMMANDDICTIONARY} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
-
-    # Bundle sysroot parts
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${WASI_LIBS}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/lib"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${WASI_HEADERS}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Sysroot/include"
-    )
-
-    # Also bundle Clang parts
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy "${CLANGRT}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Clang/lib/wasi/libclang_rt.builtins-wasm32.a"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_directory "${LLVM_HEADERS}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Clang/include"
-    )
-
-    # Set a few properties for file sharing & UI tweaks
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND plutil -replace UIFileSharingEnabled -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND plutil -replace LSSupportsOpeningDocumentsInPlace -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
-    )
 endif()
 
 install(TARGETS ${PROJECT_NAME}
