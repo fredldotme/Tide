@@ -40,8 +40,25 @@ QVariantList IosProjectList::projects()
 
     for (const auto& bookmark : m_bookmarkDb->bookmarks()) {
         QVariantMap bm;
+        QString path;
+        QString name;
+        NSData* bookmarkData = bookmark.toNSData();
+        NSError* error = 0;
+        BOOL stale = false;
+        NSURL* url = [NSURL URLByResolvingBookmarkData:bookmarkData options:0 relativeToURL:nil bookmarkDataIsStale:&stale error:&error];
+        if (!error && url)
+        {
+            [url startAccessingSecurityScopedResource];
+            QUrl qUrl = QUrl::fromNSURL(url);
+            QStringList splitPath = qUrl.path().split(QDir::separator(), Qt::SkipEmptyParts);
+            name = splitPath.last();
+            path = qUrl.path().left(qUrl.path().length() - 1);
+        }
+
         bm.insert("isBookmark", true);
         bm.insert("bookmark", bookmark);
+        bm.insert("path", path);
+        bm.insert("name", name);
         ret << bm;
     }
 

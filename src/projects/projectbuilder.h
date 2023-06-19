@@ -6,6 +6,8 @@
 
 #include <qmakeparser.h>
 
+#include "projects/cmakebuilder.h"
+#include "projects/qmakebuilder.h"
 #include "platform/systemglue.h"
 
 class ProjectBuilder : public QObject
@@ -13,8 +15,8 @@ class ProjectBuilder : public QObject
     Q_OBJECT
 
     Q_PROPERTY(SystemGlue* commandRunner MEMBER m_iosSystem NOTIFY commandRunnerChanged)
-    Q_PROPERTY(bool building MEMBER m_building NOTIFY buildingChanged)
     Q_PROPERTY(QString projectFile MEMBER m_projectFile NOTIFY projectFileChanged)
+    Q_PROPERTY(bool building READ building NOTIFY buildingChanged)
 
 public:
     explicit ProjectBuilder(QObject *parent = nullptr);
@@ -30,6 +32,8 @@ public slots:
     QString buildRoot();
     QString sourceRoot();
 
+    bool building();
+
 private:
     QString projectBuildRoot();
 
@@ -37,6 +41,9 @@ private:
     QString m_sysroot;
     QString m_projectFile;
     bool m_building;
+    CMakeBuilder m_cmakeBuilder;
+    QMakeBuilder m_qmakeBuilder;
+    BuilderBackend* m_activeBuilder;
 
 signals:
     void projectFileChanged();

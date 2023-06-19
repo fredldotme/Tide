@@ -15,7 +15,6 @@ extern "C" {
 IosSystemGlue::IosSystemGlue(QObject* parent) : QObject(parent)
 {
     initializeEnvironment();
-    joinMainThread = true;
 }
 
 IosSystemGlue::~IosSystemGlue()
@@ -24,6 +23,11 @@ IosSystemGlue::~IosSystemGlue()
     fflush(m_spec.stdout);
     fwrite("\n", sizeof(char), 1, m_spec.stderr);
     fflush(m_spec.stderr);
+}
+
+StdioSpec IosSystemGlue::consumerSpec()
+{
+    return m_consumerSpec;
 }
 
 void IosSystemGlue::setupStdIo()
@@ -60,22 +64,38 @@ void IosSystemGlue::setupStdIo()
     m_spec.stdout = outWriteEnd;
     m_spec.stderr = errWriteEnd;
 
-    emit stdioWritersPrepared({inReadEnd, outWriteEnd, errWriteEnd});
-    emit stdioCreated({inWriteEnd, outReadEnd, errReadEnd});
+    m_consumerSpec.stdin = inWriteEnd;
+    m_consumerSpec.stdout = outReadEnd;
+    m_consumerSpec.stderr = errReadEnd;
+
+    emit stdioWritersPrepared(m_spec);
+    emit stdioCreated(m_consumerSpec);
 }
 
 // Blocking and hence shouldn't be called from the main or GUI threads
-bool IosSystemGlue::runBuildCommands(const QStringList cmds)
+bool IosSystemGlue::runBuildCommands(const QStringList cmds, const QString pwd,
+                                     const bool withPopen, const bool withWait)
 {
     for (const auto& cmd : cmds) {
         thread_stdin = m_spec.stdin;
         thread_stdout = m_spec.stdout;
         thread_stderr = m_spec.stderr;
 
+        if (!pwd.isEmpty()) {
+            changeDir(pwd);
+        }
+
+        joinMainThread = withWait;
+
         const auto stdcmd = cmd.toStdString();
-        const int ret = ios_system(stdcmd.c_str());
-        if (ret != 0)
-            return false;
+        if (!withPopen) {
+            const int ret = ios_system(stdcmd.c_str());
+            if (ret != 0)
+                return false;
+        } else {
+            (void)ios_popen(stdcmd.c_str(), "r");
+            ios_waitpid(ios_currentPid());
+        }
     }
     return true;
 }
@@ -113,4 +133,9 @@ void IosSystemGlue::share(const QString text, const QUrl url, const QRect pos) {
     [popup presentPopoverFromRect:CGRectMake(pos.x(), pos.y(), pos.width(), pos.height())
                            inView:qtViewController.view permittedArrowDirections:UIPopoverArrowDirectionAny animated:YES];
 
+}
+
+void IosSystemGlue::changeDir(const QString path)
+{
+    chdir(path.toStdString().c_str());
 }
