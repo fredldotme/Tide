@@ -8,7 +8,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(PROJECT_NAME tide)
 endif()
 
-project(${PROJECT_NAME} VERSION 0.2 LANGUAGES C CXX)
+project(${PROJECT_NAME} VERSION 0.3 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
@@ -93,6 +93,9 @@ qt_add_executable(${PROJECT_NAME}
     projects/bookmarkdb.cpp
     projects/projectbuilder.cpp
     projects/projectcreator.cpp
+    projects/cmakebuilder.cpp
+    projects/qmakebuilder.cpp
+    projects/builderbackend.h
 
     # Header-only code
     common/stdiospec.h
@@ -252,6 +255,17 @@ if(IOS)
     # Because CMake doesn't find the Header itself currently
     include_directories(${PROJECT_NAME}
         ${LLVM_FRAMEWORKS}/ios_system.framework/Headers
+    )
+
+    # Set a few properties for file sharing & UI tweaks
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND plutil -replace UIFileSharingEnabled -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND plutil -replace LSSupportsOpeningDocumentsInPlace -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND plutil -replace LSApplicationCategoryType -string public.app-category.developer-tools "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
     )
 endif()
 
