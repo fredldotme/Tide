@@ -124,8 +124,8 @@ cd $OLD_PWD
 # CMake
 cd 3rdparty/CMake
 LIBNAME="cmake"
-cmake_iossystem_build "" "$LIBNAME" "lib${LIBNAME}.dylib"
-cp -a build/Modules $OLD_PWD/tmp/$LIBNAME.framework/
+cmake_iossystem_build "-DBUILD_TESTING=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/build-iphoneos/build/Release-iphoneos" "$LIBNAME" "lib${LIBNAME}.dylib"
+cp -a Modules $OLD_PWD/tmp/$LIBNAME.framework/
 cd $OLD_PWD
 
 # Ninja
