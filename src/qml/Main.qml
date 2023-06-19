@@ -315,8 +315,8 @@ ApplicationWindow {
         openFiles.push(modelData)
         editor.file = modelData
 
-        // Also load project in case it's a .pro
-        if (modelData.path.endsWith(".pro"))
+        // Also load project in case it's a project
+        if (modelData.path.endsWith(".pro") || modelData.path.endsWith("CMakeLists.txt"))
             projectBuilder.loadProject(modelData.path)
 
         if (root.width < root.height)
@@ -734,7 +734,7 @@ ApplicationWindow {
                                         delegate: TideButton {
                                             readonly property bool isBackButton : (modelData.name === "..")
                                             readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
-                                            readonly property bool isProject : (modelData.name.endsWith(".pro"))
+                                            readonly property bool isProject : (modelData.name.endsWith(".pro") || modelData.name.endsWith("CMakeLists.txt"))
 
                                             color: root.palette.button
                                             icon.color: root.palette.button
@@ -853,7 +853,7 @@ ApplicationWindow {
 
                                 clip: true
                                 delegate: TideButton {
-                                    readonly property bool isProject : modelData.name.endsWith(".pro")
+                                    readonly property bool isProject : modelData.name.endsWith(".pro") || modelData.name.endsWith("CMakeLists.txt")
                                     readonly property bool isActiveProject: modelData.path === projectBuilder.projectFile
 
                                     anchors {
@@ -1094,18 +1094,15 @@ ApplicationWindow {
                     validator: RegularExpressionValidator {
                         regularExpression: /^[a-zA-Z0-9_.-]*$/
                     }
-                    focus: newFileDialog.opened
                 }
 
                 onAccepted: {
                     fileIo.createFile(rootPath + "/" + fileName.text)
-                    newFileDialog.rootPath = ""
                     fileName.text = ""
                     done()
                 }
 
                 onRejected: {
-                    newFileDialog.rootPath = ""
                     fileName.text = ""
                     done()
                 }
@@ -1131,18 +1128,15 @@ ApplicationWindow {
                     validator: RegularExpressionValidator {
                         regularExpression: /^[a-zA-Z0-9_.-]*$/
                     }
-                    focus: newDirectoryDialog.opened
                 }
 
                 onAccepted: {
                     fileIo.createDirectory(rootPath + "/" + directoryName.text)
-                    newDirectoryDialog.rootPath = ""
                     directoryName.text = ""
                     done()
                 }
 
                 onRejected: {
-                    newDirectoryDialog.rootPath = ""
                     directoryName.text = ""
                     done()
                 }
