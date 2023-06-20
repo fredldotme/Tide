@@ -74,8 +74,8 @@ void QMakeBuilder::build()
         buildDir.mkpath(buildDirPath);
     }
 
-    const auto defaultFlags = QStringLiteral(" -pthread ");
-    const auto defaultLinkFlags = QStringLiteral(" -Wl,--shared-memory -pthread ");
+    const auto defaultFlags = QStringLiteral(" -pthread -msimd128 ");
+    const auto defaultLinkFlags = QStringLiteral(" -Wl,--shared-memory -pthread -msimd128 ");
 
     QMakeParser projectParser;
     projectParser.setProjectFile(m_projectFile);
