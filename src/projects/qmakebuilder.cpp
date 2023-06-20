@@ -74,7 +74,8 @@ void QMakeBuilder::build()
         buildDir.mkpath(buildDirPath);
     }
 
-    const auto defaultFlags = QStringLiteral(" -Wl,--shared-memory -pthread ");
+    const auto defaultFlags = QStringLiteral(" -pthread ");
+    const auto defaultLinkFlags = QStringLiteral(" -Wl,--shared-memory -pthread ");
 
     QMakeParser projectParser;
     projectParser.setProjectFile(m_projectFile);
@@ -153,7 +154,7 @@ void QMakeBuilder::build()
 
     const QString linkCommand = QStringLiteral("clang++") +
                                 QStringLiteral(" --sysroot=") + m_sysroot +
-                                defaultFlags +
+                                defaultLinkFlags +
                                 objectFlags +
                                 libraryFlags +
                                 QStringLiteral(" -o %1").arg(runnableFile());
