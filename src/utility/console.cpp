@@ -14,10 +14,12 @@ Console::Console(QObject *parent) : QObject{parent}, m_quitting{false}
 Console::~Console()
 {
     m_quitting = true;
-    fclose(m_spec.stdout);
+
+    close(fileno(m_spec.stdout));
     m_readThreadOut.terminate();
     m_readThreadOut.wait(1000);
-    fclose(m_spec.stderr);
+
+    close(fileno(m_spec.stderr));
     m_readThreadErr.terminate();
     m_readThreadErr.wait(1000);
 }
@@ -45,7 +47,7 @@ void Console::read(FILE* io)
 {
     char buffer[1024];
     qDebug() << Q_FUNC_INFO << io;
-    while (fgets(buffer, 1024, io))
+    while (::read(fileno(io), buffer, 1024))
     {
         emit contentRead(QString::fromUtf8(buffer), (this->m_spec.stdout == io));
         if (m_quitting)
