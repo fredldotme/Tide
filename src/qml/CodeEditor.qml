@@ -83,7 +83,7 @@ Item {
             return SourceHighliter.CodePython;
         }
 
-        return SourceHighliter.CodeCpp;
+        return SourceHighliter.CodeMake;
     }
 
     onFileChanged: {
