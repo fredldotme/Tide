@@ -76,6 +76,8 @@ ApplicationWindow {
         // Hide the sidebar
         if (width < height && shouldAllowSidebar)
             showLeftSideBar = false
+        else
+            showLeftSideBar = true
     }
 
     header: ToolBar {
@@ -942,8 +944,15 @@ ApplicationWindow {
             }
 
             Rectangle {
+                id: mainSeparator
+                width: 1
+                height: parent.height
+                color: root.palette.shadow
+            }
+
+            Rectangle {
                 color: root.palette.base
-                width: parent.width - leftSideBar.width
+                width: parent.width - leftSideBar.width - mainSeparator.width
                 height: parent.height
                 clip: true
                 visible: projectList.projects.length > 0
