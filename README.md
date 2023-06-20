@@ -28,3 +28,4 @@ This software is licensed under the MIT license.
 - `libqmakeparser`: BSD 3-Clause License
 - `ios_system`: BSD 3-Clause License
 - `SF symbols`: Apple Inc.
+- Tide icon by Parmjot Singh
