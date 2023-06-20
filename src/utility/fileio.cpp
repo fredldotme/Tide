@@ -3,6 +3,7 @@
 #include <QFile>
 #include <QDebug>
 #include <QDir>
+#include <QDirIterator>
 
 FileIo::FileIo(QObject *parent)
     : QObject{parent}
@@ -65,4 +66,33 @@ void FileIo::deleteFileOrDirectory(const QString path)
     }
 
     emit pathDeleted(path);
+}
+
+qint64 FileIo::fileSize(const QString path)
+{
+    QFileInfo file(path);
+    if (!file.exists()) {
+        qWarning() << "Cannot fetch size for" << path << ", doesn't exist";
+        return 0;
+    }
+    return file.size();
+}
+
+quint64 FileIo::directoryContents(const QString path)
+{
+    quint64 ret = 0;
+
+    QDir dir(path);
+    if (!dir.exists()) {
+        qWarning() << "Directory doesn't exist, cannot fetch content number of" << path;
+        return 0;
+    }
+
+    QDirIterator it(path, QDir::AllEntries | QDir::NoDotAndDotDot, QDirIterator::NoIteratorFlags);
+    while(it.hasNext()) {
+        ++ret;
+        it.next();
+    }
+
+    return ret;
 }

@@ -28,6 +28,8 @@ ApplicationWindow {
     property bool releaseRequested : false
     property font fixedFont: standardFixedFont
 
+    signal fileSaved()
+
     function saveCurrentFile() {
         if (editor.file == null || editor.invalidated)
             return
@@ -37,6 +39,8 @@ ApplicationWindow {
         fileIo.writeFile(file.path, editor.text)
         projectPicker.closeFile(path);
         editor.reloadAst()
+
+        fileSaved()
     }
 
     function clearConsoleOutput() {
@@ -673,6 +677,14 @@ ApplicationWindow {
                                             }
                                         }
 
+                                        function getDetailText(listing) {
+                                            if (listing.type === DirectoryListing.Directory) {
+                                                return qsTr("%1 contents").arg(fileIo.directoryContents(listing.path))
+                                            } else {
+                                                return qsTr("%1 bytes").arg(fileIo.fileSize(listing.path))
+                                            }
+                                        }
+
                                         Component.onCompleted: {
                                             refresh()
                                         }
@@ -731,7 +743,8 @@ ApplicationWindow {
                                         topMargin: paddingMedium
                                         spacing: paddingMedium
                                         clip: true
-                                        delegate: TideButton {
+                                        delegate: FileListingButton {
+                                            id: fileListingButton
                                             readonly property bool isBackButton : (modelData.name === "..")
                                             readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
                                             readonly property bool isProject : (modelData.name.endsWith(".pro") || modelData.name.endsWith("CMakeLists.txt"))
@@ -743,8 +756,20 @@ ApplicationWindow {
                                                                                : isProject ? Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
                                                                                            : Qt.resolvedUrl("qrc:/assets/doc@2x.png"))
                                             text: isBackButton ? qsTr("Back") : modelData.name
+                                            detailText: isBackButton ? "" : directoryListView.getDetailText(modelData)
                                             pressAnimation: !isBackButton
                                             longPressEnabled: !isBackButton
+
+                                            Connections {
+                                                target: root
+                                                function onFileSaved() {
+                                                    if (isBackButton)
+                                                        return;
+
+                                                    // Refresh sizes and file contents
+                                                    fileListingButton.detailText = directoryListView.getDetailText(modelData)
+                                                }
+                                            }
 
                                             anchors {
                                                 left: parent.left
@@ -753,6 +778,7 @@ ApplicationWindow {
                                             }
 
                                             font.pixelSize: 20
+
                                             onClicked: {
                                                 if (isBackButton) {
                                                     projectNavigationStack.pop()

@@ -134,6 +134,7 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/ConsoleView.qml
     qml/ContextView.qml
     qml/ContextViewButton.qml
+    qml/FileListingButton.qml
 
     NO_LINT
 )
