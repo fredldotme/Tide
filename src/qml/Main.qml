@@ -126,7 +126,7 @@ ApplicationWindow {
 
                 TideToolButton {
                     visible: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
-                    enabled: !projectBuilder.building
+                    enabled: !projectBuilder.building && !wasmRunner.running
                     icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
                     icon.color: root.palette.button
                     onClicked: {
@@ -135,6 +135,12 @@ ApplicationWindow {
 
                         projectBuilder.clean()
                         projectBuilder.build()
+                    }
+
+                    BusyIndicator {
+                        visible: projectBuilder.building
+                        running: projectBuilder.building
+                        anchors.centerIn: parent
                     }
                 }
 
@@ -169,6 +175,7 @@ ApplicationWindow {
 
                 TideToolButton {
                     visible: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
+                    enabled: !projectBuilder.building
                     icon.source: !wasmRunner.running ?
                                      Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
                                      Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
@@ -320,7 +327,7 @@ ApplicationWindow {
         editor.file = modelData
 
         // Also load project in case it's a project
-        if (modelData.path.endsWith(".pro") || modelData.path.endsWith("CMakeLists.txt"))
+        if (modelData.path.endsWith(".pro") /* || modelData.path.endsWith("CMakeLists.txt")*/)
             projectBuilder.loadProject(modelData.path)
 
         if (root.width < root.height)
@@ -747,7 +754,7 @@ ApplicationWindow {
                                             id: fileListingButton
                                             readonly property bool isBackButton : (modelData.name === "..")
                                             readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
-                                            readonly property bool isProject : (modelData.name.endsWith(".pro") || modelData.name.endsWith("CMakeLists.txt"))
+                                            readonly property bool isProject : (modelData.name.endsWith(".pro") /* || modelData.name.endsWith("CMakeLists.txt") */)
 
                                             color: root.palette.button
                                             icon.color: root.palette.button
@@ -879,7 +886,7 @@ ApplicationWindow {
 
                                 clip: true
                                 delegate: TideButton {
-                                    readonly property bool isProject : modelData.name.endsWith(".pro") || modelData.name.endsWith("CMakeLists.txt")
+                                    readonly property bool isProject : modelData.name.endsWith(".pro") // || modelData.name.endsWith("CMakeLists.txt")
                                     readonly property bool isActiveProject: modelData.path === projectBuilder.projectFile
 
                                     anchors {
