@@ -948,6 +948,7 @@ ApplicationWindow {
                 width: 1
                 height: parent.height
                 color: root.palette.shadow
+                opacity: 0.6
             }
 
             Rectangle {
