@@ -41,3 +41,9 @@
 [submodule "3rdparty/microtar"]
 	path = 3rdparty/microtar
 	url = https://github.com/rxi/microtar.git
+[submodule "3rdparty/wasix-libc"]
+	path = 3rdparty/wasix-libc
+	url = https://github.com/fredldotme/wasix-libc.git
+[submodule "3rdparty/wasix-sdk"]
+	path = 3rdparty/wasix-sdk
+	url = https://github.com/fredldotme/wasix-sdk.git
