@@ -51,10 +51,9 @@ endfunction()
 set(WASI_LIBS ${WASI_DIR}/lib)
 set(WASI_HEADERS ${WASI_DIR}/include)
 set(LLVM_HEADERS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib/clang/14.0.0/include)
-set(CLANGRT ${CLANGRT_DIR}/lib/wasi)
 
 if(IOS)
-    resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
+    resource(THE_SYSROOT ${TMP_DIR} Resources the-sysroot.tar)
 endif()
 
 # Qt6
@@ -247,11 +246,11 @@ if(IOS)
     find_library(OPT REQUIRED NAMES opt PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # libclang for C++ ASTs
-    find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${TMP_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # CMake and Ninja
-    find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(NINJAFW REQUIRED NAMES ninja PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${TMP_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(NINJAFW REQUIRED NAMES ninja PATHS ${TMP_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # Because CMake doesn't find the Header itself currently
     include_directories(${PROJECT_NAME}

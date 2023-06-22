@@ -33,7 +33,7 @@ int main(int argc, char *argv[])
                             QStringLiteral("/Runtimes/Linux");
 
     qputenv("SYSROOT", sysroot.toUtf8().data());
-    qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi-threads");
+    qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi");
     QQuickStyle::setStyle("iOS");
 #elif defined(Q_OS_LINUX)
     const QString sysroot = QStringLiteral("/usr");
