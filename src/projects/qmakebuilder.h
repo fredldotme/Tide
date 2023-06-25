@@ -24,6 +24,7 @@ public:
 public slots:
     void setSysroot(const QString path) override;
     bool loadProject(const QString path) override;
+    void unloadProject() override;
     void clean() override;
     void build() override;
     void cancel() override;

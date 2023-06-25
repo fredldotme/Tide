@@ -24,9 +24,12 @@ public:
 public slots:
     void setSysroot(const QString path);
     bool loadProject(const QString path);
+    void unloadProject();
+
     void clean();
     void build();
     void cancel();
+
     QString runnableFile();
     QStringList includePaths();
     QString buildRoot();

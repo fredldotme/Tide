@@ -39,6 +39,12 @@ bool QMakeBuilder::loadProject(const QString path)
     return true;
 }
 
+void QMakeBuilder::unloadProject()
+{
+    m_projectFile = "";
+    emit projectFileChanged();
+}
+
 void QMakeBuilder::clean()
 {
     const auto buildDirPath = projectBuildRoot();

@@ -15,6 +15,15 @@ void ProjectBuilder::setSysroot(const QString path)
     m_sysroot = path;
 }
 
+void ProjectBuilder::unloadProject()
+{
+    if (m_activeBuilder)
+        m_activeBuilder->unloadProject();
+
+    QObject::disconnect(&m_qmakeBuilder, nullptr, nullptr, nullptr);
+    QObject::disconnect(&m_cmakeBuilder, nullptr, nullptr, nullptr);
+}
+
 bool ProjectBuilder::loadProject(const QString path)
 {
     if (!QFile::exists(path))

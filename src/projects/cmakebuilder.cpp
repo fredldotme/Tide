@@ -32,6 +32,12 @@ bool CMakeBuilder::loadProject(const QString path)
     return true;
 }
 
+void CMakeBuilder::unloadProject()
+{
+    m_projectFile = "";
+    emit projectFileChanged();
+}
+
 void CMakeBuilder::clean()
 {
     const auto sourcePath = sourceRoot() + "/CMakeTest";

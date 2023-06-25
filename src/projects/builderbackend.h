@@ -7,6 +7,8 @@ class BuilderBackend {
 public:
     virtual void setSysroot(const QString path) = 0;
     virtual bool loadProject(const QString path) = 0;
+    virtual void unloadProject() = 0;
+
     virtual void clean() = 0;
     virtual void build() = 0;
     virtual void cancel() = 0;
