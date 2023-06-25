@@ -74,6 +74,12 @@ Rectangle {
                 color: itemRoot.textColor
                 height: text !== "" ? 16 : 0
                 Layout.fillWidth: true
+                Behavior on height {
+                    NumberAnimation {
+                        duration: 100
+                        easing.type: Easing.OutCubic
+                    }
+                }
             }
         }
     }
