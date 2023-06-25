@@ -28,6 +28,10 @@ public:
     const char* (*getCString)(CXString);
     void (*disposeString)(CXString);
     void (*toggleCrashRecovery)(unsigned);
+    int (*Cursor_isNull)(CXCursor);
+    unsigned (*equalCursors)(CXCursor, CXCursor);
+    CXCursor (*getCursorSemanticParent)(CXCursor);
+    unsigned (*isCursorDefinition)(CXCursor);
 };
 
 #endif // CLANGWRAPPER_H

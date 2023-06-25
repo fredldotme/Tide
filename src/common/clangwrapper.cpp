@@ -25,6 +25,10 @@ ClangWrapper::ClangWrapper()
     *(void**)(&getCString) = dlsym(this->handle, "clang_getCString");
     *(void**)(&disposeString) = dlsym(this->handle, "clang_disposeString");
     *(void**)(&toggleCrashRecovery) = dlsym(this->handle, "clang_toggleCrashRecovery");
+    *(void**)(&Cursor_isNull) = dlsym(this->handle, "clang_Cursor_isNull");
+    *(void**)(&equalCursors) = dlsym(this->handle, "clang_equalCursors");
+    *(void**)(&getCursorSemanticParent) = dlsym(this->handle, "clang_getCursorSemanticParent");
+    *(void**)(&isCursorDefinition) = dlsym(this->handle, "clang_isCursorDefinition");
 }
 
 ClangWrapper::~ClangWrapper()
