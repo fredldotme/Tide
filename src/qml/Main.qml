@@ -15,13 +15,16 @@ ApplicationWindow {
 
     readonly property int paddingSmall: 8
     readonly property int paddingMedium: 16
-    readonly property int roundedCornersRadius: 16
     readonly property int roundedCornersRadiusSmall: 8
+    readonly property int roundedCornersRadius: 16
+    readonly property int roundedCornersRadiusMedium: 24
     readonly property int sideBarExpandedDefault: 324
     readonly property int sideBarWidth: width > height ? Math.min(sideBarExpandedDefault, width) : width
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
                                                 openFiles.files.length > 0)
     readonly property bool padStatusBar : true
+    readonly property int headerItemHeight : 48
+    readonly property int topBarHeight : 80
 
     property bool showLeftSideBar: true
     property bool compiling: false
@@ -80,9 +83,11 @@ ApplicationWindow {
             showLeftSideBar = true
     }
 
-    header: ToolBar {
+    header: Pane {
         topPadding: padStatusBar ? oskReactor.statusBarHeight : 0
         width: parent.width
+        height: topBarHeight
+
         Column {
             anchors.fill: parent
             spacing: paddingSmall * 2
@@ -240,13 +245,6 @@ ApplicationWindow {
 
     OpenFilesManager {
         id: openFiles
-        onFilesChanged: {
-            if (files.length === 0) {
-                openFilesArea.height = 0
-            } else {
-                openFilesArea.height = openFilesArea.usualHeight
-            }
-        }
     }
 
     SysrootManager {
@@ -415,12 +413,13 @@ ApplicationWindow {
                 height: parent.height
                 clip: true
                 topInset: 0
+                bottomInset: 0
                 topPadding: 0
                 leftPadding: 0
                 rightPadding: 0
 
                 Behavior on width {
-                    NumberAnimation { duration: 250; easing.type: Easing.OutCubic; }
+                    NumberAnimation { duration: 100; easing.type: Easing.OutCubic; }
                 }
 
                 onWidthChanged: {
@@ -433,11 +432,16 @@ ApplicationWindow {
                 Pane {
                     anchors.fill: parent
                     topInset: 0
-                    topPadding: contextField.visibility ? 0 : paddingMedium
+                    leftInset: 0
+                    rightInset: 0
+                    bottomInset: 0
+                    topPadding: 0
+                    bottomPadding: paddingMedium
 
                     Column {
                         width: parent.width
                         height: parent.height
+                        spacing: paddingMedium
 
                         Grid {
                             id: contextField
@@ -460,6 +464,7 @@ ApplicationWindow {
                             readonly property bool visibility: openFiles.files.length > 0
                             height: visibility ? childrenRect.height : 0
                             visible: height > 0
+
                             Behavior on height {
                                 NumberAnimation {
                                     duration: 100
@@ -542,10 +547,11 @@ ApplicationWindow {
                         }
 
                         Column {
+                            y: paddingSmall
                             width: parent.width
                             height: openFilesArea.height == 0 ?
                                         parent.height :
-                                        (parent.height / 2) - (contextField.height / 2)
+                                        (parent.height / 2) - (contextField.height / 2) - (paddingMedium)
 
                             Behavior on height {
                                 NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
@@ -576,94 +582,106 @@ ApplicationWindow {
                                 Component {
                                     id: projectsComponent
 
-                                    ListView {
-                                        headerPositioning: ListView.PullBackHeader
-                                        header: ToolBar {
-                                            clip: true
-                                            width: projectNavigationStack.width
-                                            RowLayout {
-                                                anchors.fill: parent
-                                                spacing: paddingSmall * 2
-                                                ToolButton {
-                                                    text: qsTr("Create")
-                                                    icon.source: Qt.resolvedUrl("qrc:/assets/plus.app@2x.png")
-                                                    icon.color: root.palette.button
-                                                    leftPadding: paddingMedium
-                                                    onClicked: {
-                                                        let createProjectDialog = createProjectDialogComponent.createObject(root)
-                                                        createProjectDialog.done.connect(function() {
-                                                            createProjectDialog.destroy()
-                                                        })
-                                                        createProjectDialog.open()
+                                    Rectangle {
+                                        width: parent.width
+                                        radius: roundedCornersRadiusMedium
+                                        color: root.palette.base
+                                        clip: true
+
+                                        ListView {
+                                            headerPositioning: ListView.PullBackHeader
+                                            header: Item {
+                                                clip: true
+                                                width: projectNavigationStack.width
+                                                height: root.headerItemHeight
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    spacing: paddingSmall * 2
+                                                    ToolButton {
+                                                        text: qsTr("Create")
+                                                        icon.source: Qt.resolvedUrl("qrc:/assets/plus.app@2x.png")
+                                                        icon.color: root.palette.button
+                                                        leftPadding: paddingMedium
+                                                        onClicked: {
+                                                            let createProjectDialog = createProjectDialogComponent.createObject(root)
+                                                            createProjectDialog.done.connect(function() {
+                                                                createProjectDialog.destroy()
+                                                            })
+                                                            createProjectDialog.open()
+                                                        }
+                                                    }
+                                                    ToolButton {
+                                                        text: qsTr("Import")
+                                                        icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.down.on.square@2x.png")
+                                                        icon.color: root.palette.button
+                                                        leftPadding: paddingSmall
+                                                        onClicked: projectPicker.startImport()
                                                     }
                                                 }
-                                                ToolButton {
-                                                    text: qsTr("Import")
-                                                    icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.down.on.square@2x.png")
-                                                    icon.color: root.palette.button
-                                                    leftPadding: paddingSmall
-                                                    onClicked: projectPicker.startImport()
+                                            }
+
+                                            Connections {
+                                                target: projectCreator
+                                                function onProjectCreated() {
+                                                    projectList.refresh()
                                                 }
                                             }
-                                        }
 
-                                        Connections {
-                                            target: projectCreator
-                                            function onProjectCreated() {
-                                                projectList.refresh()
+                                            width: parent.width
+                                            height: parent.height
+                                            spacing: paddingSmall
+                                            model: projectList.projects
+                                            topMargin: paddingMedium
+                                            clip: true
+
+                                            delegate: FileListingButton {
+                                                id: bookmarkButton
+                                                text: modelData.isBookmark ?
+                                                          projectPicker.getDirNameForBookmark(modelData.bookmark) :
+                                                          modelData.name
+                                                font.pixelSize: 20
+                                                height: font.pixelSize + (paddingSmall * 2)
+                                                textColor: root.palette.button
+                                                icon.source: modelData.isBookmark ?
+                                                                 Qt.resolvedUrl("qrc:/assets/bookmark@2x.png") :
+                                                                 Qt.resolvedUrl("qrc:/assets/folder@2x.png")
+
+                                                anchors {
+                                                    left: parent.left
+                                                    leftMargin: paddingMedium
+                                                    right: parent.right
+                                                    bottomMargin: paddingMedium
+                                                }
+
+                                                onClicked: {
+                                                    projectNavigationStack.push(directoryComponent,
+                                                                                {project: modelData})
+                                                }
+                                                onPressAndHold: {
+                                                    let projectsContextMenu = projectsContextMenuComponent.createObject(bookmarkButton);
+                                                    projectsContextMenu.selectedProject = modelData
+                                                    projectsContextMenu.open()
+                                                }
                                             }
-                                        }
 
-                                        width: parent.width
-                                        model: projectList.projects
-                                        spacing: paddingMedium
-                                        topMargin: paddingMedium
-                                        clip: true
-                                        delegate: TideButton {
-                                            id: bookmarkButton
-                                            text: modelData.isBookmark ?
-                                                      projectPicker.getDirNameForBookmark(modelData.bookmark) :
-                                                      modelData.name
-                                            font.pixelSize: 20
-                                            color: root.palette.button
-                                            icon.source: modelData.isBookmark ?
-                                                             Qt.resolvedUrl("qrc:/assets/bookmark@2x.png") :
-                                                             Qt.resolvedUrl("qrc:/assets/folder@2x.png")
-
-                                            anchors {
-                                                left: parent.left
-                                                right: parent.right
-                                                leftMargin: paddingMedium
-                                            }
-
-                                            onClicked: {
-                                                projectNavigationStack.push(directoryComponent,
-                                                                            {project: modelData})
-                                            }
-                                            onPressAndHold: {
-                                                let projectsContextMenu = projectsContextMenuComponent.createObject(bookmarkButton);
-                                                projectsContextMenu.selectedProject = modelData
-                                                projectsContextMenu.open()
-                                            }
-                                        }
-
-                                        Component {
-                                            id: projectsContextMenuComponent
-                                            Menu {
-                                                id: projectsContextMenu
-                                                property var selectedProject: null
-                                                MenuItem {
-                                                    text: qsTr("Remove")
-                                                    icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
-                                                    onClicked: {
-                                                        if (projectsContextMenu.selectedProject.isBookmark) {
-                                                            const bookmark = projectsContextMenu.selectedProject.bookmark
-                                                            openFiles.closeAllByBookmark(bookmark)
-                                                            bookmarkDb.removeBookmark(bookmark)
-                                                        } else {
-                                                            projectList.removeProject(projectsContextMenu.selectedProject.path)
+                                            Component {
+                                                id: projectsContextMenuComponent
+                                                Menu {
+                                                    id: projectsContextMenu
+                                                    property var selectedProject: null
+                                                    MenuItem {
+                                                        text: qsTr("Remove")
+                                                        icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
+                                                        onClicked: {
+                                                            if (projectsContextMenu.selectedProject.isBookmark) {
+                                                                const bookmark = projectsContextMenu.selectedProject.bookmark
+                                                                openFiles.closeAllByBookmark(bookmark)
+                                                                bookmarkDb.removeBookmark(bookmark)
+                                                            } else {
+                                                                projectList.removeProject(projectsContextMenu.selectedProject.path)
+                                                            }
+                                                            projectsContextMenu.selectedProject = null
                                                         }
-                                                        projectsContextMenu.selectedProject = null
                                                     }
                                                 }
                                             }
@@ -674,168 +692,182 @@ ApplicationWindow {
                                 Component {
                                     id: directoryComponent
 
-                                    ListView {
-                                        id: directoryListView
-                                        property var project : null
-
-                                        function refresh() {
-                                            if (project.isBookmark) {
-                                                model = projectPicker.listBookmarkContents(project.bookmark)
-                                            } else {
-                                                model = projectList.listDirectoryContents(project.path)
-                                            }
-                                        }
-
-                                        function getDetailText(listing) {
-                                            if (listing.type === DirectoryListing.Directory) {
-                                                return qsTr("%1 contents").arg(fileIo.directoryContents(listing.path))
-                                            } else {
-                                                return qsTr("%1 bytes").arg(fileIo.fileSize(listing.path))
-                                            }
-                                        }
-
-                                        Component.onCompleted: {
-                                            refresh()
-                                        }
-
-                                        Connections {
-                                            target: fileIo
-                                            function onDirectoryCreated(path, parent) {
-                                                if (parent === project.path) {
-                                                    directoryListView.refresh();
-                                                }
-                                            }
-                                            function onFileCreated(path, parent) {
-                                                if (parent === project.path) {
-                                                    directoryListView.refresh()
-                                                }
-                                            }
-                                        }
-
-                                        headerPositioning: ListView.PullBackHeader
-                                        header: ToolBar {
-                                            width: projectNavigationStack.width
-                                            RowLayout {
-                                                anchors.fill: parent
-                                                spacing: paddingSmall * 2
-                                                TideToolButton {
-                                                    text: qsTr("New file")
-                                                    icon.source: Qt.resolvedUrl("qrc:/assets/doc.badge.plus@2x.png")
-                                                    icon.color: root.palette.button
-                                                    leftPadding: paddingMedium
-                                                    onClicked: {
-                                                        let newFileDialog = newFileDialogComponent.createObject(root)
-                                                        newFileDialog.done.connect(function() {
-                                                            newFileDialog.destroy()
-                                                        })
-                                                        newFileDialog.rootPath = directoryListView.project.path
-                                                        newFileDialog.open();
-                                                    }
-                                                }
-                                                TideToolButton {
-                                                    text: qsTr("New directory")
-                                                    icon.source: Qt.resolvedUrl("qrc:/assets/plus.rectangle.on.folder@2x.png")
-                                                    icon.color: root.palette.button
-                                                    leftPadding: paddingSmall
-                                                    onClicked: {
-                                                        let newDirectoryDialog = newDirectoryDialogComponent.createObject(root)
-                                                        newDirectoryDialog.done.connect(function() {
-                                                            newDirectoryDialog.destroy()
-                                                        })
-                                                        newDirectoryDialog.rootPath = directoryListView.project.path
-                                                        newDirectoryDialog.open();
-                                                    }
-                                                }
-                                            }
-                                        }
-
-                                        topMargin: paddingMedium
-                                        spacing: paddingMedium
+                                    Rectangle {
+                                        width: parent.width
+                                        height: parent.height
+                                        radius: roundedCornersRadiusMedium
+                                        color: root.palette.base
                                         clip: true
-                                        delegate: FileListingButton {
-                                            id: fileListingButton
-                                            readonly property bool isBackButton : (modelData.name === "..")
-                                            readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
-                                            readonly property bool isProject : (modelData.name.endsWith(".pro") /* || modelData.name.endsWith("CMakeLists.txt") */)
 
-                                            color: root.palette.button
-                                            icon.color: root.palette.button
-                                            icon.source: isBackButton ? Qt.resolvedUrl("qrc:/assets/chevron.backward@2x.png")
-                                                                      : (isDir ? Qt.resolvedUrl("qrc:/assets/folder@2x.png")
-                                                                               : isProject ? Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
-                                                                                           : Qt.resolvedUrl("qrc:/assets/doc@2x.png"))
-                                            text: isBackButton ? qsTr("Back") : modelData.name
-                                            detailText: isBackButton ? "" : directoryListView.getDetailText(modelData)
-                                            pressAnimation: !isBackButton
-                                            longPressEnabled: !isBackButton
+                                        property alias model: directoryListView.model
+                                        property alias project: directoryListView.project
 
-                                            Connections {
-                                                target: root
-                                                function onFileSaved() {
-                                                    if (isBackButton)
-                                                        return;
+                                        ListView {
+                                            id: directoryListView
+                                            width: parent.width
+                                            height: parent.height
+                                            spacing: paddingSmall
+                                            property var project : null
 
-                                                    // Refresh sizes and file contents
-                                                    fileListingButton.detailText = directoryListView.getDetailText(modelData)
+                                            function refresh() {
+                                                if (project.isBookmark) {
+                                                    model = projectPicker.listBookmarkContents(project.bookmark)
+                                                } else {
+                                                    model = projectList.listDirectoryContents(project.path)
                                                 }
                                             }
 
-                                            anchors {
-                                                left: parent.left
-                                                right: parent.right
-                                                leftMargin: paddingMedium
-                                            }
-
-                                            font.pixelSize: 20
-
-                                            onClicked: {
-                                                if (isBackButton) {
-                                                    projectNavigationStack.pop()
-                                                    return
-                                                }
-
-                                                console.log("listing type: " + modelData.type)
-
-                                                if (modelData.type === DirectoryListing.Directory) {
-                                                    const newModel = projectPicker.listDirectoryContents(modelData.path, modelData.bookmark);
-                                                    projectNavigationStack.push(directoryComponent,
-                                                                                { project: modelData })
-                                                } else if (modelData.type === DirectoryListing.File) {
-                                                    openEditor(modelData)
+                                            function getDetailText(listing) {
+                                                if (listing.type === DirectoryListing.Directory) {
+                                                    return qsTr("%1 contents").arg(fileIo.directoryContents(listing.path))
+                                                } else {
+                                                    return qsTr("%1 bytes").arg(fileIo.fileSize(listing.path))
                                                 }
                                             }
 
-                                            onPressAndHold: {
-                                                directoryListViewContextMenu.open()
+                                            Component.onCompleted: {
+                                                refresh()
                                             }
 
                                             Connections {
                                                 target: fileIo
-                                                function onPathDeleted(path) {
-                                                    if (path === project.path) {
+                                                function onDirectoryCreated(path, parent) {
+                                                    if (parent === project.path) {
                                                         directoryListView.refresh();
+                                                    }
+                                                }
+                                                function onFileCreated(path, parent) {
+                                                    if (parent === project.path) {
+                                                        directoryListView.refresh()
                                                     }
                                                 }
                                             }
 
-                                            Menu {
-                                                id: directoryListViewContextMenu
-                                                readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
-
-                                                MenuItem {
-                                                    text: qsTr("Delete")
-                                                    icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
-                                                    onClicked: {
-                                                        if (!isDir) {
-                                                            openFiles.close(modelData)
-                                                            if (openFiles.files.length > 0)
-                                                                editor.file = openFiles.files[0]
-                                                            else
-                                                                editor.invalidate()
+                                            headerPositioning: ListView.PullBackHeader
+                                            header: Item {
+                                                width: projectNavigationStack.width
+                                                height: root.headerItemHeight
+                                                RowLayout {
+                                                    anchors.fill: parent
+                                                    spacing: paddingSmall * 2
+                                                    TideToolButton {
+                                                        text: qsTr("New file")
+                                                        icon.source: Qt.resolvedUrl("qrc:/assets/doc.badge.plus@2x.png")
+                                                        icon.color: root.palette.button
+                                                        leftPadding: paddingMedium
+                                                        onClicked: {
+                                                            let newFileDialog = newFileDialogComponent.createObject(root)
+                                                            newFileDialog.done.connect(function() {
+                                                                newFileDialog.destroy()
+                                                            })
+                                                            newFileDialog.rootPath = directoryListView.project.path
+                                                            newFileDialog.open();
                                                         }
+                                                    }
+                                                    TideToolButton {
+                                                        text: qsTr("New directory")
+                                                        icon.source: Qt.resolvedUrl("qrc:/assets/plus.rectangle.on.folder@2x.png")
+                                                        icon.color: root.palette.button
+                                                        leftPadding: paddingSmall
+                                                        onClicked: {
+                                                            let newDirectoryDialog = newDirectoryDialogComponent.createObject(root)
+                                                            newDirectoryDialog.done.connect(function() {
+                                                                newDirectoryDialog.destroy()
+                                                            })
+                                                            newDirectoryDialog.rootPath = directoryListView.project.path
+                                                            newDirectoryDialog.open();
+                                                        }
+                                                    }
+                                                }
+                                            }
 
-                                                        fileIo.deleteFileOrDirectory(modelData.path)
-                                                        directoryListView.refresh()
+                                            topMargin: paddingMedium
+                                            delegate: FileListingButton {
+                                                id: fileListingButton
+                                                readonly property bool isBackButton : (modelData.name === "..")
+                                                readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
+                                                readonly property bool isProject : (modelData.name.endsWith(".pro") /* || modelData.name.endsWith("CMakeLists.txt") */)
+
+                                                textColor: root.palette.button
+                                                icon.color: root.palette.button
+                                                icon.source: isBackButton ? Qt.resolvedUrl("qrc:/assets/chevron.backward@2x.png")
+                                                                          : (isDir ? Qt.resolvedUrl("qrc:/assets/folder@2x.png")
+                                                                                   : isProject ? Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
+                                                                                               : Qt.resolvedUrl("qrc:/assets/doc@2x.png"))
+                                                text: isBackButton ? qsTr("Back") : modelData.name
+                                                detailText: isBackButton ? "" : directoryListView.getDetailText(modelData)
+                                                pressAnimation: !isBackButton
+                                                longPressEnabled: !isBackButton
+
+                                                Connections {
+                                                    target: root
+                                                    function onFileSaved() {
+                                                        if (isBackButton)
+                                                            return;
+
+                                                        // Refresh sizes and file contents
+                                                        fileListingButton.detailText = directoryListView.getDetailText(modelData)
+                                                    }
+                                                }
+
+                                                anchors {
+                                                    left: parent.left
+                                                    leftMargin: paddingMedium
+                                                    right: parent.right
+                                                }
+
+                                                font.pixelSize: 20
+                                                height: font.pixelSize + + detailControl.font.pixelSize + (paddingSmall * 2)
+
+                                                onClicked: {
+                                                    if (isBackButton) {
+                                                        projectNavigationStack.pop()
+                                                        return
+                                                    }
+
+                                                    console.log("listing type: " + modelData.type)
+
+                                                    if (modelData.type === DirectoryListing.Directory) {
+                                                        const newModel = projectPicker.listDirectoryContents(modelData.path, modelData.bookmark);
+                                                        projectNavigationStack.push(directoryComponent,
+                                                                                    { project: modelData })
+                                                    } else if (modelData.type === DirectoryListing.File) {
+                                                        openEditor(modelData)
+                                                    }
+                                                }
+
+                                                onPressAndHold: {
+                                                    directoryListViewContextMenu.open()
+                                                }
+
+                                                Connections {
+                                                    target: fileIo
+                                                    function onPathDeleted(path) {
+                                                        if (path === project.path) {
+                                                            directoryListView.refresh();
+                                                        }
+                                                    }
+                                                }
+
+                                                Menu {
+                                                    id: directoryListViewContextMenu
+                                                    readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
+
+                                                    MenuItem {
+                                                        text: qsTr("Delete")
+                                                        icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
+                                                        onClicked: {
+                                                            if (!isDir) {
+                                                                openFiles.close(modelData)
+                                                                if (openFiles.files.length > 0)
+                                                                    editor.file = openFiles.files[0]
+                                                                else
+                                                                    editor.invalidate()
+                                                            }
+
+                                                            fileIo.deleteFileOrDirectory(modelData.path)
+                                                            directoryListView.refresh()
+                                                        }
                                                     }
                                                 }
                                             }
@@ -847,92 +879,110 @@ ApplicationWindow {
 
                         Column {
                             id: openFilesArea
-                            readonly property int usualHeight: ((parent.height) / 2) - (contextField.height / 2)
+                            readonly property int usualHeight: (parent.height / 2) - (contextField.height / 2) - (paddingMedium / 2)
                             width: parent.width
-                            height: 0
+                            height: openFiles.files.length > 0 ? openFilesArea.usualHeight : 0
 
                             Behavior on height {
                                 NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
                             }
 
-                            ListView {
-                                id: openfilesListView
+                            Rectangle {
                                 width: parent.width
                                 height: parent.height
-                                topMargin: paddingMedium
-                                model: openFiles.files
-                                spacing: paddingMedium
-                                headerPositioning: ListView.PullBackHeader
-                                header: ToolBar {
-                                    id: openFilesAreaToolbar
-                                    width: projectNavigationStack.width
+                                radius: roundedCornersRadiusMedium
+                                color: root.palette.base
+                                clip: true
 
-                                    RowLayout {
-                                        anchors.fill: parent
-                                        spacing: paddingSmall * 2
-                                        TideToolButton {
-                                            Layout.fillWidth: true
-                                            icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
-                                            text: qsTr("Close all")
-                                            font.pixelSize: 16
-                                            onClicked: {
-                                                console.log("Closing all " + openFiles.files.length + " files")
-                                                for (let i = openFiles.files.length - 1; i >= 0; i--) {
-                                                    console.log("Closing: " + i)
-                                                    openFiles.close(openFiles.files[i])
+                                ListView {
+                                    id: openfilesListView
+                                    width: parent.width
+                                    height: parent.height
+                                    topMargin: paddingMedium
+                                    model: openFiles.files
+                                    spacing: paddingSmall
+
+                                    headerPositioning: ListView.PullBackHeader
+                                    header: Item {
+                                        id: openFilesAreaToolbar
+                                        width: projectNavigationStack.width
+                                        height: root.headerItemHeight
+
+                                        RowLayout {
+                                            anchors.fill: parent
+                                            spacing: paddingSmall * 2
+                                            TideToolButton {
+                                                Layout.fillWidth: true
+                                                icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
+                                                text: qsTr("Close all")
+                                                font.pixelSize: 16
+                                                onClicked: {
+                                                    console.log("Closing all " + openFiles.files.length + " files")
+                                                    for (let i = openFiles.files.length - 1; i >= 0; i--) {
+                                                        console.log("Closing: " + i)
+                                                        openFiles.close(openFiles.files[i])
+                                                    }
                                                 }
                                             }
                                         }
                                     }
-                                }
 
-                                clip: true
-                                delegate: TideButton {
-                                    readonly property bool isProject : modelData.name.endsWith(".pro") // || modelData.name.endsWith("CMakeLists.txt")
-                                    readonly property bool isActiveProject: modelData.path === projectBuilder.projectFile
+                                    clip: true
+                                    delegate: OpenFileListingButton {
+                                        readonly property bool isProject : modelData.name.endsWith(".pro") // || modelData.name.endsWith("CMakeLists.txt")
+                                        readonly property bool isActiveProject: modelData.path === projectBuilder.projectFile
+                                        radius: roundedCornersRadiusSmall
 
-                                    anchors {
-                                        left: parent.left
-                                        right: parent.right
-                                        leftMargin: paddingMedium
+                                        anchors {
+                                            left: parent.left
+                                            leftMargin: paddingMedium
+                                            right: parent.right
+                                            rightMargin: paddingMedium
+                                        }
+                                        id: openFilesEntryButton
+                                        icon.source: isProject ? (isActiveProject ?
+                                                                      Qt.resolvedUrl("qrc:/assets/hammer.circle@2x.png") :
+                                                                      Qt.resolvedUrl("qrc:/assets/hammer@2x.png"))
+                                                               : Qt.resolvedUrl("qrc:/assets/doc@2x.png")
+                                        color: (editor.file.path === modelData.path) ?
+                                                   root.palette.active.button :
+                                                   "transparent"
+                                        textColor: (editor.file.path === modelData.path) ?
+                                                       root.palette.buttonText :
+                                                       root.palette.button
+                                        text: modelData.name
+                                        detailText: (editor.file.path === modelData.path) && editor.changed ?
+                                                        qsTr("Unsaved") : ""
+                                        height: font.pixelSize + detailControl.height + (paddingSmall * 2)
+                                        font.pixelSize: 20
+                                        onClicked: {
+                                            saveCurrentFile()
+                                            openEditor(modelData)
+                                        }
+                                        onPressAndHold: {
+                                            let openFilesContextMenu = openFilesContextMenuComponent.createObject(openFilesEntryButton)
+                                            openFilesContextMenu.selectedFile = modelData
+                                            openFilesContextMenu.open()
+                                        }
                                     }
-                                    id: openFilesEntryButton
-                                    icon.source: isProject ? (isActiveProject ?
-                                                                  Qt.resolvedUrl("qrc:/assets/hammer.circle@2x.png") :
-                                                                  Qt.resolvedUrl("qrc:/assets/hammer@2x.png"))
-                                                           : Qt.resolvedUrl("qrc:/assets/doc@2x.png")
-                                    color: (editor.file.path === modelData.path) ?
-                                               root.palette.button :
-                                               root.palette.dark
-                                    text: modelData.name
-                                    font.pixelSize: 20
-                                    onClicked: {
-                                        saveCurrentFile()
-                                        openEditor(modelData)
-                                    }
-                                    onPressAndHold: {
-                                        let openFilesContextMenu = openFilesContextMenuComponent.createObject(openFilesEntryButton)
-                                        openFilesContextMenu.selectedFile = modelData
-                                        openFilesContextMenu.open()
-                                    }
-                                }
 
-                                Component {
-                                    id: openFilesContextMenuComponent
-                                    Menu {
-                                        id: openFilesContextMenu
-                                        property var selectedFile: null
-                                        MenuItem {
-                                            text: qsTr("Close")
-                                            icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
-                                            onClicked: {
-                                                let file = openFilesContextMenu.selectedFile
-                                                openFiles.close(file)
-                                                openFilesContextMenu.selectedFile = null
-                                                if (openFiles.files.length > 0)
-                                                    editor.file = openFiles.files[0]
-                                                else
-                                                    editor.invalidate()
+                                    Component {
+                                        id: openFilesContextMenuComponent
+                                        Menu {
+                                            id: openFilesContextMenu
+                                            property var selectedFile: null
+                                            MenuItem {
+                                                text: qsTr("Close")
+                                                icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
+                                                onClicked: {
+                                                    let file = openFilesContextMenu.selectedFile
+                                                    openFiles.close(file)
+                                                    openFilesContextMenu.selectedFile = null
+                                                    if (openFiles.files.length > 0)
+                                                        editor.file = openFiles.files[0]
+                                                    else
+                                                        editor.invalidate()
+                                                }
                                             }
                                         }
                                     }
@@ -943,17 +993,8 @@ ApplicationWindow {
                 }
             }
 
-            Rectangle {
-                id: mainSeparator
-                width: 1
-                height: parent.height
-                color: root.palette.shadow
-                opacity: 0.6
-            }
-
-            Rectangle {
-                color: root.palette.base
-                width: parent.width - leftSideBar.width - mainSeparator.width
+            Item {
+                width: parent.width - leftSideBar.width
                 height: parent.height
                 clip: true
                 visible: projectList.projects.length > 0
@@ -961,6 +1002,13 @@ ApplicationWindow {
                 CodeEditor {
                     id: editor
                     anchors.fill: parent
+                    anchors {
+                        topMargin: paddingMedium
+                        rightMargin: paddingMedium
+                        leftMargin: paddingMedium
+                        bottomMargin: paddingMedium + paddingSmall
+                    }
+
                     fileIo: fileIo
                     projectPicker: projectPicker
                     projectBuilder: projectBuilder
@@ -1014,8 +1062,12 @@ ApplicationWindow {
 
         SettingsDialog {
             id: settingsDialog
-            width: (parent.width / 2)
-            height: (parent.height / 2)
+            width: parent.width <= sideBarWidth ?
+                       sideBarWidth :
+                       (parent.width / 2)
+            height: width === sideBarExpandedDefault ?
+                        parent.height :
+                        (parent.height / 2)
         }
 
         ListModel {

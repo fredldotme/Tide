@@ -6,7 +6,7 @@ Rectangle {
     id: itemRoot
     color: root.palette.base
 
-    property alias textColor: labelControl.color
+    property color textColor
     property alias text: labelControl.text
     property alias font: labelControl.font
     property alias elide: labelControl.elide
@@ -46,6 +46,7 @@ Rectangle {
         Button {
             id: iconControl
             flat: itemRoot.flat
+            icon.color: itemRoot.textColor
             onClicked: itemRoot.clicked()
             onPressAndHold: {
                 if (!longPressEnabled) {
@@ -62,6 +63,7 @@ Rectangle {
 
             Text {
                 id: labelControl
+                color: itemRoot.textColor
                 Layout.fillWidth: true
             }
 
@@ -69,7 +71,8 @@ Rectangle {
                 id: detailControl
                 font.pixelSize: detailControl.text === "" ? 0 : 12
                 visible: detailControl.text !== ""
-                color: root.palette.text
+                color: itemRoot.textColor
+                height: text !== "" ? 16 : 0
                 Layout.fillWidth: true
             }
         }

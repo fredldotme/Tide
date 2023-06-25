@@ -3,8 +3,10 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Tide
 
-Item {
+Rectangle {
     id: codeEditor
+    radius: root.roundedCornersRadiusMedium
+    color: root.palette.base
 
     property FileIo fileIo : null
     property ExternalProjectPicker projectPicker : null
@@ -16,6 +18,8 @@ Item {
 
     property bool invalidated : true
     property bool showAutoCompletor : false
+    property bool changed : false
+
     onShowAutoCompletorChanged: {
         codeField.startCursorPosition = codeField.cursorPosition
     }
@@ -38,6 +42,7 @@ Item {
         if (invalidated)
             return;
         codeField.text = fileIo.readFile(editor.file.path)
+        changed = false
     }
 
     function languageForLowerCaseFileName(name) {
@@ -93,6 +98,7 @@ Item {
         invalidated = false
         const path = projectPicker.openBookmark(editor.file.bookmark)
         text = fileIo.readFile(file.path)
+        changed = false
         projectPicker.closeFile(path)
 
         const lang = languageForLowerCaseFileName(file.name.toLowerCase())
@@ -118,6 +124,7 @@ Item {
             const replacement = cppFormatter.format(codeField.text, settings.formatStyle)
             // TODO: Flash red on formatError() signal
             codeField.text = replacement
+            codeEditor.changed = true
         }
     }
 
@@ -127,9 +134,10 @@ Item {
             return;
 
         if (file.name.toLowerCase().endsWith(".cpp") || file.name.toLowerCase().endsWith(".c") ||
-                file.name.toLowerCase().endsWith(".h")) {
+                file.name.toLowerCase().endsWith(".h") || file.name.toLowerCase().endsWith(".hpp") ||
+                file.name.toLowerCase().endsWith(".cc") || file.name.toLowerCase().endsWith(".cxx")) {
             autoCompleter.setIncludePaths(projectBuilder.includePaths());
-            autoCompleter.reloadAst(file.path)
+            autoCompleter.reloadAst(file.path, codeField.currentBlock())
         }
     }
 
@@ -140,10 +148,6 @@ Item {
     }
 
     property alias text : codeField.text
-
-    Component.onCompleted: {
-        codeField.text = fileIo.readFile(file.path)
-    }
 
     LineNumbersHelper {
         id: lineNumbersHelper
@@ -202,6 +206,7 @@ Item {
         id: scrollView
         contentWidth: -1
         anchors.fill: parent
+        anchors.margins: roundedCornersRadius
         visible: !codeEditor.invalidated
 
         Row {
@@ -230,6 +235,7 @@ Item {
                 text: ""
                 onTextChanged: {
                     refreshLineNumbers()
+                    codeEditor.changed = true
                 }
                 font: fixedFont
                 focus: !showAutoCompletor
@@ -239,6 +245,28 @@ Item {
                 onCursorPositionChanged: {
                     if (codeField.cursorPosition < codeField.startCursorPosition)
                         showAutoCompletor = false
+                }
+
+                function currentBlock() {
+                    let start = 0
+                    let end = 0
+                    const anchor = codeField.startCursorPosition
+                    console.debug("Centering at " + anchor)
+
+                    for (let needle = anchor; needle > 0; needle--) {
+                        if (codeField.text[needle] === ' ' || codeField.text[needle] === '\r' || codeField.text[needle] === '\n') {
+                            start = needle + 1;
+                            break;
+                        }
+                    }
+                    for (let needle = anchor; needle < codeField.text.length; needle++) {
+                        if (codeField.text[needle] === ' ' || codeField.text[needle] === '\r' || codeField.text[needle] === '\n') {
+                            end = needle - 1;
+                            break;
+                        }
+                    }
+
+                    return codeField.text.substring(start, end)
                 }
 
                 readonly property string filterString: autoCompletionInput.text
