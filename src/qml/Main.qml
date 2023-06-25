@@ -24,7 +24,7 @@ ApplicationWindow {
                                                 openFiles.files.length > 0)
     readonly property bool padStatusBar : true
     readonly property int headerItemHeight : 48
-    readonly property int topBarHeight : 80
+    readonly property int topBarHeight : 72
 
     property bool showLeftSideBar: true
     property bool compiling: false
@@ -435,7 +435,7 @@ ApplicationWindow {
                     leftInset: 0
                     rightInset: 0
                     bottomInset: 0
-                    topPadding: 0
+                    topPadding: paddingMedium
                     bottomPadding: paddingMedium
 
                     Column {
