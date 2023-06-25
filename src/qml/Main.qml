@@ -417,9 +417,10 @@ ApplicationWindow {
                 topPadding: 0
                 leftPadding: 0
                 rightPadding: 0
+                rightInset: showLeftSideBar ? paddingSmall : paddingMedium
 
                 Behavior on width {
-                    NumberAnimation { duration: 100; easing.type: Easing.OutCubic; }
+                    NumberAnimation { duration: 250; easing.type: Easing.OutCubic; }
                 }
 
                 onWidthChanged: {
@@ -561,6 +562,7 @@ ApplicationWindow {
                                 id: projectNavigationStack
                                 width: parent.width
                                 height: parent.height
+                                clip: true
                                 initialItem: projectsComponent
                                 popEnter: Transition {
                                     NumberAnimation {
@@ -817,7 +819,7 @@ ApplicationWindow {
                                                 }
 
                                                 font.pixelSize: 20
-                                                height: font.pixelSize + + detailControl.font.pixelSize + (paddingSmall * 2)
+                                                height: font.pixelSize + detailControl.font.pixelSize + (paddingSmall * 2)
 
                                                 onClicked: {
                                                     if (isBackButton) {
@@ -1005,7 +1007,7 @@ ApplicationWindow {
                     anchors {
                         topMargin: paddingMedium
                         rightMargin: paddingMedium
-                        leftMargin: paddingMedium
+                        leftMargin: showLeftSideBar ? paddingSmall : paddingMedium
                         bottomMargin: paddingMedium + paddingSmall
                     }
 
