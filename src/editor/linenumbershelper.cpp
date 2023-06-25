@@ -3,8 +3,10 @@
 #include <QAbstractTextDocumentLayout>
 #include <QDebug>
 #include <QTextBlock>
+#include <QQmlEngine>
 
-LineNumbersHelper::LineNumbersHelper(QObject *parent) : QObject(parent)
+LineNumbersHelper::LineNumbersHelper(QObject *parent) :
+    QObject(parent), m_lineCount{0}
 {
 
 }
@@ -27,22 +29,73 @@ void LineNumbersHelper::setDocument(QObject *p)
         return;
 
     if (this->m_document) {
-        QObject::disconnect(this->m_document->textDocument(), &QTextDocument::blockCountChanged,
-                            this, &LineNumbersHelper::lineCountChanged);
+        QObject::disconnect(this->m_document->textDocument(), nullptr, nullptr, nullptr);
     }
 
     this->m_document = pointer;
+
     QObject::connect(this->m_document->textDocument(), &QTextDocument::blockCountChanged,
-                     this, &LineNumbersHelper::lineCountChanged);
+                     this, [=](int count){
+                         Q_UNUSED(count);
+                         refresh();
+                     }, Qt::QueuedConnection);
+    QObject::connect(this->m_document->textDocument(), &QTextDocument::documentLayoutChanged,
+                     this, &LineNumbersHelper::refresh, Qt::QueuedConnection);
+    QObject::connect(this->m_document->textDocument(), &QTextDocument::contentsChanged,
+                     this, &LineNumbersHelper::refresh, Qt::QueuedConnection);
+
     emit documentChanged();
 }
 
-int LineNumbersHelper::lineCount()
+void clearLineCount(QVariantList& list)
 {
-    if (!this->m_document)
-        return 0;
+    while(!list.empty()) {
+        auto newVar = list.takeLast();
+        auto newInfo = newVar.value<LineNumberInfo*>();
+        newInfo->deleteLater();
+    }
+}
 
-    return this->m_document->textDocument()->blockCount();
+void LineNumbersHelper::refresh()
+{
+    auto newLineCount = lineCount();
+
+    if (this->m_lineCount.length() == newLineCount.length()) {
+        for (int i = 0; i < newLineCount.length(); i++) {
+            const auto& oldVar = this->m_lineCount.value(i);
+            auto info = oldVar.value<LineNumberInfo*>();
+            const auto& newVar = newLineCount.value(i);
+            auto newInfo = newVar.value<LineNumberInfo*>();
+            info->setHeight(newInfo->height);
+        }
+
+        clearLineCount(newLineCount);
+        return;
+    }
+
+    auto oldLineCount = this->m_lineCount;
+    this->m_lineCount = newLineCount;
+    emit lineCountChanged();
+    clearLineCount(oldLineCount);
+}
+
+QVariantList LineNumbersHelper::lineCount()
+{
+    QVariantList ret;
+
+    if (!this->m_document)
+        return ret;
+
+    for (int line = 0; line < this->m_document->textDocument()->blockCount(); line++) {
+        LineNumberInfo* info = new LineNumberInfo();
+
+        QVariant var;
+        info->setHeight(height(line));
+        var.setValue(info);
+        ret << var;
+    }
+
+    return ret;
 }
 
 int LineNumbersHelper::height(int lineNumber)

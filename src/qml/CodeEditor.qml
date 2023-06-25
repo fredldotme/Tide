@@ -19,6 +19,7 @@ Rectangle {
     property bool invalidated : true
     property bool showAutoCompletor : false
     property bool changed : false
+    property bool loading : false
 
     onShowAutoCompletorChanged: {
         codeField.startCursorPosition = codeField.cursorPosition
@@ -40,9 +41,10 @@ Rectangle {
 
     function refreshFromDisk() {
         if (invalidated)
-            return;
+            return
+        loading = true
         codeField.text = fileIo.readFile(editor.file.path)
-        changed = false
+        loading = false;
     }
 
     function languageForLowerCaseFileName(name) {
@@ -96,9 +98,10 @@ Rectangle {
             return
 
         invalidated = false
+        loading = true
         const path = projectPicker.openBookmark(editor.file.bookmark)
         text = fileIo.readFile(file.path)
-        changed = false
+        loading = false
         projectPicker.closeFile(path)
 
         const lang = languageForLowerCaseFileName(file.name.toLowerCase())
@@ -145,6 +148,7 @@ Rectangle {
         invalidated = true
         showAutoCompletor = false
         text = ""
+        changed = false
     }
 
     property alias text : codeField.text
@@ -177,11 +181,7 @@ Rectangle {
     }
 
     function refreshLineNumbers() {
-        lineNumberRepeater.model = 0
-        if (invalidated)
-            return;
-
-        lineNumberRepeater.model = lineNumbersHelper.lineCount
+        // TODO: remove
     }
 
     ColumnLayout {
@@ -209,32 +209,38 @@ Rectangle {
         anchors.margins: roundedCornersRadius
         visible: !codeEditor.invalidated
 
-        Row {
+        RowLayout {
             id: codeView
+            anchors.fill: parent
+
             Column {
                 id: lineNumbersColumn
                 width: childrenRect.width
+                Layout.fillHeight: true
                 Repeater {
                     id: lineNumberRepeater
                     model: lineNumbersHelper.lineCount
                     delegate: Label {
                         readonly property bool isCurrentLine :
                             lineNumbersHelper.isCurrentBlock(index, codeField.cursorPosition)
-                        height: lineNumbersHelper.height(index)
+                        height: modelData.height
                         color: isCurrentLine ? root.palette.button :
                                                root.palette.text
                         font: fixedFont
                         text: (index + 1)
+                        horizontalAlignment: Label.AlignRight
                     }
                 }
             }
 
             TextArea {
                 id: codeField
-                width: scrollView.width - paddingSmall - lineNumbersColumn.width
+                Layout.fillWidth: true
+                Layout.fillHeight: true
                 text: ""
-                onTextChanged: {
-                    refreshLineNumbers()
+                onEditingFinished: {
+                    if (codeEditor.loading)
+                        return;
                     codeEditor.changed = true
                 }
                 font: fixedFont
