@@ -935,6 +935,17 @@ ApplicationWindow {
                                         readonly property bool isActiveProject: modelData.path === projectBuilder.projectFile
                                         radius: roundedCornersRadiusSmall
 
+                                        function getDetailText() {
+                                            let texts = []
+                                            if (editor.file.path === modelData.path) {
+                                                if (projectBuilder.projectFile === editor.file.path)
+                                                    texts.push(qsTr("Active project"))
+                                                if (editor.changed)
+                                                    texts.push(qsTr("Unsaved"))
+                                            }
+                                            return texts.join(", ")
+                                        }
+
                                         anchors {
                                             left: parent.left
                                             leftMargin: paddingMedium
@@ -953,8 +964,7 @@ ApplicationWindow {
                                                        root.palette.buttonText :
                                                        root.palette.button
                                         text: modelData.name
-                                        detailText: (editor.file.path === modelData.path) && editor.changed ?
-                                                        qsTr("Unsaved") : ""
+                                        detailText: getDetailText()
                                         height: font.pixelSize + detailControl.height + (paddingSmall * 2)
                                         font.pixelSize: 20
                                         onClicked: {
@@ -978,6 +988,9 @@ ApplicationWindow {
                                                 icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
                                                 onClicked: {
                                                     let file = openFilesContextMenu.selectedFile
+                                                    if (file.path === projectBuilder.projectFile)
+                                                        projectBuilder.unloadProject()
+
                                                     openFiles.close(file)
                                                     openFilesContextMenu.selectedFile = null
                                                     if (openFiles.files.length > 0)
