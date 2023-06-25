@@ -44,7 +44,7 @@ Rectangle {
             return
         loading = true
         codeField.text = fileIo.readFile(editor.file.path)
-        loading = false;
+        loading = false
     }
 
     function languageForLowerCaseFileName(name) {
@@ -230,7 +230,7 @@ Rectangle {
                                                root.palette.text
                         font: fixedFont
                         text: (index + 1)
-                        horizontalAlignment: Label.AlignRight
+                        anchors.right: parent.right
                     }
                 }
             }
