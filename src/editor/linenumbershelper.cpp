@@ -64,8 +64,13 @@ void LineNumbersHelper::refresh()
         for (int i = 0; i < newLineCount.length(); i++) {
             const auto& oldVar = this->m_lineCount.value(i);
             auto info = oldVar.value<LineNumberInfo*>();
+
             const auto& newVar = newLineCount.value(i);
             auto newInfo = newVar.value<LineNumberInfo*>();
+
+            if (!newInfo || !info)
+                continue;
+
             info->setHeight(newInfo->height);
         }
 
