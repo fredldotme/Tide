@@ -37,6 +37,7 @@ public:
     explicit LineNumbersHelper(QObject *parent = nullptr);
 
     Q_INVOKABLE bool isCurrentBlock(int blockNumber, int curserPosition);
+    Q_INVOKABLE void refresh();
 
     QObject* document();
     void setDocument(QObject* p);
@@ -44,7 +45,6 @@ public:
 private:
     int height(int lineNumber);
     QVariantList lineCount();
-    void refresh();
 
     QVariantList m_lineCount;
     QQuickTextDocument* m_document = nullptr;

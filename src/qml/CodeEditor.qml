@@ -181,7 +181,9 @@ Rectangle {
     }
 
     function refreshLineNumbers() {
-        // TODO: remove
+        if (invalidated)
+            return;
+        lineNumbersHelper.refresh()
     }
 
     ColumnLayout {
