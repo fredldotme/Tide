@@ -39,7 +39,10 @@ ApplicationWindow {
 
         const file = editor.file
         const path = projectPicker.openBookmark(file.bookmark)
+        editor.loading = true
         fileIo.writeFile(file.path, editor.text)
+        editor.loading = false
+        editor.changed = false
         projectPicker.closeFile(path);
         editor.reloadAst()
 
@@ -352,16 +355,24 @@ ApplicationWindow {
         ColumnLayout {
             id: startPage
             anchors.centerIn: parent
+            width: parent.width
             spacing: paddingMedium
             visible: projectList.projects.length === 0
 
             readonly property int sideLength : 32
 
+            Image {
+                Layout.alignment: Qt.AlignHCenter
+                source: Qt.resolvedUrl("qrc:/assets/TideNaked@2x.png")
+                Layout.preferredWidth: Math.min(128, parent.width)
+                Layout.preferredHeight: width
+            }
+
             Text {
-                width: parent.width
+                Layout.preferredWidth: parent.width
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 font.pixelSize: startPage.sideLength
-                color: root.palette.mid
+                color: root.palette.midlight
                 text: qsTr("Import or create a project and start developing!")
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -380,7 +391,7 @@ ApplicationWindow {
                     color: root.palette.button
                     text: qsTr("Create")
                     onClicked: {
-                        let createProjectDialog = createProjectDialogComponent.createObject(root)
+                        let createProjectDialog = createProjectDialogComponent.createObject(mainContainer)
                         createProjectDialog.done.connect(function() {
                             createProjectDialog.destroy()
                         })
@@ -605,7 +616,7 @@ ApplicationWindow {
                                                         icon.color: root.palette.button
                                                         leftPadding: paddingMedium
                                                         onClicked: {
-                                                            let createProjectDialog = createProjectDialogComponent.createObject(root)
+                                                            let createProjectDialog = createProjectDialogComponent.createObject(mainContainer)
                                                             createProjectDialog.done.connect(function() {
                                                                 createProjectDialog.destroy()
                                                             })
@@ -671,6 +682,15 @@ ApplicationWindow {
                                                 Menu {
                                                     id: projectsContextMenu
                                                     property var selectedProject: null
+
+                                                    MenuItem {
+                                                        text: qsTr("Open in Files app")
+                                                        icon.source: Qt.resolvedUrl("qrc:/assets/folder@2x.png")
+                                                        onClicked: {
+                                                            Qt.openUrlExternally("shareddocuments://" + projectsContextMenu.selectedProject.path)
+                                                        }
+                                                    }
+
                                                     MenuItem {
                                                         text: qsTr("Remove")
                                                         icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
@@ -758,7 +778,7 @@ ApplicationWindow {
                                                         icon.color: root.palette.button
                                                         leftPadding: paddingMedium
                                                         onClicked: {
-                                                            let newFileDialog = newFileDialogComponent.createObject(root)
+                                                            let newFileDialog = newFileDialogComponent.createObject(mainContainer)
                                                             newFileDialog.done.connect(function() {
                                                                 newFileDialog.destroy()
                                                             })
@@ -772,7 +792,7 @@ ApplicationWindow {
                                                         icon.color: root.palette.button
                                                         leftPadding: paddingSmall
                                                         onClicked: {
-                                                            let newDirectoryDialog = newDirectoryDialogComponent.createObject(root)
+                                                            let newDirectoryDialog = newDirectoryDialogComponent.createObject(mainContainer)
                                                             newDirectoryDialog.done.connect(function() {
                                                                 newDirectoryDialog.destroy()
                                                             })
@@ -854,6 +874,14 @@ ApplicationWindow {
                                                 Menu {
                                                     id: directoryListViewContextMenu
                                                     readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
+
+                                                    MenuItem {
+                                                        text: qsTr("Open in Files app")
+                                                        icon.source: Qt.resolvedUrl("qrc:/assets/folder@2x.png")
+                                                        onClicked: {
+                                                            Qt.openUrlExternally("shareddocuments://" + modelData.path)
+                                                        }
+                                                    }
 
                                                     MenuItem {
                                                         text: qsTr("Delete")
@@ -943,7 +971,7 @@ ApplicationWindow {
                                                 if (editor.changed)
                                                     texts.push(qsTr("Unsaved"))
                                             }
-                                            return texts.join(", ")
+                                            return texts.join(" | ")
                                         }
 
                                         anchors {
