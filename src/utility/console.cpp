@@ -45,11 +45,15 @@ void Console::write(const QString str)
 
 void Console::read(FILE* io)
 {
-    char buffer[1024];
+    char buffer[4096];
     qDebug() << Q_FUNC_INFO << io;
     while (::read(fileno(io), buffer, 1024))
     {
-        emit contentRead(QString::fromUtf8(buffer), (this->m_spec.stdout == io));
+        const auto wholeOutput = QString::fromUtf8(buffer);
+        const QStringList splitOutput = wholeOutput.split('\n', Qt::KeepEmptyParts);
+        for (const auto& output : splitOutput) {
+            emit contentRead(output, (this->m_spec.stdout == io));
+        }
         if (m_quitting)
             return;
     }
