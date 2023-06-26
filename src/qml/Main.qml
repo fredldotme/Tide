@@ -428,7 +428,7 @@ ApplicationWindow {
                 topPadding: 0
                 leftPadding: 0
                 rightPadding: 0
-                rightInset: showLeftSideBar ? paddingSmall : paddingMedium
+                rightInset: showLeftSideBar ? 0 : paddingMedium
 
                 Behavior on width {
                     NumberAnimation { duration: 250; easing.type: Easing.OutCubic; }
@@ -449,6 +449,7 @@ ApplicationWindow {
                     bottomInset: 0
                     topPadding: paddingMedium
                     bottomPadding: paddingMedium
+                    rightPadding: 0
 
                     Column {
                         width: parent.width
@@ -561,9 +562,11 @@ ApplicationWindow {
                         Column {
                             y: paddingSmall
                             width: parent.width
-                            height: openFilesArea.height == 0 ?
-                                        parent.height :
-                                        (parent.height / 2) - (contextField.height / 2) - (paddingMedium)
+                            anchors {
+                                top: contextField.bottom
+                                bottom: openFilesArea.top
+                                bottomMargin: openFilesArea.height > 0 ? paddingSmall : 0
+                            }
 
                             Behavior on height {
                                 NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
@@ -663,6 +666,7 @@ ApplicationWindow {
                                                     left: parent.left
                                                     leftMargin: paddingMedium
                                                     right: parent.right
+                                                    rightMargin: paddingMedium
                                                     bottomMargin: paddingMedium
                                                 }
 
@@ -836,6 +840,7 @@ ApplicationWindow {
                                                     left: parent.left
                                                     leftMargin: paddingMedium
                                                     right: parent.right
+                                                    rightMargin: paddingMedium
                                                 }
 
                                                 font.pixelSize: 20
@@ -909,9 +914,14 @@ ApplicationWindow {
 
                         Column {
                             id: openFilesArea
+                            property bool showArea : true
                             readonly property int usualHeight: (parent.height / 2) - (contextField.height / 2) - (paddingMedium / 2)
+
+
                             width: parent.width
-                            height: openFiles.files.length > 0 ? openFilesArea.usualHeight : 0
+                            height: openFiles.files.length > 0 ?
+                                        (showArea ? openFilesArea.usualHeight : root.headerItemHeight) : 0
+                            anchors.bottom: parent.bottom
 
                             Behavior on height {
                                 NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
@@ -941,9 +951,11 @@ ApplicationWindow {
                                         RowLayout {
                                             anchors.fill: parent
                                             spacing: paddingSmall * 2
-                                            TideToolButton {
-                                                Layout.fillWidth: true
+                                            ToolButton {
+                                                Layout.alignment: Qt.AlignCenter
                                                 icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
+                                                icon.width: 24
+                                                icon.height: 24
                                                 text: qsTr("Close all")
                                                 font.pixelSize: 16
                                                 onClicked: {
@@ -952,6 +964,21 @@ ApplicationWindow {
                                                         console.log("Closing: " + i)
                                                         openFiles.close(openFiles.files[i])
                                                     }
+                                                }
+                                            }
+                                            ToolButton {
+                                                Layout.alignment: Qt.AlignRight
+                                                Layout.rightMargin: paddingSmall
+                                                icon.source: openFilesArea.showArea ?
+                                                                 Qt.resolvedUrl("qrc:/assets/chevron.compact.down@2x.png") :
+                                                                 Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
+                                                icon.width: 32
+                                                icon.height: 32
+                                                Layout.preferredWidth: 32
+                                                Layout.preferredHeight: 32
+                                                font.pixelSize: 16
+                                                onClicked: {
+                                                    openFilesArea.showArea = !openFilesArea.showArea
                                                 }
                                             }
                                         }
