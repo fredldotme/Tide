@@ -58,7 +58,7 @@ if(IOS)
 endif()
 
 # Qt6
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Qml Quick Sql QuickControls2)
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Qml Quick Sql QuickControls2 HttpServer)
 
 include_directories(${PROJECT_NAME}
     # QMake parser
@@ -90,6 +90,7 @@ qt_add_executable(${PROJECT_NAME}
     utility/wasmrunner.cpp
     utility/linuxruntimemanager.cpp
     utility/searchandreplace.cpp
+    utility/localhttpserver.cpp
     projects/bookmarkdb.cpp
     projects/projectbuilder.cpp
     projects/projectcreator.cpp
@@ -336,6 +337,7 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Sql
+    Qt6::HttpServer
     ${IOS_SYSTEM}
     ${PROJECT_NAME}-platform
     vmlib
