@@ -54,9 +54,9 @@ function cmake_wasi_build {
         -DCMAKE_ASM_COMPILER=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang \
         -DCMAKE_AR=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ar \
         -DCMAKE_RANLIB=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ranlib \
-        -DCMAKE_C_COMPILER_TARGET=wasm32-wasi \
-        -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi \
-        -DCMAKE_ASM_COMPILER_TARGET=wasm32-wasi \
+        -DCMAKE_C_COMPILER_TARGET=wasm32-wasi-threads \
+        -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi-threads \
+        -DCMAKE_ASM_COMPILER_TARGET=wasm32-wasi-threads \
         -DCMAKE_SYSROOT=$OLD_PWD/tmp/wasi-sysroot \
         -DCMAKE_C_FLAGS="-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory" \
         -DCMAKE_CXX_FLAGS="-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory" \
@@ -82,35 +82,26 @@ install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/libLLVM.framework/libLL
 plutil -convert binary1 Info.plist
 cd $OLD_PWD
 
-# wasix-libc
-cd 3rdparty/wasix-libc
-TARGET_ARCH=wasm32 TARGET_OS=wasix \
-     make CC=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang \
-          AR=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ar \
-          NM=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-nm
-rm -rf $OLD_PWD/tmp/wasi-sysroot
-cp -a sysroot32 $OLD_PWD/tmp/wasi-sysroot
+# wasi-sdk
+cd tmp
+curl -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/wasi-sysroot-20.0.tar.gz --output wasi-sdk.tar.gz
+tar xvf wasi-sdk.tar.gz
 cd $OLD_PWD
 
 # libclang_rt
 # ATTENTION: This meddles with the build result of the LLVM build on the macOS side
 cd tmp
-mkdir $OLD_PWD/3rdparty/llvm/build_osx/lib/clang/14.0.0/lib/wasi
-cp -a $OLD_PWD/3rdparty/wasix-libc/libclang_rt.builtins-wasm32.a $OLD_PWD/3rdparty/llvm/build_osx/lib/clang/14.0.0/lib/wasi/
-cd $OLD_PWD
-
-# wasi-sdk
-cd 3rdparty/wasix-sdk
-NINJA_FLAGS=-v make LLVM_PROJ_DIR=$OLD_PWD/3rdparty/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot -f Makefile.tide tidebuild
-cp -a $OLD_PWD/3rdparty/wasix-sdk/build/install/usr/local/* $OLD_PWD/tmp/wasi-sysroot/
+curl -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/libclang_rt.builtins-wasm32-wasi-20.0.tar.gz --output clangrt.tar.gz
+tar xvf clangrt.tar.gz
+cp -a $OLD_PWD/tmp/lib/wasi $OLD_PWD/3rdparty/llvm/build_osx/lib/clang/14.0.0/lib/
 cd $OLD_PWD
 
 # Posix/Berkely socket support
-#cd aux/lib-socket
-#cmake_wasi_build
-#cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
-#cp $OLD_PWD/3rdparty/wamr/core/iwasm/libraries/lib-socket/inc/wasi_socket_ext.h $OLD_PWD/tmp/wasi-sysroot/include/
-#cd $OLD_PWD
+cd aux/lib-socket
+cmake_wasi_build
+cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
+cp $OLD_PWD/3rdparty/wamr/core/iwasm/libraries/lib-socket/inc/wasi_socket_ext.h $OLD_PWD/tmp/wasi-sysroot/include/
+cd $OLD_PWD
 
 # Package up the sysroot
 if [ -d tmp/the-sysroot ]; then
@@ -121,7 +112,7 @@ mkdir -p tmp/the-sysroot/Sysroot
 mkdir -p tmp/the-sysroot/Clang/lib/wasi/
 cp -a $OLD_PWD/tmp/wasi-sysroot/* tmp/the-sysroot/Sysroot
 cp -a $OLD_PWD/3rdparty/llvm/build-iphoneos/lib/clang/14.0.0/include tmp/the-sysroot/Clang/
-cp -a $OLD_PWD/3rdparty/wasix-libc/libclang_rt.builtins-wasm32.a tmp/the-sysroot/Clang/lib/wasi/
+cp -a $OLD_PWD/tmp/lib/wasi/* tmp/the-sysroot/Clang/lib/wasi/
 tar cvf tmp/the-sysroot.tar -C tmp/the-sysroot .
 cd $OLD_PWD
 
