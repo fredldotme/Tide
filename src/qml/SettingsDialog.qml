@@ -84,6 +84,20 @@ Pane {
                     }
                 }
                 Switch {
+                    text: qsTr("Wrap code editor")
+                    checked: settings.wrapEditor
+                    onCheckedChanged: {
+                        settings.wrapEditor = checked
+                    }
+                }
+                Switch {
+                    text: qsTr("Wiggle hints")
+                    checked: settings.wiggleHints
+                    onCheckedChanged: {
+                        settings.wiggleHints = checked
+                    }
+                }
+                Switch {
                     id: autocompleteSwitch
                     text: qsTr("Autocomplete (Shift+⌘+S)")
                     checked: settings.autocomplete

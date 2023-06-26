@@ -14,6 +14,7 @@ ApplicationWindow {
     flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
 
     readonly property int paddingSmall: 8
+    readonly property int paddingMid: 12
     readonly property int paddingMedium: 16
     readonly property int roundedCornersRadiusSmall: 8
     readonly property int roundedCornersRadius: 16
@@ -96,24 +97,50 @@ ApplicationWindow {
             spacing: paddingSmall * 2
 
             RowLayout {
-                spacing: paddingSmall * 2
+                spacing: paddingMid
                 width: parent.width
                 height: root.headerItemHeight
-
-                TideToolButton {
-                    id: sideBarButton
-                    icon.source: Qt.resolvedUrl("qrc:/assets/sidebar.left@2x.png")
-                    icon.color: root.palette.button
-                    onClicked: showLeftSideBar = !showLeftSideBar
-                    visible: shouldAllowSidebar
-                    leftPadding: paddingMedium
-                }
 
                 TideToolButton {
                     id: contextButton
                     icon.source: Qt.resolvedUrl("qrc:/assets/ellipsis.circle@2x.png")
                     icon.color: root.palette.button
-                    leftPadding: !shouldAllowSidebar ? paddingMedium : 0
+                    leftPadding: paddingMedium
+
+                    function wiggle() {
+                        if (!settings.wiggleHints)
+                            return
+                        contextButtonWiggleAnimation.restart()
+                    }
+
+                    SequentialAnimation {
+                        id: contextButtonWiggleAnimation
+
+                        NumberAnimation {
+                            target: contextButton
+                            property: "rotation"
+                            duration: 100
+                            from: 0
+                            to: -45
+                            easing.type: Easing.Linear
+                        }
+                        NumberAnimation {
+                            target: contextButton
+                            property: "rotation"
+                            duration: 200
+                            from: -45
+                            to: 45
+                            easing.type: Easing.Linear
+                        }
+                        NumberAnimation {
+                            target: contextButton
+                            property: "rotation"
+                            duration: 100
+                            from: 45
+                            to: 0
+                            easing.type: Easing.Linear
+                        }
+                    }
 
                     Menu {
                         id: contextMenu
@@ -125,6 +152,7 @@ ApplicationWindow {
                             enabled: visibility
                             visible: visibility
                             height: visible ? implicitHeight : 0
+                            onVisibilityChanged: contextButton.wiggle()
 
                             onClicked: {
                                 let root = editor.file.path
@@ -143,6 +171,7 @@ ApplicationWindow {
                             enabled: visibility
                             visible: visibility
                             height: visible ? implicitHeight : 0
+                            onVisibilityChanged: contextButton.wiggle()
 
                             onClicked: {
                                 editor.format()
@@ -157,6 +186,7 @@ ApplicationWindow {
                             visible: visibility
                             enabled: visibility
                             height: visible ? implicitHeight : 0
+                            onVisibilityChanged: contextButton.wiggle()
 
                             onClicked: {
                                 const coords = editor.mapToGlobal(0, 0)
@@ -174,6 +204,7 @@ ApplicationWindow {
                             visible: visibility
                             enabled: visibility
                             height: visible ? implicitHeight : 0
+                            onVisibilityChanged: contextButton.wiggle()
 
                             onClicked: {
                                 releaseRequested = true
@@ -203,6 +234,14 @@ ApplicationWindow {
                         else
                             contextMenu.close()
                     }
+                }
+
+                TideToolButton {
+                    id: sideBarButton
+                    icon.source: Qt.resolvedUrl("qrc:/assets/sidebar.left@2x.png")
+                    icon.color: root.palette.button
+                    visible: shouldAllowSidebar
+                    onClicked: showLeftSideBar = !showLeftSideBar
                 }
 
                 Label {
@@ -1147,10 +1186,10 @@ ApplicationWindow {
             id: settingsDialog
             width: parent.width <= sideBarWidth ?
                        sideBarWidth :
-                       (parent.width / 2)
-            height: width === sideBarExpandedDefault ?
+                       ((parent.width / 8) * 6)
+            height: width === sideBarWidth ?
                         parent.height :
-                        (parent.height / 2)
+                        ((parent.height / 8) * 6)
         }
 
         ListModel {
@@ -1204,6 +1243,8 @@ ApplicationWindow {
             property bool autocomplete: true
             property bool autoformat: true
             property int formatStyle : CppFormatter.LLVM
+            property bool wiggleHints : true
+            property bool wrapEditor : true
         }
 
         ConsoleView {
@@ -1356,12 +1397,16 @@ ApplicationWindow {
             function flashSuccess(text) {
                 flashingIcon.icon.source = iconSuccess
                 warningText.text = text
+                warningText.color = "teal"
+                flashingIcon.icon.color = "teal"
                 opacity = 1.0
             }
 
             function flashWarning(text) {
                 flashingIcon.icon.source = iconWarning
                 warningText.text = text
+                warningText.color = "darkred"
+                flashingIcon.icon.color = "darkred"
                 opacity = 1.0
             }
 
