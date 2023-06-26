@@ -122,3 +122,21 @@ bool LineNumbersHelper::isCurrentBlock(int blockNumber, int curserPosition)
     QTextBlock line = this->m_document->textDocument()->findBlockByNumber(blockNumber);
     return block == line;
 }
+
+quint64 LineNumbersHelper::currentLine(int cursorPosition)
+{
+    if (!this->m_document)
+        return 0;
+
+    QTextBlock block = this->m_document->textDocument()->findBlock(cursorPosition);
+    return block.blockNumber();
+}
+
+quint64 LineNumbersHelper::currentColumn(int cursorPosition)
+{
+    if (!this->m_document)
+        return 0;
+
+    QTextBlock block = this->m_document->textDocument()->findBlock(cursorPosition);
+    return cursorPosition - block.position();
+}

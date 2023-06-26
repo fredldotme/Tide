@@ -38,6 +38,8 @@ public:
 
     Q_INVOKABLE bool isCurrentBlock(int blockNumber, int curserPosition);
     Q_INVOKABLE void refresh();
+    Q_INVOKABLE quint64 currentLine(int cursorPosition);
+    Q_INVOKABLE quint64 currentColumn(int cursorPosition);
 
     QObject* document();
     void setDocument(QObject* p);
