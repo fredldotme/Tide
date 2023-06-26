@@ -98,6 +98,7 @@ ApplicationWindow {
             RowLayout {
                 spacing: paddingSmall * 2
                 width: parent.width
+                height: root.headerItemHeight
 
                 TideToolButton {
                     id: sideBarButton
@@ -105,20 +106,102 @@ ApplicationWindow {
                     icon.color: root.palette.button
                     onClicked: showLeftSideBar = !showLeftSideBar
                     visible: shouldAllowSidebar
-                    leftPadding: paddingMedium * 2
+                    leftPadding: paddingMedium
                 }
 
                 TideToolButton {
-                    id: settingsButton
-                    icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
+                    id: contextButton
+                    icon.source: Qt.resolvedUrl("qrc:/assets/ellipsis.circle@2x.png")
                     icon.color: root.palette.button
-                    leftPadding: !shouldAllowSidebar ? paddingMedium * 2 : 0
-                    onClicked: {
-                        if (settingsDialog.visibility) {
-                            settingsDialog.hide()
-                        } else {
-                            settingsDialog.show()
+                    leftPadding: !shouldAllowSidebar ? paddingMedium : 0
+
+                    Menu {
+                        id: contextMenu
+                        MenuItem {
+                            id: contextFieldSearchButton
+                            text: qsTr("Find && replace")
+                            icon.source: Qt.resolvedUrl("qrc:/assets/magnifyingglass.circle.fill@2x.png")
+                            readonly property bool visibility : !editor.invalidated
+                            enabled: visibility
+                            visible: visibility
+                            height: visible ? implicitHeight : 0
+
+                            onClicked: {
+                                let root = editor.file.path
+                                if (contextDialog.visibility)
+                                    contextDialog.hide()
+                                else
+                                    contextDialog.show(root)
+                            }
                         }
+
+                        MenuItem {
+                            id: formatButton
+                            text: qsTr("Autoformat")
+                            icon.source: Qt.resolvedUrl("qrc:/assets/line.3.horizontal.circle.fill@2x.png")
+                            readonly property bool visibility : editor.canUseAutocomplete
+                            enabled: visibility
+                            visible: visibility
+                            height: visible ? implicitHeight : 0
+
+                            onClicked: {
+                                editor.format()
+                            }
+                        }
+
+                        MenuItem {
+                            id: shareButton
+                            text: qsTr("Share")
+                            icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.up.circle.fill@2x.png")
+                            readonly property bool visibility : !editor.invalidated
+                            visible: visibility
+                            enabled: visibility
+                            height: visible ? implicitHeight : 0
+
+                            onClicked: {
+                                const coords = editor.mapToGlobal(0, 0)
+                                const pos = Qt.rect(coords.x, coords.y, width, height)
+                                saveCurrentFile()
+                                iosSystem.share("", "file://" + editor.file.path, pos)
+                            }
+                        }
+
+                        MenuItem {
+                            id: releaseButton
+                            text: qsTr("Release")
+                            icon.source: Qt.resolvedUrl("qrc:/assets/briefcase.circle.fill@2x.png")
+                            readonly property bool visibility : projectBuilder.projectFile !== ""
+                            visible: visibility
+                            enabled: visibility
+                            height: visible ? implicitHeight : 0
+
+                            onClicked: {
+                                releaseRequested = true
+                                projectBuilder.clean()
+                                projectBuilder.build()
+                            }
+                        }
+
+                        MenuItem {
+                            id: settingsButton
+                            icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
+                            text: qsTr("Settings")
+
+                            onClicked: {
+                                if (settingsDialog.visibility) {
+                                    settingsDialog.hide()
+                                } else {
+                                    settingsDialog.show()
+                                }
+                            }
+                        }
+                    }
+
+                    onClicked: {
+                        if (!contextMenu.visible)
+                            contextMenu.open()
+                        else
+                            contextMenu.close()
                     }
                 }
 
@@ -214,7 +297,7 @@ ApplicationWindow {
                 TideToolButton {
                     icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
                     icon.color: root.palette.button
-                    rightPadding: paddingMedium * 2
+                    rightPadding: paddingMedium
 
                     onClicked: {
                         if (consoleView.visibility)
@@ -372,7 +455,7 @@ ApplicationWindow {
                 Layout.preferredWidth: parent.width
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 font.pixelSize: startPage.sideLength
-                color: root.palette.midlight
+                color: root.palette.text
                 text: qsTr("Import or create a project and start developing!")
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -427,7 +510,7 @@ ApplicationWindow {
                 bottomInset: 0
                 topPadding: 0
                 leftPadding: 0
-                rightPadding: 0
+                rightPadding: showLeftSideBar && sideBarWidth == root.width ? paddingMedium : 0
                 rightInset: showLeftSideBar ? 0 : paddingMedium
 
                 Behavior on width {
@@ -485,78 +568,7 @@ ApplicationWindow {
                                 }
                             }
 
-                            TideToolButton {
-                                id: contextFieldSearchButton
-                                leftPadding: paddingSmall
-                                text: qsTr("Find/replace")
-                                icon.source: Qt.resolvedUrl("qrc:/assets/magnifyingglass.circle.fill@2x.png")
-                                icon.color: root.palette.button
-                                flat: true
-
-                                //Layout.alignment: Qt.AlignHCenter
-
-                                onClicked: {
-                                    let root = editor.file.path
-                                    if (contextDialog.visibility)
-                                        contextDialog.hide()
-                                    else
-                                        contextDialog.show(root)
-                                }
-                            }
-
-                            TideToolButton {
-                                id: formatButton
-                                leftPadding: paddingSmall
-                                text: qsTr("Autoformat")
-                                icon.source: Qt.resolvedUrl("qrc:/assets/line.3.horizontal.circle.fill@2x.png")
-                                icon.color: root.palette.button
-                                flat: false
-                                readonly property bool visibility : editor.canUseAutocomplete
-                                height: visibility ? implicitHeight : 0
-
-                                Layout.alignment: Qt.AlignHCenter
-
-                                onClicked: {
-                                    editor.format()
-                                }
-                            }
-
-                            TideToolButton {
-                                id: shareButton
-                                leftPadding: paddingSmall
-                                text: qsTr("Share")
-                                icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.up.circle.fill@2x.png")
-                                icon.color: root.palette.button
-                                flat: false
-
-                                Layout.alignment: Qt.AlignHCenter
-
-                                onClicked: {
-                                    const coords = shareButton.mapToGlobal(0, 0)
-                                    const pos = Qt.rect(coords.x, coords.y, width, height)
-                                    saveCurrentFile()
-                                    iosSystem.share("", "file://" + editor.file.path, pos)
-                                }
-                            }
-
-                            TideToolButton {
-                                id: releaseButton
-                                leftPadding: paddingSmall
-                                text: qsTr("Release")
-                                icon.source: Qt.resolvedUrl("qrc:/assets/briefcase.circle.fill@2x.png")
-                                icon.color: root.palette.button
-                                flat: false
-                                readonly property bool visibility : projectBuilder.projectFile !== ""
-                                height: visibility ? implicitHeight : 0
-
-                                Layout.alignment: Qt.AlignHCenter
-
-                                onClicked: {
-                                    releaseRequested = true
-                                    projectBuilder.clean()
-                                    projectBuilder.build()
-                                }
-                            }
+                            // TODO: Maybe keep for other purposes?
                         }
 
                         Column {
@@ -655,7 +667,7 @@ ApplicationWindow {
                                                 text: modelData.isBookmark ?
                                                           projectPicker.getDirNameForBookmark(modelData.bookmark) :
                                                           modelData.name
-                                                font.pixelSize: 20
+                                                font.pixelSize: 16
                                                 height: font.pixelSize + (paddingSmall * 2)
                                                 textColor: root.palette.button
                                                 icon.source: modelData.isBookmark ?
@@ -843,7 +855,7 @@ ApplicationWindow {
                                                     rightMargin: paddingMedium
                                                 }
 
-                                                font.pixelSize: 20
+                                                font.pixelSize: 16
                                                 height: font.pixelSize + detailControl.font.pixelSize + (paddingSmall * 2)
 
                                                 onClicked: {
@@ -952,7 +964,8 @@ ApplicationWindow {
                                             anchors.fill: parent
                                             spacing: paddingSmall * 2
                                             ToolButton {
-                                                Layout.alignment: Qt.AlignCenter
+                                                Layout.alignment: Qt.AlignLeft
+                                                Layout.leftMargin: paddingMedium
                                                 icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
                                                 icon.width: 24
                                                 icon.height: 24
@@ -968,7 +981,7 @@ ApplicationWindow {
                                             }
                                             ToolButton {
                                                 Layout.alignment: Qt.AlignRight
-                                                Layout.rightMargin: paddingSmall
+                                                Layout.rightMargin: paddingMedium
                                                 icon.source: openFilesArea.showArea ?
                                                                  Qt.resolvedUrl("qrc:/assets/chevron.compact.down@2x.png") :
                                                                  Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
@@ -1021,7 +1034,7 @@ ApplicationWindow {
                                         text: modelData.name
                                         detailText: getDetailText()
                                         height: font.pixelSize + detailControl.height + (paddingSmall * 2)
-                                        font.pixelSize: 20
+                                        font.pixelSize: 16
                                         onClicked: {
                                             saveCurrentFile()
                                             openEditor(modelData)

@@ -112,6 +112,9 @@ Rectangle {
     }
 
     readonly property bool canUseAutocomplete : {
+        if (invalidated)
+            return false
+
         if (languageForLowerCaseFileName(file.name.toLowerCase()) === SourceHighliter.CodeC ||
                 languageForLowerCaseFileName(file.name.toLowerCase()) === SourceHighliter.CodeCpp)
             return true;
@@ -188,8 +191,10 @@ Rectangle {
 
     ColumnLayout {
         anchors.centerIn: parent
+        width: parent.width
         visible: codeEditor.invalidated
         spacing: paddingMedium
+
         Image {
             Layout.alignment: Qt.AlignCenter
             source: Qt.resolvedUrl("qrc:/assets/TideNaked@2x.png")
@@ -198,9 +203,12 @@ Rectangle {
         }
         Label {
             Layout.alignment: Qt.AlignCenter
+            Layout.preferredWidth: parent.width
+            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
             text: qsTr("Select a project or file to edit")
             font.pixelSize: 32
-            color: root.palette.midlight
+            color: root.palette.text
+            horizontalAlignment: Text.AlignHCenter
         }
     }
 
