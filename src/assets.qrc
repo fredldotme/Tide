@@ -44,5 +44,6 @@
         <file>assets/chevron.compact.down@2x.png</file>
         <file>assets/chevron.compact.up@2x.png</file>
         <file>assets/ellipsis.circle@2x.png</file>
+        <file>assets/keyboard.badge.eye@2x.png</file>
     </qresource>
 </RCC>

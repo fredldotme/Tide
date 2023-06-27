@@ -7,6 +7,7 @@ Rectangle {
     id: codeEditor
     radius: root.roundedCornersRadiusMedium
     color: root.palette.base
+    clip: true
 
     property FileIo fileIo : null
     property ExternalProjectPicker projectPicker : null
@@ -154,6 +155,22 @@ Rectangle {
 
     readonly property bool canUseAutocomplete : {
         if (invalidated)
+            return false;
+
+        if (!settings.autocomplete)
+            return false;
+
+        if (languageForLowerCaseFileName(file.name.toLowerCase()) === SourceHighliter.CodeC ||
+                languageForLowerCaseFileName(file.name.toLowerCase()) === SourceHighliter.CodeCpp)
+            return true;
+        return false;
+    }
+
+    readonly property bool canUseAutoformat: {
+        if (invalidated)
+            return false
+
+        if (!settings.autoformat)
             return false
 
         if (languageForLowerCaseFileName(file.name.toLowerCase()) === SourceHighliter.CodeC ||
@@ -163,7 +180,7 @@ Rectangle {
     }
 
     function format() {
-        if (!settings.autoformat)
+        if (!canUseAutoformat)
             return;
 
         const lang = languageForLowerCaseFileName(file.name.toLowerCase())
@@ -172,6 +189,20 @@ Rectangle {
             // TODO: Flash red on formatError() signal
             codeField.text = replacement
             codeEditor.changed = true
+        }
+    }
+
+    function autocomplete() {
+        if (!settings.autocomplete)
+            return;
+
+        if (!canUseAutocomplete) {
+            return;
+        }
+
+        showAutoCompletor = !showAutoCompletor
+        if (showAutoCompletor) {
+            codeEditor.saveRequested() // Implicitly calls reloadAst
         }
     }
 
@@ -264,6 +295,7 @@ Rectangle {
         anchors.fill: parent
         anchors {
             leftMargin: roundedCornersRadius
+            rightMargin: roundedCornersRadius
         }
 
         ScrollView {
@@ -353,19 +385,7 @@ Rectangle {
 
                     Shortcut {
                         sequence: "Ctrl+Shift+S"
-                        onActivated: {
-                            if (!settings.autocomplete)
-                                return;
-
-                            if (!canUseAutocomplete) {
-                                return;
-                            }
-
-                            showAutoCompletor = !showAutoCompletor
-                            if (showAutoCompletor) {
-                                codeEditor.saveRequested() // Implicitly calls reloadAst
-                            }
-                        }
+                        onActivated: codeEditor.autocomplete()
                     }
 
                     Shortcut {
@@ -503,6 +523,13 @@ Rectangle {
                     }
                 }
             }
+        }
+
+        Rectangle {
+            height: 1
+            width: parent.width
+            color: root.palette.text
+            visible: !codeEditor.invalidated
         }
 
         RowLayout {

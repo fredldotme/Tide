@@ -164,9 +164,8 @@ ApplicationWindow {
                         }
 
                         MenuItem {
-                            id: formatButton
-                            text: qsTr("Autoformat")
-                            icon.source: Qt.resolvedUrl("qrc:/assets/line.3.horizontal.circle.fill@2x.png")
+                            text: qsTr("Autocomplete")
+                            icon.source: Qt.resolvedUrl("qrc:/assets/keyboard.badge.eye@2x.png")
                             readonly property bool visibility : editor.canUseAutocomplete
                             enabled: visibility
                             visible: visibility
@@ -174,25 +173,22 @@ ApplicationWindow {
                             onVisibilityChanged: contextButton.wiggle()
 
                             onClicked: {
-                                editor.format()
+                                editor.autocomplete()
                             }
                         }
 
                         MenuItem {
-                            id: shareButton
-                            text: qsTr("Share")
-                            icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.up.circle.fill@2x.png")
-                            readonly property bool visibility : !editor.invalidated
-                            visible: visibility
+                            id: formatButton
+                            text: qsTr("Autoformat")
+                            icon.source: Qt.resolvedUrl("qrc:/assets/line.3.horizontal.circle.fill@2x.png")
+                            readonly property bool visibility : editor.canUseAutoformat
                             enabled: visibility
+                            visible: visibility
                             height: visible ? implicitHeight : 0
                             onVisibilityChanged: contextButton.wiggle()
 
                             onClicked: {
-                                const coords = editor.mapToGlobal(0, 0)
-                                const pos = Qt.rect(coords.x, coords.y, width, height)
-                                saveCurrentFile()
-                                iosSystem.share("", "file://" + editor.file.path, pos)
+                                editor.format()
                             }
                         }
 
@@ -932,6 +928,16 @@ ApplicationWindow {
                                                     readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
 
                                                     MenuItem {
+                                                        text: qsTr("Share")
+                                                        icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.up@2x.png")
+                                                        onClicked: {
+                                                            const coords = fileListingButton.mapToGlobal(0, 0)
+                                                            const pos = Qt.rect(coords.x, coords.y, width, height)
+                                                            iosSystem.share("", "file://" + modelData.path, pos)
+                                                        }
+                                                    }
+
+                                                    MenuItem {
                                                         text: qsTr("Open in Files app")
                                                         icon.source: Qt.resolvedUrl("qrc:/assets/folder@2x.png")
                                                         onClicked: {
@@ -1090,6 +1096,7 @@ ApplicationWindow {
                                         Menu {
                                             id: openFilesContextMenu
                                             property var selectedFile: null
+
                                             MenuItem {
                                                 text: qsTr("Close")
                                                 icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
@@ -1118,7 +1125,6 @@ ApplicationWindow {
             Item {
                 width: parent.width - leftSideBar.width
                 height: parent.height
-                clip: true
                 visible: projectList.projects.length > 0
 
                 CodeEditor {
