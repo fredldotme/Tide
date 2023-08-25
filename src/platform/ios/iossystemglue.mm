@@ -8,13 +8,14 @@
 #include <thread>
 
 extern "C" {
-#include <ios_system.h>
-#include <ios_error.h>
+#include <unistd.h>
+#include <no_system/nosystem.h>
 }
+
+#import <UIKit/UIKit.h>
 
 IosSystemGlue::IosSystemGlue(QObject* parent) : QObject(parent)
 {
-    initializeEnvironment();
 }
 
 IosSystemGlue::~IosSystemGlue()
@@ -76,33 +77,28 @@ void IosSystemGlue::setupStdIo()
 bool IosSystemGlue::runBuildCommands(const QStringList cmds, const QString pwd,
                                      const bool withPopen, const bool withWait)
 {
-    const auto cmd = cmds.join(' ');
-
-    thread_stdin = m_spec.stdin;
-    thread_stdout = m_spec.stdout;
-    thread_stderr = m_spec.stderr;
+    nosystem_stdin = m_spec.stdin;
+    nosystem_stdout = m_spec.stdout;
+    nosystem_stderr = m_spec.stderr;
 
     if (!pwd.isEmpty()) {
         changeDir(pwd);
     }
 
-    joinMainThread = withWait;
-
-    const auto stdcmd = cmd.toStdString();
     if (!withPopen) {
-        const int ret = ios_system(stdcmd.c_str());
-        if (ret != 0)
-            return false;
-    } else {
-        (void)ios_popen(stdcmd.c_str(), "r");
-        ios_waitpid(ios_currentPid());
+        for (const auto& command : cmds) {
+            const auto stdcmd = command.toStdString();
+            const int ret = nosystem_system(stdcmd.c_str());
+            if (ret != 0)
+                return false;
+        }
     }
     return true;
 }
 
 void IosSystemGlue::killBuildCommands()
 {
-    ios_kill();
+    //nosystem_kill();
 }
 
 void IosSystemGlue::copyToClipboard(const QString text)

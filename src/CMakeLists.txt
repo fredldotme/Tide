@@ -76,9 +76,9 @@ qt_add_executable(${PROJECT_NAME}
     main.cpp
     common/directorylisting.cpp
     common/clangwrapper.cpp
-    #common/clangcompiler.cpp
-    #common/clang_main.cpp
-    #common/lld_main.cpp
+    common/clangcompiler.cpp
+    common/clang_main.cpp
+    common/lld_main.cpp
     editor/linenumbershelper.cpp
     editor/qsourcehighliter.cpp
     editor/languagedata.cpp
@@ -153,7 +153,7 @@ set(LLVM_FRAMEWORKS ${LLVM_DIR}/${LLVM_BUILD_DIR}/build/${LLVM_MODE})
 set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
 set(LLVM_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/include)
 set(LLVM_CLANG_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/tools/clang/include)
-set(IOSSYSTEM_HEADERS ${LLVM_FRAMEWORKS}/ios_system.framework/Headers)
+set(NOSYSTEM_FRAMEWORK ${LLVM_DIR}/no_system/${LLVM_BUILD_DIR}/Debug-iphoneos)
 
 # Include libs after defining a few crucial variables
 add_subdirectory(lib)
@@ -193,9 +193,8 @@ if(IOS)
     )
 
     include_directories(${PROJECT_NAME}
-        # system() replacement through ios_system
-        ${IOSSYSTEM}
-        ${IOSSYSTEM_HEADERS}
+        # system() replacement through no_system
+        ${NOSYSTEM}
         ${LLVM_DIR}
 
         # Clang & LLVM libraries
@@ -255,7 +254,7 @@ if(IOS)
     set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")
 
     # LLVM & ios_system
-    find_library(IOSSYSTEM REQUIRED NAMES ios_system PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(NOSYSTEM REQUIRED NAMES nosystem PATHS ${NOSYSTEM_FRAMEWORK} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # Clang as a library
@@ -277,8 +276,8 @@ if(IOS)
     find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # CMake and Ninja
-    find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(NINJAFW REQUIRED NAMES ninja PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+    #find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+    #find_library(NINJAFW REQUIRED NAMES ninja PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # Because CMake doesn't find the Header by itself currently
     include_directories(${PROJECT_NAME}
@@ -359,12 +358,111 @@ include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/utility
 )
 
+# Clang built-in
+set(LIBCLANGAPINOTES "${LLVM_LIBS}/libclangAPINotes.a")
+set(LIBCLANGARCMIGRATE "${LLVM_LIBS}/libclangARCMigrate.a")
+set(LIBCLANGAST "${LLVM_LIBS}/libclangAST.a")
+set(LIBCLANGASTMATCHERS "${LLVM_LIBS}/libclangASTMatchers.a")
+set(LIBCLANGANALYSIS "${LLVM_LIBS}/libclangAnalysis.a")
+set(LIBCLANGANALYSISFLOWSENSITIVE "${LLVM_LIBS}/libclangAnalysisFlowSensitive.a")
+set(LIBCLANGBASIC "${LLVM_LIBS}/libclangBasic.a")
+set(LIBCLANGCODEGEN "${LLVM_LIBS}/libclangCodeGen.a")
+set(LIBCLANGCROSSTU "${LLVM_LIBS}/libclangCrossTU.a")
+set(LIBCLANGDEPENDENCYSCANNING "${LLVM_LIBS}/libclangDependencyScanning.a")
+set(LIBCLANGDRIVER "${LLVM_LIBS}/libclangDriver.a")
+set(LIBCLANGDYNAMICASTMATCHERS "${LLVM_LIBS}/libclangDynamicASTMatchers.a")
+set(LIBCLANGEDIT "${LLVM_LIBS}/libclangEdit.a")
+set(LIBCLANGFORMAT "${LLVM_LIBS}/libclangFormat.a")
+set(LIBCLANGFRONTEND "${LLVM_LIBS}/libclangFrontend.a")
+set(LIBCLANGFRONTENDTOOL "${LLVM_LIBS}/libclangFrontendTool.a")
+set(LIBCLANGHANDLECXX "${LLVM_LIBS}/libclangHandleCXX.a")
+set(LIBCLANGHANDLELLVM "${LLVM_LIBS}/libclangHandleLLVM.a")
+set(LIBCLANGINDEX "${LLVM_LIBS}/libclangIndex.a")
+set(LIBCLANGINDEXSERIALIZATION "${LLVM_LIBS}/libclangIndexSerialization.a")
+set(LIBCLANGINTERPRETER "${LLVM_LIBS}/libclangInterpreter.a")
+set(LIBCLANGLEX "${LLVM_LIBS}/libclangLex.a")
+set(LIBCLANGPARSE "${LLVM_LIBS}/libclangParse.a")
+set(LIBCLANGREWRITE "${LLVM_LIBS}/libclangRewrite.a")
+set(LIBCLANGREWRITEFRONTEND "${LLVM_LIBS}/libclangRewriteFrontend.a")
+set(LIBCLANGSEMA "${LLVM_LIBS}/libclangSema.a")
+set(LIBCLANGSERIALIZATION "${LLVM_LIBS}/libclangSerialization.a")
+set(LIBCLANGSTATICANALYZERCHECKERS "${LLVM_LIBS}/libclangStaticAnalyzerCheckers.a")
+set(LIBCLANGSTATICANALYZERCORE "${LLVM_LIBS}/libclangStaticAnalyzerCore.a")
+set(LIBCLANGSTATICANALYZERFRONTEND "${LLVM_LIBS}/libclangStaticAnalyzerFrontend.a")
+set(LIBCLANGTESTING "${LLVM_LIBS}/libclangTesting.a")
+set(LIBCLANGTOOLING "${LLVM_LIBS}/libclangTooling.a")
+set(LIBCLANGTOOLINGASTDIFF "${LLVM_LIBS}/libclangToolingASTDiff.a")
+set(LIBCLANGTOOLINGCORE "${LLVM_LIBS}/libclangToolingCore.a")
+set(LIBCLANGTOOLINGINCLUSIONS "${LLVM_LIBS}/libclangToolingInclusions.a")
+set(LIBCLANGTOOLINGREFACTORING "${LLVM_LIBS}/libclangToolingRefactoring.a")
+set(LIBCLANGTOOLINGSYNTAX "${LLVM_LIBS}/libclangToolingSyntax.a")
+set(LIBCLANGTRANSFORMER "${LLVM_LIBS}/libclangTransformer.a")
+set(LIBCLANGTOOL "${LLVM_LIBS}/libclang_tool.a")
+set(CLANG_AS
+    "${LIBCLANGAPINOTES}"
+    "${LIBCLANGARCMIGRATE}"
+    "${LIBCLANGAST}"
+    "${LIBCLANGASTMATCHERS}"
+    "${LIBCLANGANALYSIS}"
+    "${LIBCLANGANALYSISFLOWSENSITIVE}"
+    "${LIBCLANGBASIC}"
+    "${LIBCLANGCODEGEN}"
+    "${LIBCLANGCROSSTU}"
+    "${LIBCLANGDEPENDENCYSCANNING}"
+    "${LIBCLANGDRIVER}"
+    "${LIBCLANGDYNAMICASTMATCHERS}"
+    "${LIBCLANGEDIT}"
+    "${LIBCLANGFORMAT}"
+    "${LIBCLANGFRONTEND}"
+    "${LIBCLANGFRONTENDTOOL}"
+    "${LIBCLANGHANDLECXX}"
+    "${LIBCLANGHANDLELLVM}"
+    "${LIBCLANGINDEX}"
+    "${LIBCLANGINDEXSERIALIZATION}"
+    "${LIBCLANGINTERPRETER}"
+    "${LIBCLANGLEX}"
+    "${LIBCLANGPARSE}"
+    "${LIBCLANGREWRITE}"
+    "${LIBCLANGREWRITEFRONTEND}"
+    "${LIBCLANGSEMA}"
+    "${LIBCLANGSERIALIZATION}"
+    "${LIBCLANGSTATICANALYZERCHECKERS}"
+    "${LIBCLANGSTATICANALYZERCORE}"
+    "${LIBCLANGSTATICANALYZERFRONTEND}"
+    "${LIBCLANGTESTING}"
+    "${LIBCLANGTOOLING}"
+    "${LIBCLANGTOOLINGASTDIFF}"
+    "${LIBCLANGTOOLINGCORE}"
+    "${LIBCLANGTOOLINGINCLUSIONS}"
+    "${LIBCLANGTOOLINGREFACTORING}"
+    "${LIBCLANGTOOLINGSYNTAX}"
+    "${LIBCLANGTRANSFORMER}"
+    "${LIBCLANGTOOL}"
+)
+
+# lld built-in
+set(LIBLLDCOFF "${LLVM_LIBS}/liblldCOFF.a")
+set(LIBLLDCOMMON "${LLVM_LIBS}/liblldCommon.a")
+set(LIBLLDELF "${LLVM_LIBS}/liblldELF.a")
+set(LIBLLDMACHO "${LLVM_LIBS}/liblldMachO.a")
+set(LIBLLDMINGW "${LLVM_LIBS}/liblldMinGW.a")
+set(LIBLLDWASM "${LLVM_LIBS}/liblldWasm.a")
+set(LLD_AS
+    "${LIBLLDCOFF}"
+    "${LIBLLDCOMMON}"
+    "${LIBLLDELF}"
+    "${LIBLLDMACHO}"
+    "${LIBLLDMINGW}"
+    "${LIBLLDWASM}"
+)
+
 target_link_libraries(${PROJECT_NAME}-platform
     PRIVATE
     Qt6::Core
     Qt6::Gui
     Qt6::Sql
     Qt6::Quick
+    ${NOSYSTEM}
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -375,9 +473,12 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Sql
+    ${LLVM}
+    ${NOSYSTEM}
+    ${CLANG_AS}
+    ${LLD_AS}
     ${FOUNDATION_LIBRARY}
     ${UIKITLIBRARY}
-    ${IOSSYSTEM}
     ${PROJECT_NAME}-platform
     vmlib
 )
@@ -386,11 +487,11 @@ target_link_libraries(${PROJECT_NAME}
 if(IOS)
     set_property(TARGET ${PROJECT_NAME}
         PROPERTY XCODE_EMBED_FRAMEWORKS
-        ${IOSSYSTEM}
+        ${NOSYSTEM}
         ${LLVM}
         ${LIBCLANG_CPP}
-        ${CLANG}
-        ${LLD}
+        #${CLANG}
+        #${LLD}
         #${CMAKEFW}
         #${NINJAFW}
         ${PROJECT_NAME}-Formatter

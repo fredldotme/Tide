@@ -7,9 +7,6 @@ class ClangCompiler
 {
 public:
     explicit ClangCompiler();
-
-public:
-    int invokeCompiler(QString cmd);
 };
 
 #endif // CLANGCOMPILER_H

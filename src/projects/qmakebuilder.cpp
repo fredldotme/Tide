@@ -1,6 +1,6 @@
 #include "qmakebuilder.h"
 
-//#include "wasmrunner.h"
+#include <common/clangcompiler.h>
 
 #include <QCryptographicHash>
 #include <QDir>
@@ -22,7 +22,7 @@ inline static QString resolveDefaultVariables(const QString& line,
 QMakeBuilder::QMakeBuilder(QObject *parent)
     : QObject{parent}, iosSystem{nullptr}, m_building(false)
 {
-
+    ClangCompiler compiler;
 }
 
 void QMakeBuilder::setSysroot(const QString path)
@@ -69,9 +69,6 @@ void QMakeBuilder::clean()
 
 void QMakeBuilder::build()
 {
-    const QString clangDir = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
-                             QStringLiteral("/Library/usr/lib/clang/14.0.0");
-
     const auto buildDirPath = projectBuildRoot();
     if (buildDirPath.isEmpty()) {
         const auto err = "Project's TARGET is not set.";
@@ -85,8 +82,8 @@ void QMakeBuilder::build()
         buildDir.mkpath(buildDirPath);
     }
 
-    const auto defaultFlags = QStringList{"--target=wasm32-wasi-threads", "-pthread", "-msimd128", "-D__wasi__"};
-    const auto defaultLinkFlags = QStringList{"-Wl,--shared-memory"};
+    const auto defaultFlags = QStringLiteral(" -pthread -msimd128 -ftls-model=local-exec ");
+    const auto defaultLinkFlags = QStringLiteral(" -Wl,--shared-memory -pthread -msimd128 ");
 
     QMakeParser projectParser;
     projectParser.setProjectFile(m_projectFile);
@@ -100,104 +97,39 @@ void QMakeBuilder::build()
         return;
     }
 
-    QStringList includeFlags;
+    QString includeFlags;
     if (variables.find("INCLUDEPATH") != variables.end()) {
         const auto includes = variables.at("INCLUDEPATH");
         for (const auto& include : includes.values) {
             qDebug() << "Adding include:" << include;
             QString resolvedInclude = resolveDefaultVariables(include, sourceDirPath, buildDirPath);
-            includeFlags << QStringLiteral("-I");
-            includeFlags << QStringLiteral("\"%1\"").arg(resolvedInclude);
+            includeFlags += QStringLiteral(" -I \"%1\" ").arg(resolvedInclude);
         }
     }
 
-    QStringList libraryFlags;
+    QString libraryFlags;
     if (variables.find("LIBS") != variables.end()) {
         const auto libraries = variables.at("LIBS");
         for (const auto& library : libraries.values) {
             qDebug() << "Adding library:" << library;
             QString resolvedLibrary = resolveDefaultVariables(library, sourceDirPath, buildDirPath);
-            libraryFlags << resolvedLibrary;
+            libraryFlags += QStringLiteral(" %1 ").arg(resolvedLibrary);
         }
     }
 
-    QStringList defineFlags;
+    QString defineFlags;
     if (variables.find("DEFINES") != variables.end()) {
         const auto defines = variables.at("DEFINES");
         for (const auto& define : defines.values) {
             qDebug() << "Adding define:" << define;
-            defineFlags += QStringLiteral("-D%1").arg(define);
-        }
-    }
-
-    QStringList cxxFlags;
-    if (variables.find("QMAKE_CXXFLAGS") != variables.end()) {
-        const auto defines = variables.at("QMAKE_CXXFLAGS");
-        for (const auto& define : defines.values) {
-            qDebug() << "Adding cxxflag:" << define;
-            defineFlags += QStringLiteral("%1").arg(define);
-        }
-    }
-
-    QStringList cFlags;
-    if (variables.find("QMAKE_CFLAGS") != variables.end()) {
-        const auto defines = variables.at("QMAKE_CFLAGS");
-        for (const auto& define : defines.values) {
-            qDebug() << "Adding cflag:" << define;
-            defineFlags += QStringLiteral("%1").arg(define);
-        }
-    }
-
-    QStringList ldFlags;
-    if (variables.find("QMAKE_LDFLAGS") != variables.end()) {
-        const auto flags = variables.at("QMAKE_LDFLAGS");
-        for (const auto& flag : flags.values) {
-            qDebug() << "Adding ldflag:" << flag;
-            defineFlags += QStringLiteral("%1").arg(flag);
+            defineFlags += QStringLiteral(" -D%1 ").arg(define);
         }
     }
 
     QStringList objectsToLink;
-    QList<QString> buildCommands;
+    QStringList buildCommands;
 
-    bool isCpp = false;
-
-    // Source code contained in the project
     const auto sources = variables.at("SOURCES");
-
-    // General compiler flags based on whether it's C or C++
-    QStringList compilerFlags;
-    for (const auto& source : sources.values) {
-        if (!source.endsWith(".c")) {
-            isCpp = true;
-            break;
-        }
-    }
-
-    auto compiler = QStringLiteral("clang");
-    if (!isCpp) {
-        compilerFlags = cFlags;
-    } else {
-        compilerFlags = cxxFlags;
-        compiler = QStringLiteral("clang++");
-    }
-    
-    QStringList command;
-    command << compiler;
-    //command << QStringLiteral("-cc1");
-    //command << QStringLiteral("-fintegrated-cc1");
-    //command << QStringLiteral("-fno-disable-free");
-    command << QStringLiteral("--sysroot=") + m_sysroot;
-    command << defaultFlags;
-    if (!includeFlags.isEmpty())
-        command << includeFlags;
-    if (!defineFlags.isEmpty())
-        command << defineFlags;
-    if (!libraryFlags.isEmpty())
-        command << libraryFlags;
-    if (!compilerFlags.isEmpty())
-        command << compilerFlags;
-
     for (const auto& source : sources.values) {
         QString sourceFile = resolveDefaultVariables(source, sourceDirPath, buildDirPath);
 
@@ -205,64 +137,44 @@ void QMakeBuilder::build()
         if (!sourceFile.startsWith(QDir::separator()))
             sourceFile = sourceDirPath + QDir::separator() + source;
 
-        //const QString sourceFileName = QFileInfo(sourceFile).fileName();
-        //const QString buildObject = buildDirPath + QDir::separator() + sourceFileName + ".o";
-        //objectsToLink << buildObject;
+        const QString sourceFileName = QFileInfo(sourceFile).fileName();
+        const QString buildObject = buildDirPath + QDir::separator() + sourceFileName + ".o";
+        objectsToLink << buildObject;
 
-        command << QStringLiteral("\"%1\"").arg(sourceFile);
+        const auto compiler = source.endsWith(".c") ? QStringLiteral("clang") : QStringLiteral("clang++");
+        const QString command = compiler +
+                                QStringLiteral(" --sysroot=") + m_sysroot +
+                                QStringLiteral(" -c") +
+                                defaultFlags +
+                                includeFlags +
+                                defineFlags +
+                                libraryFlags +
+                                QStringLiteral(" -o %1 ").arg(buildObject) +
+                                QStringLiteral(" \"%1\"").arg(sourceFile);
+        qDebug() << "Compile command:" << command;
+        buildCommands << command;
     }
 
-    command << QStringLiteral("-o");
-    command << QStringLiteral("\"%1\"").arg(runnableFile());
-
-    qDebug() << "Compile command:" << command;
-    buildCommands << command;
-
-#if 0
-    QStringList objectFlags;
+    QString objectFlags;
     for (const auto& object : objectsToLink) {
-        objectFlags += QStringLiteral("\"%1\"").arg(object);
+        objectFlags += QStringLiteral(" \"%1\" ").arg(object);
     }
-    
-    QStringList linkCommand;
-    linkCommand << QStringLiteral("clang++");
-    linkCommand << QStringLiteral("--sysroot=%1").arg(m_sysroot);
 
-    if (!defaultLinkFlags.isEmpty())
-        linkCommand << defaultLinkFlags;
-
-    if (!objectFlags.isEmpty())
-        linkCommand << objectFlags;
-    if (!libraryFlags.isEmpty())
-        linkCommand << libraryFlags;
-    if (!ldFlags.isEmpty())
-        linkCommand << ldFlags;
-    linkCommand << QStringLiteral("-o") << runnableFile();
+    const QString linkCommand = QStringLiteral("clang++") +
+                                QStringLiteral(" --sysroot=") + m_sysroot +
+                                defaultLinkFlags +
+                                objectFlags +
+                                libraryFlags +
+                                QStringLiteral(" -o %1").arg(runnableFile());
 
     qDebug() << "Link command:" << linkCommand;
     buildCommands << linkCommand;
-#endif
 
     std::thread buildThread([=]() {
         m_building = true;
         emit buildingChanged();
 
-#if 1
-        const bool success = (iosSystem->runBuildCommands(buildCommands));
-#else
-        bool success = false;
-        for (auto args : buildCommands) {
-            const QString target = QStandardPaths::writableLocation(QStandardPaths::TempLocation) +
-                                   QStringLiteral("/The-Sysroot/clang++");
-            WasmRunner wasmRunner;
-            wasmRunner.run(target, args);
-            wasmRunner.waitForFinished();
-            if (wasmRunner.exitCode() != 0) {
-                success = false;
-                break;
-            }
-        }
-#endif
+        const bool success = iosSystem->runBuildCommands(buildCommands, "", false, true);
         if (success) {
             emit buildSuccess();
         } else {

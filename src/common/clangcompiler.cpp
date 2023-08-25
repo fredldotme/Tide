@@ -21,7 +21,6 @@ static bool initialized = false;
 ClangCompiler::ClangCompiler()
 {
     if (!initialized) {
-        // Initialize targets first, so that --version shows registered targets.
         nosystem_addcommand("clang", &clang_main);
         nosystem_addcommand("clang++", &clang_main);
         nosystem_addcommand("lld", &lld_hook);
@@ -29,9 +28,4 @@ ClangCompiler::ClangCompiler()
         nosystem_addcommand("wasm-ld", &lld_hook);
         initialized = true;
     }
-}
-
-int ClangCompiler::invokeCompiler(QString cmd)
-{
-    return nosystem_system(cmd.toUtf8().data());
 }

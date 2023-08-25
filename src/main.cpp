@@ -41,8 +41,8 @@ int main(int argc, char *argv[])
     QQuickStyle::setStyle("Material");
 #endif
 
-    qputenv("LIBCLANG_DISABLE_CRASH_RECOVERY", "1");
-    qputenv("LLVM_DISABLE_CRASH_REPORT", "1");
+    //qputenv("LIBCLANG_DISABLE_CRASH_RECOVERY", "1");
+    //qputenv("LLVM_DISABLE_CRASH_REPORT", "1");
 
     QGuiApplication app(argc, argv);
     app.setOrganizationDomain("fredl.me");
