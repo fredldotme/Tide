@@ -525,13 +525,6 @@ Rectangle {
             }
         }
 
-        Rectangle {
-            height: 1
-            width: parent.width
-            color: root.palette.text
-            visible: !codeEditor.invalidated
-        }
-
         RowLayout {
             id: detailArea
             visible: !codeEditor.invalidated

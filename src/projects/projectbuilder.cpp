@@ -22,6 +22,9 @@ void ProjectBuilder::unloadProject()
 
     QObject::disconnect(&m_qmakeBuilder, nullptr, nullptr, nullptr);
     QObject::disconnect(&m_cmakeBuilder, nullptr, nullptr, nullptr);
+
+    this->m_projectFile = "";
+    emit projectFileChanged();
 }
 
 bool ProjectBuilder::loadProject(const QString path)
@@ -57,9 +60,17 @@ bool ProjectBuilder::loadProject(const QString path)
         return false;
     }
 
+    const auto ret = m_activeBuilder->loadProject(path);
+
+    if (!ret) {
+        qWarning() << "Couldn't load project" << path;
+        return false;
+    }
+
     m_projectFile = path;
     emit projectFileChanged();
-    return m_activeBuilder->loadProject(path);
+
+    return ret;
 }
 
 void ProjectBuilder::clean()

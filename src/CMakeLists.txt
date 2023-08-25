@@ -8,7 +8,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(PROJECT_NAME tide)
 endif()
 
-project(${PROJECT_NAME} VERSION 0.6 LANGUAGES C CXX)
+project(${PROJECT_NAME} VERSION 0.7 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
@@ -58,7 +58,7 @@ if(IOS)
 endif()
 
 # Qt6
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Qml Quick Sql QuickControls2 HttpServer)
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Qml Quick Sql QuickControls2)
 
 include_directories(${PROJECT_NAME}
     # QMake parser
@@ -76,6 +76,9 @@ qt_add_executable(${PROJECT_NAME}
     main.cpp
     common/directorylisting.cpp
     common/clangwrapper.cpp
+    #common/clangcompiler.cpp
+    #common/clang_main.cpp
+    #common/lld_main.cpp
     editor/linenumbershelper.cpp
     editor/qsourcehighliter.cpp
     editor/languagedata.cpp
@@ -90,7 +93,7 @@ qt_add_executable(${PROJECT_NAME}
     utility/wasmrunner.cpp
     utility/linuxruntimemanager.cpp
     utility/searchandreplace.cpp
-    utility/localhttpserver.cpp
+    utility/debugger.cpp
     projects/bookmarkdb.cpp
     projects/projectbuilder.cpp
     projects/projectcreator.cpp
@@ -137,6 +140,10 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/ContextViewButton.qml
     qml/FileListingButton.qml
     qml/OpenFileListingButton.qml
+    qml/TideMenu.qml
+    qml/TideDialog.qml
+    qml/TideInteractiveDialog.qml
+    qml/HelpPage.qml
 
     NO_LINT
 )
@@ -146,6 +153,7 @@ set(LLVM_FRAMEWORKS ${LLVM_DIR}/${LLVM_BUILD_DIR}/build/${LLVM_MODE})
 set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
 set(LLVM_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/include)
 set(LLVM_CLANG_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/tools/clang/include)
+set(IOSSYSTEM_HEADERS ${LLVM_FRAMEWORKS}/ios_system.framework/Headers)
 
 # Include libs after defining a few crucial variables
 add_subdirectory(lib)
@@ -167,7 +175,9 @@ if(IOS)
     set (WAMR_BUILD_SHARED_MEMORY 1)
     set (WAMR_BUILD_TAIL_CALL 1)
     set (WAMR_BUILD_LIBC_UVWASI 0)
+    set (WAMR_BUILD_SIMD 1)
     set (WAMR_DISABLE_HW_BOUND_CHECK 1)
+    set (WAMR_BUILD_DEBUG_INTERP 0)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
 
     qt_add_library(${PROJECT_NAME}-platform
@@ -183,9 +193,17 @@ if(IOS)
     )
 
     include_directories(${PROJECT_NAME}
-        # system() replacement through ios_system (with ios_error.h)
-        ${IOS_SYSTEM}
+        # system() replacement through ios_system
+        ${IOSSYSTEM}
+        ${IOSSYSTEM_HEADERS}
         ${LLVM_DIR}
+
+        # Clang & LLVM libraries
+        ${LLVM_DIR}/llvm/include
+        ${LLVM_DIR}/clang/include
+        ${LLVM_DIR}/lld/include
+        ${LLVM_DIR}/${LLVM_BUILD_DIR}/include
+        ${LLVM_DIR}/${LLVM_BUILD_DIR}/tools/clang/include
 
         # Platform abstraction
         ${CMAKE_CURRENT_SOURCE_DIR}/platform/ios
@@ -198,10 +216,11 @@ if(IOS)
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
         MACOSX_BUNDLE TRUE
         WIN32_EXECUTABLE TRUE
-        XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks"
+        XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks @loader_path/Frameworks"
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/Tide.entitlements"
         XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
         XCODE_ATTRIBUTE_SKIP_INSTALL "No"
+        XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "Yes"
         XCODE_ATTRIBUTE_COPY_PHASE_STRIP "No"
     )
 
@@ -235,11 +254,14 @@ if(IOS)
 
     set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")
 
-    # LLVM & Clang
-    find_library(IOS_SYSTEM REQUIRED NAMES ios_system PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    # LLVM & ios_system
+    find_library(IOSSYSTEM REQUIRED NAMES ios_system PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+
+    # Clang as a library
     find_library(CLANG REQUIRED NAMES clang PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(LLD REQUIRED NAMES lld PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    #find_library(LLDB REQUIRED NAMES lldb PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(AR REQUIRED NAMES ar PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(DIS REQUIRED NAMES dis PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(LLD REQUIRED NAMES lld PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
@@ -248,6 +270,9 @@ if(IOS)
     find_library(NM REQUIRED NAMES nm PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(OPT REQUIRED NAMES opt PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
 
+    find_library(FOUNDATION_LIBRARY Foundation)
+    find_library(UIKIT_LIBRARY UIKit)
+
     # libclang for C++ ASTs
     find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
@@ -255,10 +280,17 @@ if(IOS)
     find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(NINJAFW REQUIRED NAMES ninja PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
-    # Because CMake doesn't find the Header itself currently
+    # Because CMake doesn't find the Header by itself currently
     include_directories(${PROJECT_NAME}
-        ${LLVM_FRAMEWORKS}/ios_system.framework/Headers
+        ${LLVM_FRAMEWORKS}/no_system.framework/Headers
     )
+
+    # Debugger's lldb requires some trickery
+    #set_source_files_properties(${LLDB}
+    #    PROPERTIES
+    #    MACOSX_PACKAGE_LOCATION Frameworks
+    #    XCODE_FILE_ATTRIBUTES "CodeSignOnCopy"
+    #)
 
     # Set a few properties for file sharing & UI tweaks
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
@@ -269,6 +301,10 @@ if(IOS)
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND plutil -replace LSApplicationCategoryType -string public.app-category.developer-tools "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
+    )
+
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND plutil -replace NSLocalNetworkUsageDescription -string "WebAssembly Micro Runtime support for sockets" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
     )
 endif()
 
@@ -291,7 +327,9 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
     set (WAMR_BUILD_LIBC_UVWASI 0)
+    set (WAMR_BUILD_SIMD 1)
     set (WAMR_DISABLE_HW_BOUND_CHECK 1)
+    set (WAMR_BUILD_DEBUG_INTERP 0)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
 
     qt_add_library(${PROJECT_NAME}-platform
@@ -337,8 +375,9 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Sql
-    Qt6::HttpServer
-    ${IOS_SYSTEM}
+    ${FOUNDATION_LIBRARY}
+    ${UIKITLIBRARY}
+    ${IOSSYSTEM}
     ${PROJECT_NAME}-platform
     vmlib
 )
@@ -347,18 +386,11 @@ target_link_libraries(${PROJECT_NAME}
 if(IOS)
     set_property(TARGET ${PROJECT_NAME}
         PROPERTY XCODE_EMBED_FRAMEWORKS
-        ${IOS_SYSTEM}
+        ${IOSSYSTEM}
         ${LLVM}
+        ${LIBCLANG_CPP}
         ${CLANG}
         ${LLD}
-        ${LLI}
-        ${AR}
-        ${DIS}
-        ${LLD}
-        ${LINK}
-        ${NM}
-        ${OPT}
-        ${LIBCLANG_CPP}
         #${CMAKEFW}
         #${NINJAFW}
         ${PROJECT_NAME}-Formatter

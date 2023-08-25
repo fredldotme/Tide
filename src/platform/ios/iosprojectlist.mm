@@ -70,9 +70,16 @@ QList<DirectoryListing> IosProjectList::listDirectoryContents(const QString path
     QList<DirectoryListing> ret;
     qDebug() << "Iterating through" << path;
 
+    QStringList toSort;
+
     QDirIterator it(path, QDir::NoDot | QDir::AllEntries);
     while (it.hasNext()) {
-        const auto next = it.next();
+        toSort << it.next();
+    }
+
+    std::sort(toSort.begin(), toSort.end());
+
+    for (const auto& next : toSort) {
         qWarning() << next;
 
         DirectoryListing::ListingType type;

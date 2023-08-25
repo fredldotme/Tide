@@ -187,9 +187,16 @@ QList<DirectoryListing> ExternalProjectPicker::listDirectoryContents(const QStri
 {
     QList<DirectoryListing> ret;
 
+    QStringList toSort;
+
     QDirIterator it(path, QDir::NoDot | QDir::AllEntries);
     while (it.hasNext()) {
-        const auto next = it.next();
+        toSort << it.next();
+    }
+
+    std::sort(toSort.begin(), toSort.end());
+
+    for (const auto& next : toSort) {
         qWarning() << next;
 
         DirectoryListing::ListingType type;

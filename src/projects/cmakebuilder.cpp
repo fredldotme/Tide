@@ -70,7 +70,8 @@ void CMakeBuilder::build()
         m_building = true;
         emit buildingChanged();
 
-        const bool success = iosSystem->runBuildCommands(buildCommands, buildPath, false, false);
+        //const bool success = iosSystem->runBuildCommands(buildCommands, buildPath, false, false);
+        const bool success = false;
         if (success) {
             emit buildSuccess();
         } else {

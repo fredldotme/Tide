@@ -20,6 +20,7 @@
 #include "projectcreator.h"
 #include "cppformatter.h"
 #include "searchandreplace.h"
+#include "debugger.h"
 
 #include "platform/systemglue.h"
 
@@ -33,12 +34,15 @@ int main(int argc, char *argv[])
                             QStringLiteral("/Runtimes/Linux");
 
     qputenv("SYSROOT", sysroot.toUtf8().data());
-    qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi-threads");
+    qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi-threads -fintegrated-cc1");
     QQuickStyle::setStyle("iOS");
 #elif defined(Q_OS_LINUX)
     const QString sysroot = QStringLiteral("/usr");
     QQuickStyle::setStyle("Material");
 #endif
+
+    qputenv("LIBCLANG_DISABLE_CRASH_RECOVERY", "1");
+    qputenv("LLVM_DISABLE_CRASH_REPORT", "1");
 
     QGuiApplication app(argc, argv);
     app.setOrganizationDomain("fredl.me");
@@ -61,6 +65,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<ProjectList>("Tide", 1, 0, "ProjectList");
     qmlRegisterType<CppFormatter>("Tide", 1, 0, "CppFormatter");
     qmlRegisterType<SearchAndReplace>("Tide", 1, 0, "SearchAndReplace");
+    qmlRegisterType<Debugger>("Tide", 1, 0, "Debugger");
 
     qmlRegisterUncreatableType<SystemGlue>("Tide", 1, 0, "IosSystemGlue", "Created in main() as 'iosSystem'.");
     qmlRegisterUncreatableType<StdioSpec>("Tide", 1, 0, "ProgramSpec", "StdioSpec is protocol between 'iosSystem' and 'Console'.");
@@ -74,6 +79,8 @@ int main(int argc, char *argv[])
         SystemGlue iosSystemGlue;
         InputMethodFixerInstaller imFixer;
         PlatformIntegrationDelegate oskReactor;
+
+        WasmRunner::init();
 
         QFont standardFixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
         standardFixedFont.setPixelSize(14);
@@ -95,6 +102,8 @@ int main(int argc, char *argv[])
         engine.load(url);
 
         ret = app.exec();
+
+        WasmRunner::deinit();
     }
     return ret;
 }

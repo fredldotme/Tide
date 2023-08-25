@@ -7,7 +7,7 @@
 ClangWrapper::ClangWrapper()
 {
     const auto libPath = qApp->applicationDirPath() + "/Frameworks/libclang.framework/libclang";
-    this->handle = dlopen(libPath.toUtf8().data(), RTLD_NOW);
+    this->handle = dlopen(libPath.toUtf8().data(), RTLD_NOW | RTLD_LOCAL);
 
     if (!this->handle) {
         qWarning() << "Failed to load libclang from" << libPath;

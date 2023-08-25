@@ -13,6 +13,9 @@ ApplicationWindow {
     title: qsTr("Tide")
     flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
 
+    SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
+    property alias tidePalette : tidePalette
+
     readonly property int paddingSmall: 8
     readonly property int paddingMid: 12
     readonly property int paddingMedium: 16
@@ -27,10 +30,12 @@ ApplicationWindow {
     readonly property int headerItemHeight : 48
     readonly property int topBarHeight : 72
 
+    property font fixedFont: standardFixedFont
     property bool showLeftSideBar: true
     property bool compiling: false
+
     property bool releaseRequested : false
-    property font fixedFont: standardFixedFont
+    property bool runRequested : false
 
     signal fileSaved()
 
@@ -54,6 +59,16 @@ ApplicationWindow {
         consoleView.consoleOutput.clear()
     }
 
+    function attemptBuild() {
+        if (editor.invalidated)
+            return;
+
+        saveCurrentFile()
+        root.compiling = true
+        projectBuilder.clean()
+        projectBuilder.build()
+    }
+
     function attemptRun() {
         if (editor.invalidated)
             return;
@@ -64,8 +79,22 @@ ApplicationWindow {
         if (killOnly)
             return;
 
-        consoleView.show();
+        consoleView.show()
         wasmRunner.run(projectBuilder.runnableFile(), [])
+    }
+
+    function attemptDebug() {
+        if (editor.invalidated)
+            return;
+
+        const killOnly = wasmRunner.running
+
+        wasmRunner.kill();
+        if (killOnly)
+            return;
+
+        consoleView.show()
+        dbugger.debug(projectBuilder.runnableFile(), [])
     }
 
     onActiveChanged: {
@@ -142,7 +171,7 @@ ApplicationWindow {
                         }
                     }
 
-                    Menu {
+                    TideMenu {
                         id: contextMenu
                         MenuItem {
                             id: contextFieldSearchButton
@@ -210,6 +239,20 @@ ApplicationWindow {
                         }
 
                         MenuItem {
+                            id: helpButton
+                            icon.source: Qt.resolvedUrl("qrc:/assets/questionmark.circle.fill@2x.png")
+                            text: qsTr("Help")
+
+                            onClicked: {
+                                if (helpDialog.visibility) {
+                                    helpDialog.hide()
+                                } else {
+                                    helpDialog.show()
+                                }
+                            }
+                        }
+
+                        MenuItem {
                             id: settingsButton
                             icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
                             text: qsTr("Settings")
@@ -244,14 +287,14 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignHCenter
                     color: root.palette.button
-                    text: compiling ? qsTr("Compiling... get your swords!") :
-                                      ""
+                    text: compiling ? qsTr("Building project...") : ""
                     elide: Text.ElideRight
                     font.bold: true
                     horizontalAlignment: Label.AlignHCenter
                     verticalAlignment: Label.AlignVCenter
                 }
 
+                /*
                 TideToolButton {
                     visible: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
                     enabled: !projectBuilder.building && !wasmRunner.running
@@ -272,7 +315,6 @@ ApplicationWindow {
                     }
                 }
 
-                /*
                 TideToolButton {
                     visible: true
                     enabled: !runtimeRunner.running
@@ -302,10 +344,103 @@ ApplicationWindow {
                 */
 
                 TideToolButton {
+                    rightPadding: paddingMedium
+                    icon.source: !wasmRunner.running && !projectBuilder.building ?
+                                     Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
+                                     Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
+                    icon.color: root.palette.button
+                    visible: projectBuilder.projectFile !== ""
+
+                    BusyIndicator {
+                        visible: wasmRunner.running || projectBuilder.building
+                        running: wasmRunner.running || projectBuilder.building
+                        anchors.centerIn: parent
+                    }
+
+                    onClicked: {
+                        if (!projectBuilder.building && !wasmRunner.running) {
+                            root.runRequested = true
+                            root.attemptBuild()
+                        } else if (wasmRunner.running || projectBuilder.building) {
+                            runRequested = false
+                            releaseRequested = false
+                            if (wasmRunner.running)
+                                wasmRunner.kill()
+                            if (projectBuilder.building)
+                                projectBuilder.cancel()
+                        }
+                    }
+                    onPressAndHold: {
+                        buildContextMenu.open()
+                    }
+
+                    TideMenu {
+                        id: buildContextMenu
+                        MenuItem {
+                            text: qsTr("Clean")
+                            icon.source: Qt.resolvedUrl("qrc:/assets/trash.fill@2x.png")
+                            enabled: !projectBuilder.building && !wasmRunner.running && projectBuilder.projectFile !== ""
+                            onTriggered: {
+                                projectBuilder.clean()
+                            }
+                        }
+                        MenuItem {
+                            text: qsTr("Build")
+                            icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
+                            enabled: !projectBuilder.building && !wasmRunner.running && projectBuilder.projectFile !== ""
+                            onTriggered: {
+                                root.runRequested = false
+                                root.attemptBuild()
+                            }
+                        }
+                        MenuItem {
+                            property bool isRunning: wasmRunner.running
+                            text: !isRunning ? qsTr("Run") : qsTr("Stop")
+                            icon.source: !isRunning ?
+                                             Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
+                                             Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
+                            enabled: !projectBuilder.building && projectBuilder.projectFile !== ""
+                            onTriggered: {
+                                root.attemptRun()
+                            }
+                        }
+                        /*
+                        MenuItem {
+                            property bool visibility: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
+                            enabled: !projectBuilder.building && visibility
+                            text: qsTr("Debug")
+                            icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
+
+                            BusyIndicator {
+                                visible: wasmRunner.running
+                                running: wasmRunner.running
+                                anchors.centerIn: parent
+                            }
+
+                            onClicked: {
+                                root.attemptDebug()
+                            }
+                        }
+                        */
+                        /*MenuItem {
+                            text: !consoleView.visibility ? qsTr("Show Console") : qsTr("Hide Console")
+                            icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
+                            onTriggered: {
+                                if (consoleView.visibility)
+                                    consoleView.hide()
+                                else
+                                    consoleView.show()
+                            }
+                        }*/
+                    }
+                }
+
+                /*
+                TideToolButton {
                     visible: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
                     enabled: !projectBuilder.building
                     icon.source: !wasmRunner.running ?
-                                     Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
+                                     Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png") :
                                      Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
                     icon.color: root.palette.button
 
@@ -315,20 +450,12 @@ ApplicationWindow {
                         anchors.centerIn: parent
                     }
 
-                    WasmRunner {
-                        id: wasmRunner
-                        onErrorOccured:
-                            (str) => {
-                                consoleView.consoleOutput.append({"content": str, "stdout": false})
-                                consoleView.show()
-                                consoleView.consoleScrollView.positionViewAtEnd()
-                            }
-                    }
-
                     onClicked: {
-                        root.attemptRun()
+                        root.attemptDebug()
                     }
                 }
+                */
+
                 TideToolButton {
                     icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
                     icon.color: root.palette.button
@@ -405,11 +532,32 @@ ApplicationWindow {
             compiling = false
             warningSign.flashSuccess(qsTr("Build successful!"))
 
+            if (runRequested) {
+                runRequested = false
+                root.attemptRun()
+            }
+
             if (releaseRequested) {
                 releaseRequested = false
                 Qt.openUrlExternally("shareddocuments://" + projectBuilder.runnableFile())
             }
         }
+    }
+
+    WasmRunner {
+        id: wasmRunner
+        onErrorOccured:
+            (str) => {
+                consoleView.consoleOutput.append({"content": str, "stdout": false})
+                consoleView.show()
+                consoleView.consoleScrollView.positionViewAtEnd()
+            }
+    }
+
+    Debugger {
+        id: dbugger
+        runner: wasmRunner
+        system: iosSystem
     }
 
     Component.onCompleted: {
@@ -527,6 +675,23 @@ ApplicationWindow {
                     onClicked: projectPicker.startImport()
                 }
             }
+
+            Row {
+                width: parent.width
+                spacing: paddingMedium
+                Layout.alignment: Qt.AlignHCenter
+
+                TideButton {
+                    icon.source: Qt.resolvedUrl("qrc:/assets/questionmark.circle.fill@2x.png")
+                    icon.width: startPage.sideLength
+                    icon.height: startPage.sideLength
+                    font.pixelSize: startPage.sideLength
+                    height: startPage.sideLength
+                    color: root.palette.button
+                    text: qsTr("Help")
+                    onClicked: helpDialog.show()
+                }
+            }
         }
 
         Row {
@@ -535,6 +700,13 @@ ApplicationWindow {
             spacing: 1
             visible: projectList.projects.length > 0
             onVisibleChanged: mainView.forceLayout()
+
+            readonly property int dialogWidth: parent.width <= sideBarWidth ?
+                                                   sideBarWidth :
+                                                   ((parent.width / 8) * 6)
+            readonly property int dialogHeight: width === sideBarWidth ?
+                                                    parent.height :
+                                                    ((parent.height / 8) * 6)
 
             Pane {
                 id: leftSideBar
@@ -653,10 +825,12 @@ ApplicationWindow {
 
                                         ListView {
                                             headerPositioning: ListView.PullBackHeader
-                                            header: Item {
+                                            header: Rectangle {
                                                 clip: true
                                                 width: projectNavigationStack.width
                                                 height: root.headerItemHeight
+                                                color: root.tidePalette.base
+                                                radius: roundedCornersRadiusMedium
                                                 RowLayout {
                                                     anchors.fill: parent
                                                     spacing: paddingSmall * 2
@@ -730,7 +904,7 @@ ApplicationWindow {
 
                                             Component {
                                                 id: projectsContextMenuComponent
-                                                Menu {
+                                                TideMenu {
                                                     id: projectsContextMenu
                                                     property var selectedProject: null
 
@@ -780,6 +954,7 @@ ApplicationWindow {
                                             width: parent.width
                                             height: parent.height
                                             spacing: paddingSmall
+                                            clip: true
                                             property var project : null
 
                                             function refresh() {
@@ -817,9 +992,12 @@ ApplicationWindow {
                                             }
 
                                             headerPositioning: ListView.PullBackHeader
-                                            header: Item {
+                                            header: Rectangle {
                                                 width: projectNavigationStack.width
                                                 height: root.headerItemHeight
+                                                clip: true
+                                                color: root.tidePalette.base
+                                                radius: roundedCornersRadiusMedium
                                                 RowLayout {
                                                     anchors.fill: parent
                                                     spacing: paddingSmall * 2
@@ -923,7 +1101,7 @@ ApplicationWindow {
                                                     }
                                                 }
 
-                                                Menu {
+                                                TideMenu {
                                                     id: directoryListViewContextMenu
                                                     readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
 
@@ -1093,7 +1271,7 @@ ApplicationWindow {
 
                                     Component {
                                         id: openFilesContextMenuComponent
-                                        Menu {
+                                        TideMenu {
                                             id: openFilesContextMenu
                                             property var selectedFile: null
 
@@ -1190,12 +1368,8 @@ ApplicationWindow {
 
         SettingsDialog {
             id: settingsDialog
-            width: parent.width <= sideBarWidth ?
-                       sideBarWidth :
-                       ((parent.width / 8) * 6)
-            height: width === sideBarWidth ?
-                        parent.height :
-                        ((parent.height / 8) * 6)
+            width: mainView.dialogWidth
+            height: mainView.dialogHeight
         }
 
         ListModel {
@@ -1255,14 +1429,14 @@ ApplicationWindow {
 
         ConsoleView {
             id: consoleView
-            width: (parent.width / 8) * 6
-            height: (parent.height / 8) * 6
+            width: mainView.dialogWidth
+            height: mainView.dialogHeight
         }
 
         ContextView {
             id: contextDialog
-            width: (parent.width / 8) * 6
-            height: (parent.height / 8) * 6
+            width: mainView.dialogWidth
+            height: mainView.dialogHeight
             onOpenRequested: {
                 openEditorFile(contextDialog.currentPath)
                 contextDialog.hide()
@@ -1271,7 +1445,7 @@ ApplicationWindow {
 
         Component {
             id: createProjectDialogComponent
-            Dialog {
+            TideDialog {
                 title: qsTr("Create project:");
                 modal: true
                 anchors.centerIn: parent
@@ -1302,7 +1476,7 @@ ApplicationWindow {
 
         Component {
             id: newFileDialogComponent
-            Dialog {
+            TideDialog {
                 title: qsTr("New file:");
                 modal: true
                 anchors.centerIn: parent
@@ -1336,7 +1510,7 @@ ApplicationWindow {
 
         Component {
             id: newDirectoryDialogComponent
-            Dialog {
+            TideDialog {
                 title: qsTr("New directory:");
                 modal: true
                 anchors.centerIn: parent
@@ -1364,6 +1538,22 @@ ApplicationWindow {
                 onRejected: {
                     directoryName.text = ""
                     done()
+                }
+            }
+        }
+
+        TideInteractiveDialog {
+            id: helpDialog
+            width: mainView.dialogWidth
+            height: mainView.dialogHeight
+            ScrollView {
+                anchors.fill: parent
+                contentWidth: -1
+                HelpPage {
+                    width: parent.width
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: roundedCornersRadius
                 }
             }
         }

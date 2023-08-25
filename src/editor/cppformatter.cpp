@@ -13,7 +13,7 @@ CppFormatter::CppFormatter(QObject *parent)
 QString CppFormatter::format(QString text, FormattingStyle formatStyle)
 {
     const auto libPath = qApp->applicationDirPath() + "/Frameworks/Tide-Formatter.framework/Tide-Formatter";
-    this->handle = dlopen(libPath.toUtf8().data(), RTLD_NOW);
+    this->handle = dlopen(libPath.toUtf8().data(), RTLD_NOW | RTLD_LOCAL);
 
     if (!this->handle) {
         qWarning() << "Failed to load TideFormatter from" << libPath;

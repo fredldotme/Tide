@@ -76,26 +76,26 @@ void IosSystemGlue::setupStdIo()
 bool IosSystemGlue::runBuildCommands(const QStringList cmds, const QString pwd,
                                      const bool withPopen, const bool withWait)
 {
-    for (const auto& cmd : cmds) {
-        thread_stdin = m_spec.stdin;
-        thread_stdout = m_spec.stdout;
-        thread_stderr = m_spec.stderr;
+    const auto cmd = cmds.join(' ');
 
-        if (!pwd.isEmpty()) {
-            changeDir(pwd);
-        }
+    thread_stdin = m_spec.stdin;
+    thread_stdout = m_spec.stdout;
+    thread_stderr = m_spec.stderr;
 
-        joinMainThread = withWait;
+    if (!pwd.isEmpty()) {
+        changeDir(pwd);
+    }
 
-        const auto stdcmd = cmd.toStdString();
-        if (!withPopen) {
-            const int ret = ios_system(stdcmd.c_str());
-            if (ret != 0)
-                return false;
-        } else {
-            (void)ios_popen(stdcmd.c_str(), "r");
-            ios_waitpid(ios_currentPid());
-        }
+    joinMainThread = withWait;
+
+    const auto stdcmd = cmd.toStdString();
+    if (!withPopen) {
+        const int ret = ios_system(stdcmd.c_str());
+        if (ret != 0)
+            return false;
+    } else {
+        (void)ios_popen(stdcmd.c_str(), "r");
+        ios_waitpid(ios_currentPid());
     }
     return true;
 }

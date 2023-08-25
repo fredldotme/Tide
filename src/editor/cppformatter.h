@@ -11,7 +11,8 @@ public:
     enum FormattingStyle {
         LLVM = 0,
         Google,
-        Chromium
+        Chromium,
+        GNU
     };
     Q_ENUM(FormattingStyle);
 

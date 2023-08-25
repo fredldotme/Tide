@@ -4,30 +4,59 @@
 #include <QFile>
 #include <QStandardPaths>
 
+#include <cstring>
 #include <iostream>
 #include <fstream>
+#include <cstdlib>
 
 #include <unistd.h>
+#include <stdio.h>
 
-constexpr uint32_t stack_size = 1048576;
-constexpr uint32_t heap_size = 1048576;
+constexpr uint32_t stack_size = 16777216;
+constexpr uint32_t heap_size = 16777216;
+int debug_port = 1234;
 
-WasmRunner::WasmRunner(QObject *parent)
-    : QObject{parent}, m_running{false}
+void WasmRunner::init()
 {
-    wasm_runtime_init();
+    RuntimeInitArgs init_args;
+    memset(&init_args, 0, sizeof(RuntimeInitArgs));
+
+    qstrcpy(init_args.ip_addr, "127.0.0.1");
+    init_args.instance_port = debug_port;
+    init_args.mem_alloc_type = Alloc_With_Allocator;
+    init_args.mem_alloc_option.allocator.malloc_func = (void*)malloc;
+    init_args.mem_alloc_option.allocator.realloc_func = (void*)realloc;
+    init_args.mem_alloc_option.allocator.free_func = (void*)free;
+    init_args.max_thread_num = 64;
+
+    wasm_runtime_full_init(&init_args);
 }
 
-WasmRunner::~WasmRunner()
+void WasmRunner::deinit()
 {
     wasm_runtime_destroy();
 }
 
+#define SUPPORTS_DEBUGGING 0
+
+WasmRunner::WasmRunner(QObject *parent)
+    : QObject{parent}, m_running{false}
+{
+}
+
+WasmRunner::~WasmRunner()
+{
+}
 
 void WasmRunner::signalStart()
 {
     m_running = true;
     emit runningChanged();
+}
+
+void WasmRunner::signalDebugSession(const int port)
+{
+    emit debugSessionStarted(port);
 }
 
 void WasmRunner::signalEnd()
@@ -51,6 +80,7 @@ void* runInThread(void* userdata)
     uint32_t addr_pool_size = 1;
     const char *ns_lookup_pool[8] = { "*" };
     uint32_t ns_lookup_pool_size = 1;
+    std::vector<const char*> mappedDirs { "/" };
 
     WasmRunnerSharedData& shared = *static_cast<WasmRunnerSharedData*>(userdata);
 
@@ -85,7 +115,7 @@ void* runInThread(void* userdata)
     }
 
     wasm_runtime_set_wasi_args_ex(shared.module,
-                                  nullptr, 0,
+                                  mappedDirs.data(), mappedDirs.size(),
                                   nullptr, 0,
                                   env.data(), env.size(),
                                   (char**)cargs.data(), cargs.size(),
@@ -109,12 +139,21 @@ void* runInThread(void* userdata)
         goto fail;
     }
 
+#if SUPPORTS_DEBUGGING
+    if (shared.debug) {
+        shared.runner->signalDebugSession(debug_port);
+        debug_port = wasm_runtime_start_debug_instance(shared.exec_env);
+    }
+#endif
+
     shared.runner->signalStart();
 
-    if (!wasm_application_execute_main(shared.module_inst, 0, NULL)) {
-        const QString err = QStringLiteral("call wasm function main failed. error: %1\n").arg(wasm_runtime_get_exception(shared.module_inst));
-        emit shared.runner->errorOccured(err);
-        goto fail;
+    {
+        if (!wasm_application_execute_main(shared.module_inst, 0, NULL)) {
+            const QString err = QStringLiteral("call wasm function main failed. error: %1\n").arg(wasm_runtime_get_exception(shared.module_inst));
+            emit shared.runner->errorOccured(err);
+            goto fail;
+        }
     }
 
     shared.main_result = wasm_runtime_get_wasi_exit_code(shared.module_inst);
@@ -140,7 +179,27 @@ fail:
 
 void WasmRunner::run(const QString binary, const QStringList args)
 {
-    qDebug() << "Running" << binary << args;
+    start(binary, args, false);
+}
+
+void WasmRunner::debug(const QString binary, const QStringList args)
+{
+    start(binary, args, true);
+}
+
+void WasmRunner::waitForFinished()
+{
+    pthread_join(m_runThread, nullptr);
+}
+
+int WasmRunner::exitCode()
+{
+    return this->sharedData.main_result;
+}
+
+void WasmRunner::start(const QString binary, const QStringList args, const bool debug)
+{
+    qDebug() << "Running" << binary << args << debug;
 
     kill();
 
@@ -151,6 +210,7 @@ void WasmRunner::run(const QString binary, const QStringList args)
     sharedData.module = nullptr;
     sharedData.module_inst = nullptr;
     sharedData.stdio = m_spec;
+    sharedData.debug = debug;
     sharedData.runner = this;
 
     pthread_create(&m_runThread, nullptr, runInThread, &sharedData);

@@ -4,7 +4,7 @@ import QtQuick.Layouts
 
 Rectangle {
     id: itemRoot
-    color: root.palette.base
+    color: "transparent"
 
     property color textColor
     property alias text: labelControl.text
@@ -43,7 +43,7 @@ Rectangle {
     RowLayout {
         id: mainLayout
         spacing: root.paddingSmall
-        Button {
+        TideButton {
             id: iconControl
             flat: itemRoot.flat
             icon.color: itemRoot.textColor

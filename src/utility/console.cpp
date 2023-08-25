@@ -45,8 +45,9 @@ void Console::write(const QString str)
 
 void Console::read(FILE* io)
 {
-    char buffer[4096];
     qDebug() << Q_FUNC_INFO << io;
+    char buffer[4096];
+    memset(buffer, 0, 4096);
     while (::read(fileno(io), buffer, 1024))
     {
         const auto wholeOutput = QString::fromUtf8(buffer);
@@ -54,6 +55,7 @@ void Console::read(FILE* io)
         for (const auto& output : splitOutput) {
             emit contentRead(output, (this->m_spec.stdout == io));
         }
+        memset(buffer, 0, 4096);
         if (m_quitting)
             return;
     }

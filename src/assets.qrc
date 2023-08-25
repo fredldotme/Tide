@@ -45,5 +45,10 @@
         <file>assets/chevron.compact.up@2x.png</file>
         <file>assets/ellipsis.circle@2x.png</file>
         <file>assets/keyboard.badge.eye@2x.png</file>
+        <file>assets/ladybug.fill@2x.png</file>
+        <file>assets/trash.circle.fill@2x.png</file>
+        <file>assets/trash.square.fill@2x.png</file>
+        <file>assets/trash.fill@2x.png</file>
+        <file>assets/questionmark.circle.fill@2x.png</file>
     </qresource>
 </RCC>

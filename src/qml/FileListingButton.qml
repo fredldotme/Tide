@@ -2,9 +2,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Rectangle {
+Item {
     id: itemRoot
-    color: root.palette.base
 
     property alias textColor: labelControl.color
     property alias text: labelControl.text

@@ -131,6 +131,9 @@ Pane {
                             ListElement {
                                 text: "Chromium"
                             }
+                            ListElement {
+                                text: "GNU"
+                            }
                         }
                         currentIndex: settings.formatStyle
                         onCurrentIndexChanged: {

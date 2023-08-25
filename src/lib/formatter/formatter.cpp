@@ -13,7 +13,8 @@ public:
     enum FormattingStyle {
         LLVM = 0,
         Google,
-        Chromium
+        Chromium,
+        GNU
     };
 
     explicit Formatter();
@@ -48,6 +49,9 @@ std::string Formatter::format(std::string buffer, int formatStyle)
         break;
     case Chromium:
         style = format::getChromiumStyle(clang::format::FormatStyle::LK_Cpp);
+        break;
+    case GNU:
+        style = format::getGNUStyle();
         break;
     default:
         std::cerr << "No known format style? Defaulting to LLVM" << std::endl;

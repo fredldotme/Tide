@@ -8,10 +8,11 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(PROJECT_NAME tide-Formatter)
 endif()
 
-project(${PROJECT_NAME} VERSION 0.6 LANGUAGES CXX)
-project(${PROJECT_NAME} VERSION 0.6 LANGUAGES C)
+project(${PROJECT_NAME} VERSION 0.7 LANGUAGES CXX)
+project(${PROJECT_NAME} VERSION 0.7 LANGUAGES C)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fuse-cxa-atexit")
 
 include_directories(${PROJECT_NAME}
     # libclang
