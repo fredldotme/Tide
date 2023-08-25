@@ -6,11 +6,13 @@
 
 ClangWrapper::ClangWrapper()
 {
-    const auto libPath = qApp->applicationDirPath() + "/Frameworks/libclang.framework/libclang";
-    this->handle = dlopen(libPath.toUtf8().data(), RTLD_NOW | RTLD_LOCAL);
+    // We link against libclang directly now
+    //const auto libPath = qApp->applicationDirPath() + "/Frameworks/libclang.framework/libclang";
+
+    this->handle = dlopen(nullptr, RTLD_NOW);
 
     if (!this->handle) {
-        qWarning() << "Failed to load libclang from" << libPath;
+        qWarning() << "Failed to load libclang functions";
         return;
     }
 

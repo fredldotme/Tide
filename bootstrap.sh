@@ -79,6 +79,7 @@ cd $LIBNAME.framework
 cp -a $OLD_PWD/aux/libclang/Info.plist ./
 cp -a $OLD_PWD/3rdparty/llvm/build-iphoneos/lib/libclang.dylib ./$LIBNAME
 install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/libLLVM.framework/libLLVM" ./$LIBNAME
+install_name_tool -id "@rpath/libclang.framework/libclang" ./$LIBNAME
 plutil -convert binary1 Info.plist
 cd $OLD_PWD
 

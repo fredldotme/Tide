@@ -128,6 +128,25 @@ void QMakeBuilder::build()
 
     QStringList objectsToLink;
     QStringList buildCommands;
+    QString cFlags;
+    QString cxxFlags;
+
+    if (variables.find("QMAKE_CFLAGS") != variables.end()) {
+        const auto flags = variables.at("QMAKE_CFLAGS");
+        for (const auto& flag : flags.values) {
+            qDebug() << "Adding flag:" << flag;
+            QString resolvedFlag = resolveDefaultVariables(flag, sourceDirPath, buildDirPath);
+            cFlags += QStringLiteral(" %1 ").arg(resolvedFlag);
+        }
+    }
+    if (variables.find("QMAKE_CXXFLAGS") != variables.end()) {
+        const auto flags = variables.at("QMAKE_CXXFLAGS");
+        for (const auto& flag : flags.values) {
+            qDebug() << "Adding flag:" << flag;
+            QString resolvedFlag = resolveDefaultVariables(flag, sourceDirPath, buildDirPath);
+            cxxFlags += QStringLiteral(" %1 ").arg(resolvedFlag);
+        }
+    }
 
     const auto sources = variables.at("SOURCES");
     for (const auto& source : sources.values) {
@@ -150,7 +169,8 @@ void QMakeBuilder::build()
                                 defineFlags +
                                 libraryFlags +
                                 QStringLiteral(" -o %1 ").arg(buildObject) +
-                                QStringLiteral(" \"%1\"").arg(sourceFile);
+                                QStringLiteral(" \"%1\"").arg(sourceFile) +
+                                (source.endsWith(".c") ? cFlags : cxxFlags);
         qDebug() << "Compile command:" << command;
         buildCommands << command;
     }
@@ -160,11 +180,21 @@ void QMakeBuilder::build()
         objectFlags += QStringLiteral(" \"%1\" ").arg(object);
     }
 
+    QString linkFlags;
+    if (variables.find("QMAKE_LDFLAGS") != variables.end()) {
+        const auto flags = variables.at("QMAKE_LDFLAGS");
+        for (const auto& flag : flags.values) {
+            qDebug() << "Adding flag:" << flag;
+            QString resolvedFlag = resolveDefaultVariables(flag, sourceDirPath, buildDirPath);
+            linkFlags += QStringLiteral(" %1 ").arg(resolvedFlag);
+        }
+    }
     const QString linkCommand = QStringLiteral("clang++") +
                                 QStringLiteral(" --sysroot=") + m_sysroot +
                                 defaultLinkFlags +
                                 objectFlags +
                                 libraryFlags +
+                                linkFlags +
                                 QStringLiteral(" -o %1").arg(runnableFile());
 
     qDebug() << "Link command:" << linkCommand;
