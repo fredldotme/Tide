@@ -43,6 +43,7 @@ int main(int argc, char *argv[])
 
     //qputenv("LIBCLANG_DISABLE_CRASH_RECOVERY", "1");
     //qputenv("LLVM_DISABLE_CRASH_REPORT", "1");
+    qputenv("NOSYSTEM_DEBUG", "1");
 
     QGuiApplication app(argc, argv);
     app.setOrganizationDomain("fredl.me");

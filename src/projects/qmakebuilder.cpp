@@ -82,14 +82,22 @@ void QMakeBuilder::build()
         buildDir.mkpath(buildDirPath);
     }
 
-    const auto defaultFlags = QStringLiteral(" -pthread -msimd128 -ftls-model=local-exec ");
-    const auto defaultLinkFlags = QStringLiteral(" -Wl,--shared-memory -pthread -msimd128 ");
-
     QMakeParser projectParser;
     projectParser.setProjectFile(m_projectFile);
 
     const auto sourceDirPath = QFileInfo(m_projectFile).absolutePath();
     const auto variables = projectParser.getVariables();
+
+    static const auto typeApp = QStringLiteral("app");
+    auto projectTemplate = typeApp;
+    if (variables.find("TEMPLATE") != variables.end()) {
+        if (variables.at("TEMPLATE").values.size() == 1)
+            projectTemplate = variables.at("TEMPLATE").values.front();
+    }
+
+    const auto defaultFlags = QStringLiteral(" -pthread -msimd128 -ftls-model=local-exec ");
+    const auto defaultLinkFlags = defaultFlags + ((projectTemplate == typeApp) ? QStringLiteral(" -Wl,--export-all ") : QStringLiteral(" -Wl,--no-entry -Wl,--export-all "));
+
     if (variables.find("SOURCES") == variables.end()) {
         const auto err = "No SOURCES found in project file.";
         qWarning() << err;
@@ -168,7 +176,7 @@ void QMakeBuilder::build()
                                 includeFlags +
                                 defineFlags +
                                 libraryFlags +
-                                QStringLiteral(" -o %1 ").arg(buildObject) +
+                                QStringLiteral(" -o \"%1\" ").arg(buildObject) +
                                 QStringLiteral(" \"%1\"").arg(sourceFile) +
                                 (source.endsWith(".c") ? cFlags : cxxFlags);
         qDebug() << "Compile command:" << command;
@@ -190,12 +198,11 @@ void QMakeBuilder::build()
         }
     }
     const QString linkCommand = QStringLiteral("clang++") +
-                                QStringLiteral(" --sysroot=") + m_sysroot +
                                 defaultLinkFlags +
                                 objectFlags +
                                 libraryFlags +
                                 linkFlags +
-                                QStringLiteral(" -o %1").arg(runnableFile());
+                                QStringLiteral(" -o \"%1\"").arg(runnableFile());
 
     qDebug() << "Link command:" << linkCommand;
     buildCommands << linkCommand;

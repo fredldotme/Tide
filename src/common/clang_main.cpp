@@ -330,7 +330,7 @@ static int ExecuteCC1Tool(SmallVectorImpl<const char *> &ArgV) {
     return 1;
 }
 
-int clang_main(int Argc, char **Argv) {
+int clang_main(int Argc, char const **Argv) {
     noteBottomOfStack();
     llvm::InitLLVM X(Argc, Argv);
     llvm::setBugReportMsg("PLEASE submit a bug report to " BUG_REPORT_URL
