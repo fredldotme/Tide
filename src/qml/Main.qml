@@ -26,16 +26,19 @@ ApplicationWindow {
     readonly property int sideBarWidth: width > height ? Math.min(sideBarExpandedDefault, width) : width
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
                                                 openFiles.files.length > 0)
+    readonly property bool shouldAllowDebugArea: dbugger.runner && wasmRunner.running
     readonly property bool padStatusBar : true
     readonly property int headerItemHeight : 48
     readonly property int topBarHeight : 72
 
     property font fixedFont: standardFixedFont
     property bool showLeftSideBar: true
+    property bool showDebugArea: false
     property bool compiling: false
 
     property bool releaseRequested : false
     property bool runRequested : false
+    property bool debugRequested : false
 
     signal fileSaved()
 
@@ -66,7 +69,7 @@ ApplicationWindow {
         saveCurrentFile()
         root.compiling = true
         projectBuilder.clean()
-        projectBuilder.build()
+        projectBuilder.build(debugRequested)
     }
 
     function attemptRun() {
@@ -94,6 +97,7 @@ ApplicationWindow {
             return;
 
         consoleView.show()
+        showDebugArea = true
         dbugger.debug(projectBuilder.runnableFile(), [])
     }
 
@@ -110,10 +114,18 @@ ApplicationWindow {
         editor.refreshLineNumbers()
 
         // Hide the sidebar
-        if (width < height && shouldAllowSidebar)
+        if (width < height && shouldAllowSidebar) {
             showLeftSideBar = false
-        else
+        } else {
             showLeftSideBar = true
+        }
+
+        // Hide the debug area on small screens
+        if (width < height && shouldAllowDebugArea) {
+            showDebugArea = false;
+        } else {
+            showDebugArea = shouldAllowDebugArea;
+        }
     }
 
     header: Pane {
@@ -234,7 +246,7 @@ ApplicationWindow {
                             onClicked: {
                                 releaseRequested = true
                                 projectBuilder.clean()
-                                projectBuilder.build()
+                                projectBuilder.build(false)
                             }
                         }
 
@@ -345,6 +357,50 @@ ApplicationWindow {
 
                 TideToolButton {
                     rightPadding: paddingMedium
+                    icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
+                    icon.color: root.palette.button
+                    visible: true
+
+                    onClicked: showDebugArea = !showDebugArea
+                    onPressAndHold: debugContextMenu.open()
+
+                    TideMenu {
+                        id: debugContextMenu
+                        MenuItem {
+                            text: qsTr("Interrupt")
+                            onTriggered: {
+                                dbugger.pause()
+                            }
+                        }
+                        MenuItem {
+                            text: qsTr("Continue")
+                            onTriggered: {
+                                dbugger.cont()
+                            }
+                        }
+                        MenuItem {
+                            text: qsTr("Step into")
+                            onTriggered: {
+                                dbugger.stepInto()
+                            }
+                        }
+                        MenuItem {
+                            text: qsTr("Step out")
+                            onTriggered: {
+                                dbugger.stepOut()
+                            }
+                        }
+                        MenuItem {
+                            text: qsTr("Step over")
+                            onTriggered: {
+                                dbugger.stepOver()
+                            }
+                        }
+                    }
+                }
+
+                TideToolButton {
+                    rightPadding: paddingMedium
                     icon.source: !wasmRunner.running && !projectBuilder.building ?
                                      Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
                                      Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
@@ -364,6 +420,8 @@ ApplicationWindow {
                         } else if (wasmRunner.running || projectBuilder.building) {
                             runRequested = false
                             releaseRequested = false
+                            if (dbugger.running)
+                                dbugger.quitDebugger()
                             if (wasmRunner.running)
                                 wasmRunner.kill()
                             if (projectBuilder.building)
@@ -389,6 +447,7 @@ ApplicationWindow {
                             icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
                             enabled: !projectBuilder.building && !wasmRunner.running && projectBuilder.projectFile !== ""
                             onTriggered: {
+                                root.debugRequested = false
                                 root.runRequested = false
                                 root.attemptBuild()
                             }
@@ -404,7 +463,6 @@ ApplicationWindow {
                                 root.attemptRun()
                             }
                         }
-                        /*
                         MenuItem {
                             property bool visibility: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
                             enabled: !projectBuilder.building && visibility
@@ -418,20 +476,11 @@ ApplicationWindow {
                             }
 
                             onClicked: {
-                                root.attemptDebug()
+                                root.debugRequested = true
+                                root.runRequested = true
+                                root.attemptBuild()
                             }
                         }
-                        */
-                        /*MenuItem {
-                            text: !consoleView.visibility ? qsTr("Show Console") : qsTr("Hide Console")
-                            icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
-                            onTriggered: {
-                                if (consoleView.visibility)
-                                    consoleView.hide()
-                                else
-                                    consoleView.show()
-                            }
-                        }*/
                     }
                 }
 
@@ -534,7 +583,13 @@ ApplicationWindow {
 
             if (runRequested) {
                 runRequested = false
-                root.attemptRun()
+
+                if (debugRequested) {
+                    debugRequested = false
+                    root.attemptDebug()
+                } else {
+                    root.attemptRun()
+                }
             }
 
             if (releaseRequested) {
@@ -558,6 +613,11 @@ ApplicationWindow {
         id: dbugger
         runner: wasmRunner
         system: iosSystem
+        onRunningChanged: {
+            if (!running) {
+                showDebugArea = false;
+            }
+        }
     }
 
     Component.onCompleted: {
@@ -613,6 +673,7 @@ ApplicationWindow {
         id: mainContainer
         anchors.fill: parent
         anchors.bottomMargin: oskReactor.oskVisible ? oskReactor.oskHeight : 0;
+        anchors.rightMargin: debuggerArea.width
 
         Component.onCompleted: {
             oskReactor.item = mainContainer
@@ -1319,11 +1380,12 @@ ApplicationWindow {
                     projectPicker: projectPicker
                     projectBuilder: projectBuilder
                     openFiles: openFiles
+                    dbugger: dbugger
                     onSaveRequested: saveCurrentFile()
                     onFindRequested: contextDialog.show(editor.file.path)
                     onBuildRequested: {
                         projectBuilder.clean()
-                        projectBuilder.build()
+                        projectBuilder.build(false)
                     }
                     onRunRequested: {
                         wasmRunner.run()
@@ -1630,6 +1692,114 @@ ApplicationWindow {
                     horizontalAlignment: Text.AlignHCenter
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     text: ""
+                }
+            }
+        }
+    }
+
+    Rectangle {
+        id: debuggerArea
+        width: showDebugArea ? sideBarExpandedDefault : 0
+        anchors.topMargin: paddingMedium
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.right: parent.right
+        anchors.rightMargin: paddingSmall
+        anchors.leftMargin: paddingSmall
+        anchors.bottomMargin: paddingMedium + paddingSmall
+        visible: width > 0
+        radius: roundedCornersRadiusMedium
+        color: root.palette.base
+
+        Behavior on width {
+            NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+        }
+
+        Item {
+            id: debuggerAreaToolbar
+            width: projectNavigationStack.width
+            height: root.headerItemHeight
+
+            RowLayout {
+                anchors.fill: parent
+                spacing: paddingSmall * 2
+                ToolButton {
+                    Layout.alignment: Qt.AlignLeft
+                    Layout.leftMargin: paddingMedium
+                    icon.source: "" // Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
+                    icon.width: 24
+                    icon.height: 24
+                    text: qsTr("Step in")
+                    font.pixelSize: 16
+                    onClicked: dbugger.stepIn()
+                }
+                ToolButton {
+                    Layout.alignment: Qt.AlignRight
+                    Layout.rightMargin: paddingMedium
+                    icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
+                    icon.width: 24
+                    icon.height: 24
+                    text: qsTr("Step out")
+                    font.pixelSize: 16
+                    onClicked: dbugger.stepOut()
+                }
+                ToolButton {
+                    Layout.alignment: Qt.AlignRight
+                    Layout.rightMargin: paddingMedium
+                    icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
+                    icon.width: 24
+                    icon.height: 24
+                    text: qsTr("Step over")
+                    font.pixelSize: 16
+                    onClicked: dbugger.stepOver()
+                }
+            }
+        }
+
+        Column {
+            anchors.top: debuggerAreaToolbar.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            clip: true
+            spacing: paddingSmall * 2
+
+            ListView {
+                anchors.left: parent.left
+                anchors.leftMargin: paddingMedium
+                anchors.right: parent.right
+                height: (debuggerArea.height / 2) - paddingSmall
+                model: dbugger.breakpoints
+                header: Label {
+                    font.pixelSize: 20
+                    text: qsTr("Breakpoints")
+                }
+                delegate: TideButton {
+                    icon.source: Qt.resolvedUrl("qrc:/assets/circle.fill@2x.png")
+                    icon.color: "red"
+                    text: modelData
+                    font.pixelSize: 24
+                    color: root.palette.button
+                    onClicked: {
+                        consoleView.hide()
+                    }
+                }
+            }
+
+            ListView {
+                anchors.left: parent.left
+                anchors.leftMargin: paddingMedium
+                anchors.right: parent.right
+                height: (debuggerArea.height / 2) - paddingSmall
+                model: dbugger.values
+                header: Label {
+                    font.pixelSize: 20
+                    text: qsTr("Values:")
+                }
+                delegate: Label {
+                    text: modelData.name
+                    font.pixelSize: 24
+                    color: root.palette.button
                 }
             }
         }

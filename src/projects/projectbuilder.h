@@ -27,7 +27,7 @@ public slots:
     void unloadProject();
 
     void clean();
-    void build();
+    void build(const bool debug);
     void cancel();
 
     QString runnableFile();

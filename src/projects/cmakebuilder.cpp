@@ -54,7 +54,7 @@ void CMakeBuilder::clean()
     }
 }
 
-void CMakeBuilder::build()
+void CMakeBuilder::build(const bool debug)
 {
     const auto sourcePath = sourceRoot() + "/CMakeTest";
     const auto buildPath = sourcePath + "/build";

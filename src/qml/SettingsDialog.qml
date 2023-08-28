@@ -15,12 +15,10 @@ Pane {
     property bool visibility : false
 
     function show() {
-        dialogShadow.opacity = 0.3
         visibility = true
     }
 
     function hide() {
-        dialogShadow.opacity = 0.0
         visibility = false
     }
 

@@ -14,6 +14,7 @@ Rectangle {
     property DirectoryListing file : null
     property ProjectBuilder projectBuilder : null
     property OpenFilesManager openFiles : null
+    property Debugger dbugger : null
 
     property alias codeField: codeField
 
@@ -33,6 +34,10 @@ Rectangle {
                 invalidate()
             }
         }
+    }
+
+    onWidthChanged: {
+        lineNumbersHelper.refresh()
     }
 
     signal saveRequested()
@@ -320,14 +325,43 @@ Rectangle {
                         id: lineNumberRepeater
                         model: lineNumbersHelper.lineCount
                         delegate: Label {
+                            id: lineLabel
+
                             readonly property bool isCurrentLine :
                                 lineNumbersHelper.isCurrentBlock(index, codeField.cursorPosition)
-                            height: modelData.height
+                            readonly property bool isBreakpoint :
+                                dbugger.hasBreakpoint(file.name + ":" + (index + 1))
+
                             color: isCurrentLine ? root.palette.button :
                                                    root.palette.text
+
+                            background: Rectangle {
+                                radius: height / 2
+                                color: isBreakpoint ? "red" : "transparent"
+                            }
+
+                            height: modelData.height
                             font: fixedFont
                             text: (index + 1)
                             anchors.right: parent.right
+
+                            MouseArea {
+                                acceptedButtons: Qt.AllButtons
+                                anchors.fill: parent
+                                onClicked: {
+                                    const breakpoint = file.name + ":" + (index + 1);
+                                    console.log("Setting breakpoint at " + breakpoint);
+
+                                    if (dbugger.hasBreakpoint(breakpoint)) {
+                                        dbugger.removeBreakpoint(breakpoint)
+                                    } else {
+                                        dbugger.addBreakpoint(breakpoint)
+                                    }
+
+                                    lineLabel.background.color = dbugger.hasBreakpoint(breakpoint) ?
+                                                "red" : "transparent"
+                                }
+                            }
                         }
                     }
                 }

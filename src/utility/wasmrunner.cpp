@@ -14,19 +14,15 @@
 
 constexpr uint32_t stack_size = 16777216;
 constexpr uint32_t heap_size = 16777216;
-int debug_port = 1234;
 
 void WasmRunner::init()
 {
     RuntimeInitArgs init_args;
     memset(&init_args, 0, sizeof(RuntimeInitArgs));
 
-    qstrcpy(init_args.ip_addr, "127.0.0.1");
-    init_args.instance_port = debug_port;
-    init_args.mem_alloc_type = Alloc_With_Allocator;
-    init_args.mem_alloc_option.allocator.malloc_func = (void*)malloc;
-    init_args.mem_alloc_option.allocator.realloc_func = (void*)realloc;
-    init_args.mem_alloc_option.allocator.free_func = (void*)free;
+    strcpy(init_args.ip_addr, "127.0.0.1");
+    init_args.instance_port = 0;
+    init_args.mem_alloc_type = Alloc_With_System_Allocator;
     init_args.max_thread_num = 64;
 
     wasm_runtime_full_init(&init_args);
@@ -36,8 +32,6 @@ void WasmRunner::deinit()
 {
     wasm_runtime_destroy();
 }
-
-#define SUPPORTS_DEBUGGING 0
 
 WasmRunner::WasmRunner(QObject *parent)
     : QObject{parent}, m_running{false}
@@ -139,21 +133,22 @@ void* runInThread(void* userdata)
         goto fail;
     }
 
-#if SUPPORTS_DEBUGGING
     if (shared.debug) {
+        const auto debug_port = wasm_runtime_start_debug_instance(shared.exec_env);
         shared.runner->signalDebugSession(debug_port);
-        debug_port = wasm_runtime_start_debug_instance(shared.exec_env);
     }
-#endif
 
     shared.runner->signalStart();
 
-    {
-        if (!wasm_application_execute_main(shared.module_inst, 0, NULL)) {
-            const QString err = QStringLiteral("call wasm function main failed. error: %1\n").arg(wasm_runtime_get_exception(shared.module_inst));
-            emit shared.runner->errorOccured(err);
-            goto fail;
-        }
+    if (shared.debug) {
+        // TODO: wasm_runtime_wait_for_remote_start(shared.exec_env);
+        usleep(1000 * 1000);
+    }
+
+    if (!wasm_application_execute_main(shared.module_inst, 0, NULL)) {
+        const QString err = QStringLiteral("call wasm function main failed. error: %1\n").arg(wasm_runtime_get_exception(shared.module_inst));
+        emit shared.runner->errorOccured(err);
+        goto fail;
     }
 
     shared.main_result = wasm_runtime_get_wasi_exit_code(shared.module_inst);
@@ -241,4 +236,9 @@ void WasmRunner::prepareStdio(StdioSpec spec)
 {
     m_spec = spec;
     qDebug() << "stdio prepared";
+}
+
+bool WasmRunner::running()
+{
+    return m_running;
 }

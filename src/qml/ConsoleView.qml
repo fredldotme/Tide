@@ -21,13 +21,11 @@ Rectangle {
     property bool visibility : false
 
     function show() {
-        dialogShadow.opacity = 0.3
         visibility = true;
         hideStdOut = false
     }
 
     function hide() {
-        dialogShadow.opacity = 0.0
         visibility = false
     }
 

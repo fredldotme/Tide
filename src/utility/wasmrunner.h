@@ -40,6 +40,8 @@ public:
     void signalDebugSession(const int port);
     void signalEnd();
 
+    bool running();
+
 public slots:
     void run(const QString binary, const QStringList args);
     void debug(const QString binary, const QStringList args);

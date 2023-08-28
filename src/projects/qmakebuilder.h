@@ -26,7 +26,7 @@ public slots:
     bool loadProject(const QString path) override;
     void unloadProject() override;
     void clean() override;
-    void build() override;
+    void build(const bool debug) override;
     void cancel() override;
     QString runnableFile() override;
     QStringList includePaths() override;

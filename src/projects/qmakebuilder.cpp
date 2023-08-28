@@ -67,7 +67,7 @@ void QMakeBuilder::clean()
     }
 }
 
-void QMakeBuilder::build()
+void QMakeBuilder::build(const bool debug)
 {
     const auto buildDirPath = projectBuildRoot();
     if (buildDirPath.isEmpty()) {
@@ -136,9 +136,8 @@ void QMakeBuilder::build()
 
     QStringList objectsToLink;
     QStringList buildCommands;
-    QString cFlags;
-    QString cxxFlags;
 
+    QString cFlags;
     if (variables.find("QMAKE_CFLAGS") != variables.end()) {
         const auto flags = variables.at("QMAKE_CFLAGS");
         for (const auto& flag : flags.values) {
@@ -147,6 +146,8 @@ void QMakeBuilder::build()
             cFlags += QStringLiteral(" %1 ").arg(resolvedFlag);
         }
     }
+
+    QString cxxFlags;
     if (variables.find("QMAKE_CXXFLAGS") != variables.end()) {
         const auto flags = variables.at("QMAKE_CXXFLAGS");
         for (const auto& flag : flags.values) {
@@ -171,7 +172,8 @@ void QMakeBuilder::build()
         const auto compiler = source.endsWith(".c") ? QStringLiteral("clang") : QStringLiteral("clang++");
         const QString command = compiler +
                                 QStringLiteral(" --sysroot=") + m_sysroot +
-                                QStringLiteral(" -c") +
+                                QStringLiteral(" -c ") +
+                                (debug ? QStringLiteral(" -g ") : QString()) +
                                 defaultFlags +
                                 includeFlags +
                                 defineFlags +
@@ -198,6 +200,7 @@ void QMakeBuilder::build()
         }
     }
     const QString linkCommand = QStringLiteral("clang++") +
+                                (debug ? QStringLiteral(" -g ") : QString()) +
                                 defaultLinkFlags +
                                 objectFlags +
                                 libraryFlags +
@@ -211,7 +214,7 @@ void QMakeBuilder::build()
         m_building = true;
         emit buildingChanged();
 
-        const bool success = iosSystem->runBuildCommands(buildCommands, "", false, true);
+        const bool success = iosSystem->runBuildCommands(buildCommands);
         if (success) {
             emit buildSuccess();
         } else {

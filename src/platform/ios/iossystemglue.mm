@@ -31,8 +31,10 @@ StdioSpec IosSystemGlue::consumerSpec()
     return m_consumerSpec;
 }
 
-void IosSystemGlue::setupStdIo()
+std::pair<StdioSpec, StdioSpec> IosSystemGlue::setupPipes()
 {
+    StdioSpec spec, consumerSpec;
+
     FILE* inWriteEnd = nullptr;
     FILE* outWriteEnd = nullptr;
     FILE* errWriteEnd = nullptr;
@@ -61,44 +63,57 @@ void IosSystemGlue::setupStdIo()
     setvbuf(outWriteEnd , nullptr , _IOLBF , 1024);
     setvbuf(errWriteEnd , nullptr , _IOLBF , 1024);
 
-    m_spec.stdin = inReadEnd;
-    m_spec.stdout = outWriteEnd;
-    m_spec.stderr = errWriteEnd;
+    spec.stdin = inReadEnd;
+    spec.stdout = outWriteEnd;
+    spec.stderr = errWriteEnd;
 
-    m_consumerSpec.stdin = inWriteEnd;
-    m_consumerSpec.stdout = outReadEnd;
-    m_consumerSpec.stderr = errReadEnd;
+    consumerSpec.stdin = inWriteEnd;
+    consumerSpec.stdout = outReadEnd;
+    consumerSpec.stderr = errReadEnd;
+
+    return std::make_pair(spec, consumerSpec);
+}
+
+void IosSystemGlue::setupStdIo()
+{
+    auto pair = setupPipes();
+    m_spec = pair.first;
+    m_consumerSpec = pair.second;
 
     emit stdioWritersPrepared(m_spec);
     emit stdioCreated(m_consumerSpec);
 }
 
 // Blocking and hence shouldn't be called from the main or GUI threads
-bool IosSystemGlue::runBuildCommands(const QStringList cmds, const QString pwd,
-                                     const bool withPopen, const bool withWait)
+bool IosSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spec)
 {
-    nosystem_stdin = m_spec.stdin;
-    nosystem_stdout = m_spec.stdout;
-    nosystem_stderr = m_spec.stderr;
-
-    if (!pwd.isEmpty()) {
-        changeDir(pwd);
+    if (spec.stdin || spec.stdout || spec.stderr) {
+        nosystem_stdin = spec.stdin;
+        nosystem_stdout = spec.stdout;
+        nosystem_stderr = spec.stderr;
+    } else {
+        nosystem_stdin = m_spec.stdin;
+        nosystem_stdout = m_spec.stdout;
+        nosystem_stderr = m_spec.stderr;
     }
 
-    if (!withPopen) {
-        for (const auto& command : cmds) {
-            const auto stdcmd = command.toStdString();
-            const int ret = nosystem_system(stdcmd.c_str());
-            if (ret != 0)
-                return false;
-        }
+    for (const auto& command : cmds) {
+        const auto stdcmd = command.toStdString();
+        const int ret = nosystem_system(stdcmd.c_str());
+        if (ret != 0)
+            return false;
     }
     return true;
 }
 
 void IosSystemGlue::killBuildCommands()
 {
-    //nosystem_kill();
+}
+
+void IosSystemGlue::writeToStdIn(const QByteArray data)
+{
+    fwrite(data.constData(), sizeof(const char*), data.length(), m_consumerSpec.stdin);
+    fflush(m_consumerSpec.stdin);
 }
 
 void IosSystemGlue::copyToClipboard(const QString text)
