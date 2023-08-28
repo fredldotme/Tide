@@ -144,10 +144,6 @@ void Debugger::runDebugSession()
         debugCommand += QStringLiteral("b %1\n").arg(breakpoint);
     }
 
-    debugCommand +=
-        QStringLiteral("process continue\n") +
-        QStringLiteral("frame variable\n");
-
     tmpFile.write(debugCommand.toUtf8());
     tmpFile.close();
 
