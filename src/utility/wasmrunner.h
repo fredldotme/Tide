@@ -8,8 +8,11 @@
 #include <wasm_export.h>
 
 #include "stdiospec.h"
+#include "platform/systemglue.h"
 
 class WasmRunner;
+
+#define USE_EMBEDDED_WAMR 1
 
 struct WasmRunnerSharedData {
     QString binary;
@@ -17,10 +20,13 @@ struct WasmRunnerSharedData {
     int main_result;
     StdioSpec stdio;
     bool debug;
+#if USE_EMBEDDED_WAMR
     wasm_module_t module = nullptr;
     wasm_module_inst_t module_inst = nullptr;
     wasm_exec_env_t exec_env = nullptr;
+#endif
     WasmRunner* runner = nullptr;
+    SystemGlue* system = nullptr;
 };
 
 class WasmRunner : public QObject
@@ -28,10 +34,13 @@ class WasmRunner : public QObject
     Q_OBJECT
 
     Q_PROPERTY(bool running MEMBER m_running NOTIFY runningChanged CONSTANT)
+    Q_PROPERTY(SystemGlue* system MEMBER m_system NOTIFY systemChanged)
 
 public:
+#if USE_EMBEDDED_WAMR
     static void init();
     static void deinit();
+#endif
 
     explicit WasmRunner(QObject *parent = nullptr);
     ~WasmRunner();
@@ -55,8 +64,8 @@ private:
 
     StdioSpec m_spec;
     WasmRunnerSharedData sharedData;
-
     pthread_t m_runThread;
+    SystemGlue* m_system;
     bool m_running;
 
 signals:
@@ -65,6 +74,7 @@ signals:
     void runningChanged();
     void runEnded(int exitCode);
     void debugSessionStarted(int port);
+    void systemChanged();
 };
 
 #endif // WASMRUNNER_H

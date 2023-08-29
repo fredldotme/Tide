@@ -608,6 +608,7 @@ ApplicationWindow {
 
     WasmRunner {
         id: wasmRunner
+        system: iosSystem
         onErrorOccured:
             (str) => {
                 consoleView.consoleOutput.append({"content": str, "stdout": false})

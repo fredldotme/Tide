@@ -105,6 +105,24 @@ bool IosSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spe
     return true;
 }
 
+// Blocking and hence shouldn't be called from the main or GUI threads
+int IosSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
+{
+    if (spec.stdin || spec.stdout || spec.stderr) {
+        nosystem_stdin = spec.stdin;
+        nosystem_stdout = spec.stdout;
+        nosystem_stderr = spec.stderr;
+    } else {
+        nosystem_stdin = m_spec.stdin;
+        nosystem_stdout = m_spec.stdout;
+        nosystem_stderr = m_spec.stderr;
+    }
+
+    const auto stdcmd = cmd.toStdString();
+    const int ret = nosystem_system(stdcmd.c_str());
+    return ret;
+}
+
 void IosSystemGlue::killBuildCommands()
 {
 }

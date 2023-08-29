@@ -18,6 +18,7 @@ public:
 
     std::pair<StdioSpec, StdioSpec> setupPipes();
 
+    Q_INVOKABLE int runCommand(const QString cmd, const StdioSpec spec = StdioSpec());
     Q_INVOKABLE bool runBuildCommands(const QStringList cmds, const StdioSpec spec = StdioSpec());
     Q_INVOKABLE void killBuildCommands();
     Q_INVOKABLE void writeToStdIn(const QByteArray data);

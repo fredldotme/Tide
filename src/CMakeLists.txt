@@ -115,6 +115,9 @@ qt_add_executable(${PROJECT_NAME}
     ${QMAKEPARSER_DIR}/lib/src/qmakeparser.cpp
     ${QMAKEPARSER_DIR}/lib/src/qmakereader.cpp
 
+    # IWASM
+    ${WAMR_DIR}/product-mini/platforms/darwin/main.c
+
     # Enable once WAMR issues are sorted out
     #${WAMR_DIR}/wamr-compiler/main.c
 
@@ -184,7 +187,7 @@ if(IOS)
     set (WAMR_BUILD_MINI_LOADER 0)
     set (WAMR_BUILD_DEBUG_INTERP 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
-    add_definitions(-DWASM_UINT32_IS_ATOMIC)
+    add_definitions(-DWASM_UINT32_IS_ATOMIC -DIWASM_AS_LIBRARY)
 
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
@@ -200,8 +203,8 @@ if(IOS)
 
     include_directories(${PROJECT_NAME}
         # WAMR AOT compiler
-        #${WAMR_DIR}/core/shared/utils/uncommon
-        #${WAMR_DIR}/core/shared/platform/darwin
+        ${WAMR_DIR}/core/shared/utils/uncommon
+        ${WAMR_DIR}/core/shared/platform/darwin
 
         # system() replacement through no_system
         ${NOSYSTEM}
@@ -638,9 +641,9 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
 endif()
 
 # WAMR + AOT
-#include(${WAMR_DIR}/core/shared/utils/shared_utils.cmake)
-#include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
-#include(${WAMR_DIR}/core/shared/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
+include(${WAMR_DIR}/core/shared/utils/shared_utils.cmake)
+include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
+include(${WAMR_DIR}/core/shared/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
 #include(${WAMR_DIR}/core/iwasm/aot/iwasm_aot.cmake)
 #include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
 include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)

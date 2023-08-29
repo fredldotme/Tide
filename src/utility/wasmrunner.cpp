@@ -14,7 +14,9 @@
 
 constexpr uint32_t stack_size = 16777216;
 constexpr uint32_t heap_size = 16777216;
+constexpr uint32_t max_threads = 64;
 
+#if USE_EMBEDDED_WAMR
 void WasmRunner::init()
 {
     RuntimeInitArgs init_args;
@@ -32,6 +34,7 @@ void WasmRunner::deinit()
 {
     wasm_runtime_destroy();
 }
+#endif
 
 WasmRunner::WasmRunner(QObject *parent)
     : QObject{parent}, m_running{false}
@@ -58,9 +61,7 @@ void WasmRunner::signalEnd()
     if (!m_running)
         return;
 
-    if (sharedData.main_result >= 0) {
-        emit runEnded(sharedData.main_result);
-    }
+    emit runEnded(sharedData.main_result);
 
     m_running = false;
     emit runningChanged();
@@ -68,6 +69,12 @@ void WasmRunner::signalEnd()
 
 void* runInThread(void* userdata)
 {
+    WasmRunnerSharedData& shared = *static_cast<WasmRunnerSharedData*>(userdata);
+
+    // Make this thread killable the dirty way
+    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
+
+#if USE_EMBEDDED_WAMR
     char error_buf[128];
     int main_result;
     const char *addr_pool[8] = { "0.0.0.0/0" };
@@ -76,14 +83,9 @@ void* runInThread(void* userdata)
     uint32_t ns_lookup_pool_size = 1;
     std::vector<const char*> mappedDirs { "/" };
 
-    WasmRunnerSharedData& shared = *static_cast<WasmRunnerSharedData*>(userdata);
-
     std::vector<std::string> args;
     std::vector<const char*> cargs;
     std::vector<const char*> env;
-
-    // Make this thread killable the dirty way
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
 
     // Initialize WAMR environment
     WasmRunner::init();
@@ -137,7 +139,8 @@ void* runInThread(void* userdata)
     }
 
     if (shared.debug) {
-        const auto debug_port = wasm_runtime_start_debug_instance(shared.exec_env);
+        wasm_exec_env_t debug_exec_env = wasm_runtime_get_exec_env_singleton(shared.module_inst);
+        const auto debug_port = wasm_runtime_start_debug_instance(debug_exec_env);
         shared.runner->signalDebugSession(debug_port);
     }
 
@@ -176,6 +179,20 @@ fail:
     WasmRunner::deinit();
 
     return nullptr;
+#else
+    shared.runner->signalStart();
+    const auto command = QStringLiteral("iwasm --interp") +
+                         QStringLiteral(" --stack-size=%1").arg(stack_size) +
+                         QStringLiteral(" --heap-size=%1").arg(heap_size) +
+                         QStringLiteral(" --max-threads=%1 ").arg(max_threads) +
+                         (shared.debug ? QStringLiteral(" -g=127.0.0.1:1234") : QString()) +
+                         shared.binary + QStringLiteral(" ") + shared.args.join(" ");
+    shared.runner->signalDebugSession(1234);
+
+    shared.main_result = shared.system->runCommand(command, shared.stdio);
+    shared.runner->signalEnd();
+    return nullptr;
+#endif
 }
 
 void WasmRunner::run(const QString binary, const QStringList args)
@@ -207,13 +224,18 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
     sharedData.binary = binary;
     sharedData.args = args;
     sharedData.main_result = -1;
+
+#if USE_EMBEDDED_WAMR
     sharedData.exec_env = nullptr;
     sharedData.module = nullptr;
     sharedData.module_inst = nullptr;
+#else
+    sharedData.system = m_system;
+#endif
+
     sharedData.stdio = m_spec;
     sharedData.debug = debug;
     sharedData.runner = this;
-
     pthread_create(&m_runThread, nullptr, runInThread, &sharedData);
 }
 
@@ -221,9 +243,11 @@ void WasmRunner::kill()
 {
     if (m_runThread) {
         pthread_cancel(m_runThread);
-        //pthread_join(m_runThread, nullptr);
+        pthread_join(m_runThread, nullptr);
         m_runThread = nullptr;
     }
+
+#if USE_EMBEDDED_WAMR
     if (sharedData.exec_env) {
         wasm_runtime_destroy_exec_env(sharedData.exec_env);
         sharedData.exec_env = nullptr;
@@ -236,6 +260,7 @@ void WasmRunner::kill()
         wasm_runtime_unload(sharedData.module);
         sharedData.module = nullptr;
     }
+#endif
 
     signalEnd();
 }
