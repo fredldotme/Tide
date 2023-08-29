@@ -85,6 +85,9 @@ void* runInThread(void* userdata)
     // Make this thread killable the dirty way
     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
 
+    // Initialize WAMR environment
+    WasmRunner::init();
+
     QFile m_binaryFile(shared.binary);
     if (!m_binaryFile.open(QFile::ReadOnly)) {
         emit shared.runner->errorOccured("Failed to read binary");
@@ -152,6 +155,7 @@ void* runInThread(void* userdata)
     }
 
     shared.main_result = wasm_runtime_get_wasi_exit_code(shared.module_inst);
+    qDebug() << "Execution complete, exit code:" << shared.main_result;
 
 fail:
     shared.runner->signalEnd();
@@ -168,6 +172,8 @@ fail:
         wasm_runtime_unload(shared.module);
         shared.module = nullptr;
     }
+
+    WasmRunner::deinit();
 
     return nullptr;
 }
@@ -215,7 +221,8 @@ void WasmRunner::kill()
 {
     if (m_runThread) {
         pthread_cancel(m_runThread);
-        pthread_join(m_runThread, nullptr);
+        //pthread_join(m_runThread, nullptr);
+        m_runThread = nullptr;
     }
     if (sharedData.exec_env) {
         wasm_runtime_destroy_exec_env(sharedData.exec_env);
@@ -229,6 +236,7 @@ void WasmRunner::kill()
         wasm_runtime_unload(sharedData.module);
         sharedData.module = nullptr;
     }
+
     signalEnd();
 }
 

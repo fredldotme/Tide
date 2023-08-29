@@ -19,10 +19,12 @@ class Debugger : public QObject
     Q_PROPERTY(SystemGlue* system MEMBER m_system NOTIFY systemChanged)
     Q_PROPERTY(bool running MEMBER m_running NOTIFY runningChanged);
     Q_PROPERTY(QStringList breakpoints MEMBER m_breakpoints NOTIFY breakpointsChanged)
-    Q_PROPERTY(QVariantMap values MEMBER m_values NOTIFY valuesChanged);
+    Q_PROPERTY(QVariantList backtrace MEMBER m_backtrace NOTIFY backtraceChanged)
+    Q_PROPERTY(QVariantList values MEMBER m_values NOTIFY valuesChanged)
 
 public:
     explicit Debugger(QObject *parent = nullptr);
+    ~Debugger();
 
 public slots:
     void debug(const QString binary, const QStringList args);
@@ -37,7 +39,11 @@ public slots:
     void pause();
     void cont();
 
+    void getBacktrace();
+    void getFrameValues();
+
     void quitDebugger();
+    void killDebugger();
 
 private:
     void readOutput();
@@ -46,20 +52,20 @@ private:
     void writeToStdIn(const QByteArray& input);
 
     bool m_running;
-    QThread m_debugThread;
     WasmRunner* m_runner;
     SystemGlue* m_system;
+    bool m_forceQuit;
     QString m_binary;
     QStringList m_args;
     int m_port;
-    StdioSpec m_comm;
-    QTimer m_kea;
+    std::pair<StdioSpec, StdioSpec> m_stdioPair;
 
     QThread m_readThreadOut;
     QThread m_readThreadErr;
 
     QStringList m_breakpoints;
-    QVariantMap m_values;
+    QVariantList m_backtrace;
+    QVariantList m_values;
 
 signals:
     void runnerChanged();
@@ -67,6 +73,7 @@ signals:
     void runningChanged();
     void breakpointsChanged();
     void valuesChanged();
+    void backtraceChanged();
 };
 
 #endif // DEBUGGER_H

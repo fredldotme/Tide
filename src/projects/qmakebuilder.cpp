@@ -95,8 +95,21 @@ void QMakeBuilder::build(const bool debug)
             projectTemplate = variables.at("TEMPLATE").values.front();
     }
 
-    const auto defaultFlags = QStringLiteral(" -pthread -msimd128 -ftls-model=local-exec ");
-    const auto defaultLinkFlags = defaultFlags + ((projectTemplate == typeApp) ? QStringLiteral(" -Wl,--export-all ") : QStringLiteral(" -Wl,--no-entry -Wl,--export-all "));
+    bool useThreads = false;
+    if (variables.find("CONFIG") != variables.end()) {
+        const auto& configs = variables.at("CONFIG").values;
+        useThreads = (std::find(configs.begin(), configs.end(), "threads") != configs.end());
+    }
+
+    const auto threadFlags = (useThreads ?
+                              QStringLiteral(" --target=wasm32-wasi-threads -ftls-model=local-exec  -pthread ") :
+                              QStringLiteral(" --target=wasm32-wasi "));
+
+    const auto defaultFlags = QStringLiteral(" -msimd128 ") + threadFlags;
+    const auto defaultLinkFlags = defaultFlags + threadFlags +
+                                  ((projectTemplate == typeApp) ?
+                                        QStringLiteral(" -Wl,--export-all ") :
+                                        QStringLiteral(" -Wl,--no-entry -Wl,--export-all "));
 
     if (variables.find("SOURCES") == variables.end()) {
         const auto err = "No SOURCES found in project file.";
@@ -210,13 +223,22 @@ void QMakeBuilder::build(const bool debug)
     qDebug() << "Link command:" << linkCommand;
     buildCommands << linkCommand;
 
+#if SUPPORT_AOT
+    if (!debug) {
+        const QString aotPath = runnableFile() + QStringLiteral(".aot");
+        const QString aotCommand =
+            QStringLiteral("wamr-compiler -o \"%1\" \"%2\"").arg(aotPath, runnableFile());
+        buildCommands << aotCommand;
+    }
+#endif
+
     std::thread buildThread([=]() {
         m_building = true;
         emit buildingChanged();
 
         const bool success = iosSystem->runBuildCommands(buildCommands);
         if (success) {
-            emit buildSuccess();
+            emit buildSuccess(debug);
         } else {
             emit buildError(QStringLiteral("Build failed"));
         }

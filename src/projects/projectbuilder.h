@@ -52,7 +52,7 @@ signals:
     void projectFileChanged();
     void commandRunnerChanged();
     void buildingChanged();
-    void buildSuccess();
+    void buildSuccess(bool debug);
     void buildError(QString str);
 };
 

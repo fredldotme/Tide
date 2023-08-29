@@ -24,6 +24,8 @@
 
 #include "platform/systemglue.h"
 
+#include <signal.h>
+
 int main(int argc, char *argv[])
 {
 #ifdef Q_OS_IOS
@@ -34,7 +36,6 @@ int main(int argc, char *argv[])
                             QStringLiteral("/Runtimes/Linux");
 
     qputenv("SYSROOT", sysroot.toUtf8().data());
-    qputenv("CCC_OVERRIDE_OPTIONS", "#^--target=wasm32-wasi-threads -fintegrated-cc1");
     QQuickStyle::setStyle("iOS");
 #elif defined(Q_OS_LINUX)
     const QString sysroot = QStringLiteral("/usr");
@@ -43,7 +44,7 @@ int main(int argc, char *argv[])
 
     //qputenv("LIBCLANG_DISABLE_CRASH_RECOVERY", "1");
     //qputenv("LLVM_DISABLE_CRASH_REPORT", "1");
-    qputenv("NOSYSTEM_DEBUG", "1");
+    //qputenv("NOSYSTEM_DEBUG", "1");
 
     QGuiApplication app(argc, argv);
     app.setOrganizationDomain("fredl.me");
@@ -81,8 +82,6 @@ int main(int argc, char *argv[])
         InputMethodFixerInstaller imFixer;
         PlatformIntegrationDelegate oskReactor;
 
-        WasmRunner::init();
-
         QFont standardFixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
         standardFixedFont.setPixelSize(14);
         standardFixedFont.setStyleHint(QFont::Monospace);
@@ -102,9 +101,8 @@ int main(int argc, char *argv[])
 #endif
         engine.load(url);
 
+        signal(SIGPIPE, SIG_IGN);
         ret = app.exec();
-
-        WasmRunner::deinit();
     }
     return ret;
 }

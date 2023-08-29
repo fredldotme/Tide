@@ -359,7 +359,7 @@ ApplicationWindow {
                     rightPadding: paddingMedium
                     icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
                     icon.color: root.palette.button
-                    visible: true
+                    visible: projectBuilder.projectFile !== ""
 
                     onClicked: showDebugArea = !showDebugArea
                     onPressAndHold: debugContextMenu.open()
@@ -401,31 +401,35 @@ ApplicationWindow {
 
                 TideToolButton {
                     rightPadding: paddingMedium
-                    icon.source: !wasmRunner.running && !projectBuilder.building ?
+
+                    readonly property bool idle: !projectBuilder.building && !wasmRunner.running && !dbugger.running
+
+                    icon.source: idle ?
                                      Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
                                      Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
                     icon.color: root.palette.button
                     visible: projectBuilder.projectFile !== ""
 
                     BusyIndicator {
-                        visible: wasmRunner.running || projectBuilder.building
-                        running: wasmRunner.running || projectBuilder.building
+                        visible: wasmRunner.running || projectBuilder.building || dbugger.running
+                        running: wasmRunner.running || projectBuilder.building || dbugger.running
                         anchors.centerIn: parent
                     }
 
                     onClicked: {
-                        if (!projectBuilder.building && !wasmRunner.running) {
-                            root.runRequested = true
-                            root.attemptBuild()
-                        } else if (wasmRunner.running || projectBuilder.building) {
+                        if (idle) {
+                            buildContextMenu.open()
+                        } else {
+                            debugRequested = false
                             runRequested = false
                             releaseRequested = false
-                            if (dbugger.running)
-                                dbugger.quitDebugger()
+
                             if (wasmRunner.running)
                                 wasmRunner.kill()
                             if (projectBuilder.building)
                                 projectBuilder.cancel()
+                            if (dbugger.running)
+                                dbugger.killDebugger()
                         }
                     }
                     onPressAndHold: {
@@ -460,7 +464,9 @@ ApplicationWindow {
                                              Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
                             enabled: !projectBuilder.building && projectBuilder.projectFile !== ""
                             onTriggered: {
-                                root.attemptRun()
+                                root.debugRequested = false
+                                root.runRequested = true
+                                root.attemptBuild()
                             }
                         }
                         MenuItem {
@@ -476,8 +482,9 @@ ApplicationWindow {
                             }
 
                             onClicked: {
+                                console.log("DOIT")
                                 root.debugRequested = true
-                                root.runRequested = true
+                                root.runRequested = false
                                 root.attemptBuild()
                             }
                         }
@@ -575,28 +582,28 @@ ApplicationWindow {
                 consoleView.consoleScrollView.positionViewAtEnd()
                 consoleView.show()
                 releaseRequested = false
+                runRequested = false
+                debugRequested = false
                 warningSign.flashWarning(qsTr("Build failed!"))
             }
-        onBuildSuccess: {
-            compiling = false
-            warningSign.flashSuccess(qsTr("Build successful!"))
+        onBuildSuccess:
+            (debug) => {
+                compiling = false
+                warningSign.flashSuccess(qsTr("Build successful!"))
 
-            if (runRequested) {
-                runRequested = false
-
-                if (debugRequested) {
-                    debugRequested = false
+                if (debug) {
                     root.attemptDebug()
-                } else {
+                    debugRequested = false
+                } else if (runRequested) {
                     root.attemptRun()
+                    runRequested = false
+                }
+
+                if (releaseRequested) {
+                    releaseRequested = false
+                    Qt.openUrlExternally("shareddocuments://" + projectBuilder.runnableFile())
                 }
             }
-
-            if (releaseRequested) {
-                releaseRequested = false
-                Qt.openUrlExternally("shareddocuments://" + projectBuilder.runnableFile())
-            }
-        }
     }
 
     WasmRunner {
@@ -1699,7 +1706,9 @@ ApplicationWindow {
 
     Rectangle {
         id: debuggerArea
-        width: showDebugArea ? sideBarExpandedDefault : 0
+        width: showDebugArea ? sideBarWidth - (paddingSmall * 2): 0
+        x: (root.width < root.height) ? mainContainer.x + mainContainer.width + paddingSmall :
+                                        mainContainer.x + mainContainer.width
         anchors.topMargin: paddingMedium
         anchors.top: parent.top
         anchors.bottom: parent.bottom
@@ -1768,7 +1777,7 @@ ApplicationWindow {
                 anchors.left: parent.left
                 anchors.leftMargin: paddingMedium
                 anchors.right: parent.right
-                height: (debuggerArea.height / 2) - paddingSmall
+                height: (debuggerArea.height / 3) - paddingSmall
                 model: dbugger.breakpoints
                 header: Label {
                     font.pixelSize: 20
@@ -1789,17 +1798,46 @@ ApplicationWindow {
             ListView {
                 anchors.left: parent.left
                 anchors.leftMargin: paddingMedium
+                anchors.rightMargin: paddingMedium
                 anchors.right: parent.right
-                height: (debuggerArea.height / 2) - paddingSmall
+                height: (debuggerArea.height / 3) - paddingSmall
+                model: dbugger.backtrace
+                header: TideButton {
+                    font.pixelSize: 20
+                    text: qsTr("Callstack:")
+                    color: root.palette.button
+                    onClicked: {
+                        dbugger.getBacktrace();
+                    }
+                }
+                delegate: TideButton {
+                    text: modelData.trace
+                    font.pixelSize: 20
+                    color: root.palette.button
+                    width: parent.width
+                }
+            }
+
+            ListView {
+                anchors.left: parent.left
+                anchors.leftMargin: paddingMedium
+                anchors.rightMargin: paddingMedium
+                anchors.right: parent.right
+                height: (debuggerArea.height / 3) - paddingSmall
                 model: dbugger.values
-                header: Label {
+                header: TideButton {
                     font.pixelSize: 20
                     text: qsTr("Values:")
-                }
-                delegate: Label {
-                    text: modelData.name
-                    font.pixelSize: 24
                     color: root.palette.button
+                    onClicked: {
+                        dbugger.getFrameValues();
+                    }
+                }
+                delegate: TideButton {
+                    text: modelData.name
+                    font.pixelSize: 20
+                    color: root.palette.button
+                    width: parent.width
                 }
             }
         }

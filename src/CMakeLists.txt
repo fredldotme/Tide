@@ -115,6 +115,9 @@ qt_add_executable(${PROJECT_NAME}
     ${QMAKEPARSER_DIR}/lib/src/qmakeparser.cpp
     ${QMAKEPARSER_DIR}/lib/src/qmakereader.cpp
 
+    # Enable once WAMR issues are sorted out
+    #${WAMR_DIR}/wamr-compiler/main.c
+
     # tar implementation
     ${MICROTAR_DIR}/src/microtar.c
 
@@ -159,6 +162,7 @@ set(NOSYSTEM_FRAMEWORK ${LLVM_DIR}/no_system/${LLVM_BUILD_DIR}/Debug-iphoneos)
 add_subdirectory(lib)
 
 if(IOS)
+    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfloat-abi=hard")
     set (WAMR_BUILD_PLATFORM "darwin")
     if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
         set (WAMR_BUILD_TARGET "X86_64")
@@ -166,17 +170,21 @@ if(IOS)
         set (WAMR_BUILD_TARGET "AARCH64")
     endif()
     set (WAMR_BUILD_INTERP 1)
+    set (WAMR_BUILD_AOT 0)
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
     set (WAMR_BUILD_LIB_WASI_THREADS 1)
     set (WAMR_BUILD_SHARED_MEMORY 1)
     set (WAMR_BUILD_TAIL_CALL 1)
     set (WAMR_BUILD_LIBC_UVWASI 0)
-    set (WAMR_BUILD_SIMD 1)
+    set (WAMR_BUILD_SIMD 0)
     set (WAMR_DISABLE_HW_BOUND_CHECK 1)
-    set (WAMR_BUILD_DEBUG_INTERP 1)
+    set (WAMR_BUILD_DEBUG_AOT 0)
     set (WASM_ENABLE_THREAD_MGR 1)
+    set (WAMR_BUILD_MINI_LOADER 0)
+    set (WAMR_BUILD_DEBUG_INTERP 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
+    add_definitions(-DWASM_UINT32_IS_ATOMIC)
 
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
@@ -191,6 +199,10 @@ if(IOS)
     )
 
     include_directories(${PROJECT_NAME}
+        # WAMR AOT compiler
+        #${WAMR_DIR}/core/shared/utils/uncommon
+        #${WAMR_DIR}/core/shared/platform/darwin
+
         # system() replacement through no_system
         ${NOSYSTEM}
         ${LLVM_DIR}
@@ -625,9 +637,28 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     )
 endif()
 
-# WAMR
+# WAMR + AOT
+#include(${WAMR_DIR}/core/shared/utils/shared_utils.cmake)
+#include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
+#include(${WAMR_DIR}/core/shared/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
+#include(${WAMR_DIR}/core/iwasm/aot/iwasm_aot.cmake)
+#include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
 include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
-add_library(vmlib ${WAMR_RUNTIME_LIB_SOURCE})
+
+add_library(vmlib
+    ${WAMR_RUNTIME_LIB_SOURCE}
+    ${PLATFORM_SHARED_SOURCE}
+    ${MEM_ALLOC_SHARED_SOURCE}
+    ${UTILS_SHARED_SOURCE}
+    ${UNCOMMON_SHARED_SOURCE}
+    ${THREAD_MGR_SOURCE}
+    ${LIBC_BUILTIN_SOURCE}
+    ${LIBC_WASI_SOURCE}
+    ${LIB_PTHREAD_SOURCE}
+    ${LIB_WASI_THREADS_SOURCE}
+    ${IWASM_COMMON_SOURCE}
+    ${IWASM_INTERP_SOURCE}
+    ${IWASM_AOT_SOURCE})
 
 include_directories(${PROJECT_NAME}
     # Wasm3 runtime
@@ -683,8 +714,6 @@ if(IOS)
         ${NOSYSTEM}
         ${LLVM}
         ${LIBCLANG_CPP}
-        #${CLANG}
-        #${LLD}
         #${CMAKEFW}
         #${NINJAFW}
         ${PROJECT_NAME}-Formatter
@@ -692,10 +721,6 @@ if(IOS)
 
     set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY OFF)
     set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY ON)
-
-    set(COMMANDDICTIONARY "${CMAKE_CURRENT_SOURCE_DIR}/commandDictionary.plist")
-    target_sources(${PROJECT_NAME} PUBLIC ${COMMANDDICTIONARY})
-    set_source_files_properties(${COMMANDDICTIONARY} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 endif()
 
 install(TARGETS ${PROJECT_NAME}

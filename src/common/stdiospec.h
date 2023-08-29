@@ -8,11 +8,8 @@ class StdioSpec {
 
 public:
     FILE* stdin = nullptr;
-    int stdinfd = -1;
     FILE* stdout = nullptr;
-    int stdoutfd = -1;
     FILE* stderr = nullptr;
-    int stderrfd = -1;
 };
 
 Q_DECLARE_METATYPE(StdioSpec)

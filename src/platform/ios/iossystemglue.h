@@ -16,7 +16,7 @@ public:
 
     StdioSpec consumerSpec();
 
-    static std::pair<StdioSpec, StdioSpec> setupPipes();
+    std::pair<StdioSpec, StdioSpec> setupPipes();
 
     Q_INVOKABLE bool runBuildCommands(const QStringList cmds, const StdioSpec spec = StdioSpec());
     Q_INVOKABLE void killBuildCommands();

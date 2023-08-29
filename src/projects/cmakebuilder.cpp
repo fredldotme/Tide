@@ -73,7 +73,7 @@ void CMakeBuilder::build(const bool debug)
         //const bool success = iosSystem->runBuildCommands(buildCommands, buildPath, false, false);
         const bool success = false;
         if (success) {
-            emit buildSuccess();
+            emit buildSuccess(debug);
         } else {
             emit buildError(QStringLiteral("Build failed"));
         }

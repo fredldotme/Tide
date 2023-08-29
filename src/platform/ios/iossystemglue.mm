@@ -59,7 +59,6 @@ std::pair<StdioSpec, StdioSpec> IosSystemGlue::setupPipes()
     errReadEnd = fdopen(fdErr[0], "r");
     errWriteEnd = fdopen(fdErr[1], "w");
 
-    setvbuf(inReadEnd , nullptr , _IOLBF , 1024);
     setvbuf(outWriteEnd , nullptr , _IOLBF , 1024);
     setvbuf(errWriteEnd , nullptr , _IOLBF , 1024);
 

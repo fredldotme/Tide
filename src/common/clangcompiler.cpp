@@ -13,6 +13,10 @@ extern int clang_main(int argc, char const **argv);
 extern int lld_main(int argc, char const **argv);
 extern int lldb_main(int argc, char const **argv);
 
+/*extern "C" {
+extern int wamr_compiler_main(int argc, char **argv);
+}*/
+
 static int clang_hook(int argc, char **argv) {
     return clang_main(argc, (char const**) argv);
 }
@@ -36,6 +40,7 @@ ClangCompiler::ClangCompiler()
         nosystem_addcommand("ld", &lld_hook);
         nosystem_addcommand("wasm-ld", &lld_hook);
         nosystem_addcommand("lldb", &lldb_hook);
+        //nosystem_addcommand("wamr-compiler", &wamr_compiler_main);
         initialized = true;
     }
 }

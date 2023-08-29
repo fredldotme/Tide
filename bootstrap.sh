@@ -14,7 +14,6 @@ OLD_PWD=$(pwd)
 function cmake_iossystem_build {
     echo "Custom args: $1"
     LIBNAME="$2"
-    DYLIBNAME="$3"
 
     if [ -d build ]; then
         rm -rf build
@@ -28,12 +27,6 @@ function cmake_iossystem_build {
         -DCMAKE_CXX_COMPILER=$(xcrun --sdk iphoneos -f clang++) \
         $1 ..
     ninja
-
-    LIBFILE=$(find . -name ${DYLIBNAME})
-    mkdir -p $OLD_PWD/tmp/$LIBNAME.framework
-    cp -a $OLD_PWD/aux/$LIBNAME/Info.plist $OLD_PWD/tmp/$LIBNAME.framework/Info.plist
-    cp -a $LIBFILE $OLD_PWD/tmp/$LIBNAME.framework/$LIBNAME
-    plutil -convert binary1 $OLD_PWD/tmp/$LIBNAME.framework/Info.plist
 
     cd ..
 }
@@ -54,12 +47,12 @@ function cmake_wasi_build {
         -DCMAKE_ASM_COMPILER=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang \
         -DCMAKE_AR=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ar \
         -DCMAKE_RANLIB=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ranlib \
-        -DCMAKE_C_COMPILER_TARGET=wasm32-wasi-threads \
-        -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi-threads \
-        -DCMAKE_ASM_COMPILER_TARGET=wasm32-wasi-threads \
+        -DCMAKE_C_COMPILER_TARGET=$1 \
+        -DCMAKE_CXX_COMPILER_TARGET=$1 \
+        -DCMAKE_ASM_COMPILER_TARGET=$1 \
         -DCMAKE_SYSROOT=$OLD_PWD/tmp/wasi-sysroot \
-        -DCMAKE_C_FLAGS="-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory" \
-        -DCMAKE_CXX_FLAGS="-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory" \
+        -DCMAKE_C_FLAGS="$2" \
+        -DCMAKE_CXX_FLAGS="$2" \
         "$1" ..
     ninja
     cd ..
@@ -99,7 +92,9 @@ cd $OLD_PWD
 
 # Posix/Berkely socket support
 cd aux/lib-socket
-cmake_wasi_build
+cmake_wasi_build wasm32-wasi ""
+cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
+cmake_wasi_build wasm32-wasi-threads "-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory"
 cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
 cp $OLD_PWD/3rdparty/wamr/core/iwasm/libraries/lib-socket/inc/wasi_socket_ext.h $OLD_PWD/tmp/wasi-sysroot/include/
 cd $OLD_PWD
@@ -123,16 +118,21 @@ cd $OLD_PWD
 #cd $OLD_PWD
 
 # CMake
-cd 3rdparty/CMake
-LIBNAME="cmake"
-cmake_iossystem_build "-DBUILD_TESTING=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/build-iphoneos/build/Release-iphoneos" "$LIBNAME" "lib${LIBNAME}.dylib"
-cp -a Modules $OLD_PWD/tmp/$LIBNAME.framework/
-cd $OLD_PWD
+#cd 3rdparty/CMake
+#LIBNAME="cmake"
+#cmake_iossystem_build "-DBUILD_TESTING=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/no_system/build-iphoneos/Debug-iphoneos" "$LIBNAME"
+#cd $OLD_PWD
 
 # Ninja
-cd 3rdparty/ninja
-LIBNAME="ninja"
-cmake_iossystem_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/build-iphoneos/build/Release-iphoneos" "$LIBNAME" "lib${LIBNAME}exe.dylib"
+#cd 3rdparty/ninja
+#LIBNAME="ninja"
+#cmake_iossystem_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/no_system/build-iphoneos/Debug-iphoneos" "$LIBNAME"
+#cd $OLD_PWD
+
+cd tmp
+if [ ! -d angle-metal ]; then
+    git clone https://github.com/fredldotme/angle-metal
+fi
 cd $OLD_PWD
 
 # Done!

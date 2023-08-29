@@ -7,6 +7,8 @@
 static const auto PROJECT_TEMPLATE =
     QStringLiteral("TARGET = %1\n\n") +
     QStringLiteral("#INCLUDEPATH += $$PWD/lib\n") +
+    QStringLiteral("# Uncomment to enable threads:") +
+    QStringLiteral("CONFIG += threads") +
     QStringLiteral("SOURCES += \\\n    $$PWD/main.cpp");
 
 static const auto MAIN_TEMPLATE =
