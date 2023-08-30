@@ -4,10 +4,13 @@
 #include <QTimer>
 #include <QVariant>
 #include <QTemporaryFile>
+#include <QRegularExpression>
 
 #include <unistd.h>
 #include <poll.h>
 #include <signal.h>
+
+static const QRegularExpression stackFrameRegex = QRegularExpression("^(.*) .* = .*");
 
 Debugger::Debugger(QObject *parent)
     : QObject{parent}, m_runner{nullptr}, m_system{nullptr}, m_forceQuit{false}
@@ -44,25 +47,59 @@ void Debugger::read(FILE* io)
         if (!m_running || m_forceQuit)
             return;
 
-        while (::read(fileno(io), buffer, 1024))
+        while (::read(fileno(io), buffer, 4096))
         {
             const auto wholeOutput = QString::fromUtf8(buffer);
             const QStringList splitOutput = wholeOutput.split('\n', Qt::KeepEmptyParts);
 
+            bool hasFrameValues = false;
+            bool hasCallStack = false;
+
             if (io == m_stdioPair.second.stdout) {
-                m_backtrace.clear();
+                for (const auto& output : splitOutput) {
+                    if (output.isEmpty())
+                        continue;
+
+                    if (stackFrameRegex.match(output).hasMatch()) {
+                        hasFrameValues = true;
+                    } else if (!output.startsWith("(lldb)")) {
+                        hasCallStack = true;
+                    }
+                }
+
+                if (hasCallStack) {
+                    m_backtrace.clear();
+                    emit backtraceChanged();
+                }
+
+                if (hasFrameValues) {
+                    m_values.clear();
+                    emit valuesChanged();
+                }
+
                 for (const auto output : splitOutput) {
+                    if (output.isEmpty())
+                        continue;
+
                     if (output == QStringLiteral("Process 1 stopped")) {
                         QTimer::singleShot(500, this, &Debugger::getBacktrace);
+                        QTimer::singleShot(500, this, &Debugger::getFrameValues);
                         continue;
                     }
 
                     qDebug() << "LLDB:" << output;
-                    QVariantMap varmap;
-                    varmap.insert("trace", output);
-                    m_backtrace.append(varmap);
+                    if (stackFrameRegex.match(output).hasMatch()) {
+                        QVariantMap varmap;
+                        varmap.insert("value", output);
+                        m_values.append(varmap);
+                        emit valuesChanged();
+                    } else if (!output.startsWith("(lldb)")) {
+                        QVariantMap varmap;
+                        varmap.insert("trace", output);
+                        m_backtrace.append(varmap);
+                        emit backtraceChanged();
+                    }
                 }
-                emit backtraceChanged();
             }
 
             memset(buffer, 0, 4096);
@@ -185,6 +222,8 @@ void Debugger::runDebugSession()
         debugCommand += QStringLiteral("b %1\n").arg(breakpoint);
     }
 
+    debugCommand += QStringLiteral("process continue\n");
+
     tmpFile.write(debugCommand.toUtf8());
     tmpFile.close();
 
@@ -258,11 +297,17 @@ void Debugger::killDebugger()
 
 void Debugger::getBacktrace()
 {
+    m_backtrace.clear();
+    emit backtraceChanged();
+
     const auto input = QByteArrayLiteral("bt\n");
     writeToStdIn(input);
 }
 
 void Debugger::getFrameValues()
 {
+    m_values.clear();
+    emit valuesChanged();
+
     writeToStdIn("frame variable\n");
 }

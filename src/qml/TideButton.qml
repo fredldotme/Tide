@@ -50,6 +50,7 @@ RowLayout {
     Text {
         id: labelControl
         Layout.fillWidth: true
+        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
         MouseArea {
             id: labelControlMouseArea
             anchors.fill: parent

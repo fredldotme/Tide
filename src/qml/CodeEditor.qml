@@ -37,7 +37,14 @@ Rectangle {
     }
 
     onWidthChanged: {
-        lineNumbersHelper.refresh()
+        delayedLineNumberRefresh.restart()
+    }
+
+    Timer {
+        id: delayedLineNumberRefresh
+        interval: 200
+        repeat: false
+        onTriggered: lineNumbersHelper.refresh()
     }
 
     signal saveRequested()
