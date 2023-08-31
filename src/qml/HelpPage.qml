@@ -94,6 +94,29 @@ ColumnLayout {
     }
 
     Label {
+        text: qsTr("Debugging")
+        font.pixelSize: 20
+        font.bold: true
+        wrapMode: Label.WrapAtWordBoundaryOrAnywhere
+        Layout.preferredWidth: parent.width
+        Layout.alignment: Qt.AlignLeft
+    }
+
+    Label {
+        text: qsTr("First load up a project into the debugger by selecting a .pro file.") + "\n" +
+              qsTr("After that you can set breakpoints by tapping the desired line number in the code editor.") + "\n" +
+              qsTr("The debugger itself features:") + "\n" +
+              qsTr("• Breakpoints and single-stepping") + "\n" +
+              qsTr("• 'Callstack & frames' to select the desired call frame from") + "\n" +
+              qsTr("• 'Values' listing the various variables and their values in the current stack frame") + "\n" +
+              qsTr("• 'Continue' or 'Interrupt' a program during debugging by tapping the Debugger icon next to the 'Play' button") + "\n"
+        font.pixelSize: 18
+        wrapMode: Label.WrapAtWordBoundaryOrAnywhere
+        Layout.preferredWidth: parent.width
+        Layout.alignment: Qt.AlignLeft
+    }
+
+    Label {
         text: qsTr("Project format")
         font.pixelSize: 20
         font.bold: true
