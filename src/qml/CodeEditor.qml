@@ -336,15 +336,23 @@ Rectangle {
 
                             readonly property bool isCurrentLine :
                                 lineNumbersHelper.isCurrentBlock(index, codeField.cursorPosition)
-                            readonly property bool isBreakpoint :
+                            property bool isBreakpoint :
                                 dbugger.hasBreakpoint(file.name + ":" + (index + 1))
+
+                            Connections {
+                                target: dbugger
+                                onBreakpointsChanged: {
+                                    lineLabel.isBreakpoint = dbugger.hasBreakpoint(file.name + ":" + (index + 1))
+                                    console.log("is Breakpoint at line " + (index+1) + "? " + lineLabel.isBreakpoint)
+                                }
+                            }
 
                             color: isCurrentLine ? root.palette.button :
                                                    root.palette.text
 
                             background: Rectangle {
                                 radius: height / 2
-                                color: isBreakpoint ? "red" : "transparent"
+                                color: lineLabel.isBreakpoint ? "red" : "transparent"
                             }
 
                             height: modelData.height
@@ -356,6 +364,11 @@ Rectangle {
                                 acceptedButtons: Qt.AllButtons
                                 anchors.fill: parent
                                 onClicked: {
+                                    const lang = languageForLowerCaseFileName(codeEditor.file.name.toLowerCase())
+                                    if (lang !== SourceHighliter.CodeC && lang !== SourceHighliter.CodeCpp) {
+                                        return;
+                                    }
+
                                     const breakpoint = file.name + ":" + (index + 1);
                                     console.log("Setting breakpoint at " + breakpoint);
 
@@ -364,9 +377,6 @@ Rectangle {
                                     } else {
                                         dbugger.addBreakpoint(breakpoint)
                                     }
-
-                                    lineLabel.background.color = dbugger.hasBreakpoint(breakpoint) ?
-                                                "red" : "transparent"
                                 }
                             }
                         }
