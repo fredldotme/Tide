@@ -47,3 +47,6 @@
 [submodule "3rdparty/wasix-sdk"]
 	path = 3rdparty/wasix-sdk
 	url = https://github.com/fredldotme/wasix-sdk.git
+[submodule "3rdparty/libcyaml"]
+	path = 3rdparty/libcyaml
+	url = https://github.com/tlsa/libcyaml.git
