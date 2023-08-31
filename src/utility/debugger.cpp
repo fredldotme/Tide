@@ -156,7 +156,7 @@ QVariantMap Debugger::filterCallStack(const QString output)
         const auto line = fileStrMatch.captured(2);
         const auto column = fileStrMatch.captured(3);
         const auto index = regexMatch.captured(2);
-        const auto value = regexMatch.captured(2) + QStringLiteral(" ") + regexMatch.captured(3);
+        const auto value = regexMatch.captured(3);
 
         ret.insert("partial", false);
         ret.insert("file", file);
@@ -238,8 +238,11 @@ void Debugger::removeBreakpoint(const QString& breakpoint)
     emit breakpointsChanged();
 
     if (m_spawned) {
-        const auto input = QByteArrayLiteral("d ") + breakpoint.toUtf8() + QByteArrayLiteral("\n");
-        writeToStdIn(input);
+        writeToStdIn("br del\ny\n");
+        for (const auto& valid_breakpoint : m_breakpoints) {
+            const auto input = QByteArrayLiteral("b ") + valid_breakpoint.toUtf8() + QByteArrayLiteral("\n");
+            writeToStdIn(input);
+        }
     }
 }
 
@@ -316,6 +319,7 @@ void Debugger::connectToRemote(const int port)
 
     auto debugCommand =
         QStringLiteral("process detach\n") +
+        QStringLiteral("br del\ny\n") +
         QStringLiteral("platform select remote-linux\n") +
         QStringLiteral("process connect -p wasm connect://127.0.0.1:%1\n").arg(port);
 
@@ -323,12 +327,15 @@ void Debugger::connectToRemote(const int port)
         debugCommand += QStringLiteral("b %1\n").arg(breakpoint);
     }
 
-    //debugCommand += QStringLiteral("type summary add --summary-string \"${var%s}\" \"char *\"");
-    //debugCommand += QStringLiteral("type summary add --summary-string \"${var%s}\" -x \"char \[[0-9]+]\"");
-
-    debugCommand += QStringLiteral("process continue\n");
+    static bool inited = false;
+    if (!inited) {
+        debugCommand += QStringLiteral("target stop-hook add --one-liner \"frame variable\"");
+        inited = true;
+    }
 
     writeToStdIn(debugCommand.toUtf8());
+
+    emit attachedToProcess();
 }
 
 void Debugger::stepIn()
@@ -372,7 +379,6 @@ void Debugger::killDebugger()
     if (!m_spawned)
         return;
 
-    writeToStdIn("delete\n");
     quitDebugger();
 
     m_running = false;

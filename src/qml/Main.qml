@@ -578,6 +578,11 @@ ApplicationWindow {
     WasmRunner {
         id: wasmRunner
         system: iosSystem
+        onRunningChanged: {
+            if (running && settings.clearConsole)
+                clearConsoleOutput()
+        }
+
         onErrorOccured:
             (str) => {
                 consoleView.consoleOutput.append({"content": str, "stdout": false})
@@ -597,7 +602,11 @@ ApplicationWindow {
         }
         onProcessPaused: {
             dbugger.getBacktrace()
+            dbugger.selectFrame(0)
             dbugger.getFrameValues()
+        }
+        onAttachedToProcess: {
+            debugContextMenu.open()
         }
     }
 
@@ -1383,14 +1392,14 @@ ApplicationWindow {
         /* Debugger area */
         Item {
             id: debuggerArea
-            width: showDebugArea ? sideBarWidth - (paddingSmall * 2) : 0
+            width: showDebugArea ? sideBarWidth - (paddingSmall) : 0
             anchors.topMargin: paddingMedium
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.right: parent.right
             anchors.rightMargin: paddingSmall
             anchors.left: editorContainer.right
-            anchors.leftMargin: root.width > root.height ? paddingSmall : 0
+            anchors.leftMargin: paddingSmall
             anchors.bottomMargin: paddingMedium + paddingSmall
             visible: width > 0
 
@@ -1450,7 +1459,7 @@ ApplicationWindow {
                                 }
                                 ToolButton {
                                     Layout.alignment: Qt.AlignLeft
-                                    Layout.leftMargin: paddingMedium
+                                    Layout.rightMargin: paddingMedium
                                     icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
                                     icon.width: 24
                                     icon.height: 24
@@ -1469,8 +1478,16 @@ ApplicationWindow {
                             height: headerItemHeight
                             font.pixelSize: 18
                             color: root.palette.button
-                            onClicked: {
-                                consoleView.hide()
+                            onClicked: breakpointContextMenu.open()
+
+                            TideMenu {
+                                id: breakpointContextMenu
+                                MenuItem {
+                                    text: qsTr("Delete breakpoint")
+                                    onClicked: {
+                                        dbugger.removeBreakpoint(modelData)
+                                    }
+                                }
                             }
                         }
                     }
@@ -1650,6 +1667,7 @@ ApplicationWindow {
             property int formatStyle : CppFormatter.LLVM
             property bool wiggleHints : true
             property bool wrapEditor : true
+            property bool clearConsole: true
         }
 
         ConsoleView {

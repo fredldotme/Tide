@@ -100,6 +100,7 @@ signals:
     void breakpointsChanged();
     void valuesChanged();
     void backtraceChanged();
+    void attachedToProcess();
 };
 
 #endif // DEBUGGER_H
