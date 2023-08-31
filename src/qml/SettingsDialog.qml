@@ -111,6 +111,14 @@ Pane {
                         settings.autoformat = checked
                     }
                 }
+                Switch {
+                    id: clearConsoleSwitch
+                    text: qsTr("Clear console output on each run")
+                    checked: settings.clearConsole
+                    onCheckedChanged: {
+                        settings.clearConsole = checked
+                    }
+                }
                 RowLayout {
                     enabled: settings.autoformat
                     Label {
