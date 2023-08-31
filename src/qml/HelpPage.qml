@@ -109,15 +109,19 @@ ColumnLayout {
               qsTr("• 'PWD': Directory of the project file") + "\n" +
               qsTr("• 'OUT_PWD': Directory of the build artifacts") + "\n" +
               "\n" +
-              qsTr("Mutable values:") + "\n" +
+              qsTr("Mutable variables:") + "\n" +
               qsTr("• 'TARGET' (required): Name of the project's binary") + "\n" +
+              qsTr("• 'CONFIG': List of features to enable (see below)") + "\n" +
               qsTr("• 'SOURCES': Source files (.c, .cpp) to compile") + "\n" +
               qsTr("• 'INCLUDEPATH': Directories to add to header search path") + "\n" +
               qsTr("• 'LIBS': Libraries (.a) to link") + "\n" +
               qsTr("• 'DEFINES': Definitions to set during compilation") + "\n" +
               qsTr("• 'QMAKE_CFLAGS': Additional C compile flags for clang") + "\n" +
               qsTr("• 'QMAKE_CXXFLAGS': Additional C++ compile flags for clang++") + "\n" +
-              qsTr("• 'QMAKE_LDFLAGS': Additional link flags") + "\n"
+              qsTr("• 'QMAKE_LDFLAGS': Additional link flags") + "\n" +
+              "\n" +
+              qsTr("Possible values for CONFIG list:") + "\n" +
+              qsTr("• 'threads': Enables threading support") + "\n"
         font.pixelSize: 18
         wrapMode: Label.WrapAtWordBoundaryOrAnywhere
         Layout.preferredWidth: parent.width

@@ -10,6 +10,7 @@
 #include "stdiospec.h"
 #include "platform/systemglue.h"
 
+class Debugger;
 class WasmRunner;
 
 #define USE_EMBEDDED_WAMR 1
@@ -28,6 +29,7 @@ struct WasmRunnerSharedData {
 #endif
     WasmRunner* runner = nullptr;
     SystemGlue* system = nullptr;
+    Debugger* debugger = nullptr;
 };
 
 class WasmRunner : public QObject
@@ -47,7 +49,6 @@ public:
     ~WasmRunner();
 
     void signalStart();
-    void signalDebugSession(const int port);
     void signalEnd();
 
     bool running();
@@ -59,6 +60,7 @@ public slots:
     int exitCode();
     void kill();
     void prepareStdio(StdioSpec spec);
+    void registerDebugger(Debugger* debugger);
 
 private:
     void start(const QString binary, const QStringList args, const bool debug);
@@ -67,6 +69,7 @@ private:
     WasmRunnerSharedData sharedData;
     pthread_t m_runThread;
     SystemGlue* m_system;
+    Debugger* m_debugger;
     bool m_running;
 
 signals:

@@ -16,6 +16,8 @@ ApplicationWindow {
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
     property alias tidePalette : tidePalette
 
+    property alias dbugger: dbugger
+
     readonly property int paddingSmall: 8
     readonly property int paddingMid: 12
     readonly property int paddingMedium: 16
@@ -26,7 +28,8 @@ ApplicationWindow {
     readonly property int sideBarWidth: width > height ? Math.min(sideBarExpandedDefault, width) : width
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
                                                 openFiles.files.length > 0)
-    readonly property bool shouldAllowDebugArea: dbugger.runner && wasmRunner.running
+    readonly property bool shouldAllowDebugArea: (dbugger.running && wasmRunner.running) ||
+                                                 dbugger.breakpoints.length > 0
     readonly property bool padStatusBar : true
     readonly property int headerItemHeight : 48
     readonly property int topBarHeight : 72
@@ -359,7 +362,7 @@ ApplicationWindow {
                     rightPadding: paddingMedium
                     icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
                     icon.color: root.palette.button
-                    visible: projectBuilder.projectFile !== "" && dbugger.running
+                    visible: projectBuilder.projectFile !== ""
 
                     onClicked: debugContextMenu.open()
                     onPressAndHold: debugContextMenu.open()
@@ -375,33 +378,13 @@ ApplicationWindow {
                             }
                         }
                         MenuItem {
-                            text: qsTr("Interrupt")
+                            enabled: dbugger.running
+                            text: dbugger.paused ? qsTr("Continue") : qsTr("Interrupt")
                             onTriggered: {
-                                dbugger.pause()
-                            }
-                        }
-                        MenuItem {
-                            text: qsTr("Continue")
-                            onTriggered: {
-                                dbugger.cont()
-                            }
-                        }
-                        MenuItem {
-                            text: qsTr("Step into")
-                            onTriggered: {
-                                dbugger.stepInto()
-                            }
-                        }
-                        MenuItem {
-                            text: qsTr("Step out")
-                            onTriggered: {
-                                dbugger.stepOut()
-                            }
-                        }
-                        MenuItem {
-                            text: qsTr("Step over")
-                            onTriggered: {
-                                dbugger.stepOver()
+                                if (dbugger.paused)
+                                    dbugger.cont()
+                                else
+                                    dbugger.pause()
                             }
                         }
                     }
@@ -497,27 +480,6 @@ ApplicationWindow {
                         }
                     }
                 }
-
-                /*
-                TideToolButton {
-                    visible: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
-                    enabled: !projectBuilder.building
-                    icon.source: !wasmRunner.running ?
-                                     Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png") :
-                                     Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
-                    icon.color: root.palette.button
-
-                    BusyIndicator {
-                        visible: wasmRunner.running
-                        running: wasmRunner.running
-                        anchors.centerIn: parent
-                    }
-
-                    onClicked: {
-                        root.attemptDebug()
-                    }
-                }
-                */
 
                 TideToolButton {
                     icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
@@ -629,9 +591,13 @@ ApplicationWindow {
         runner: wasmRunner
         system: iosSystem
         onRunningChanged: {
-            if (!running) {
-                showDebugArea = false;
-            }
+            showDebugArea = shouldAllowDebugArea;
+            dbugger.clearBacktrace();
+            dbugger.clearFrameValues();
+        }
+        onProcessPaused: {
+            dbugger.getBacktrace()
+            dbugger.getFrameValues()
         }
     }
 
@@ -1417,14 +1383,14 @@ ApplicationWindow {
         /* Debugger area */
         Item {
             id: debuggerArea
-            width: showDebugArea ? sideBarWidth - (paddingSmall * 2): 0
+            width: showDebugArea ? sideBarWidth - (paddingSmall * 2) : 0
             anchors.topMargin: paddingMedium
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             anchors.right: parent.right
             anchors.rightMargin: paddingSmall
             anchors.left: editorContainer.right
-            anchors.leftMargin: paddingSmall
+            anchors.leftMargin: root.width > root.height ? paddingSmall : 0
             anchors.bottomMargin: paddingMedium + paddingSmall
             visible: width > 0
 
@@ -1461,6 +1427,7 @@ ApplicationWindow {
                                 anchors.fill: parent
                                 spacing: paddingSmall * 2
                                 ToolButton {
+                                    Layout.alignment: Qt.AlignLeft
                                     Layout.leftMargin: paddingMedium
                                     icon.source: "" // Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
                                     icon.width: 24
@@ -1471,7 +1438,8 @@ ApplicationWindow {
                                     onClicked: dbugger.stepIn()
                                 }
                                 ToolButton {
-                                    Layout.rightMargin: paddingMedium
+                                    Layout.alignment: Qt.AlignLeft
+                                    Layout.leftMargin: paddingMedium
                                     icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
                                     icon.width: 24
                                     icon.height: 24
@@ -1481,7 +1449,8 @@ ApplicationWindow {
                                     onClicked: dbugger.stepOut()
                                 }
                                 ToolButton {
-                                    Layout.rightMargin: paddingMedium
+                                    Layout.alignment: Qt.AlignLeft
+                                    Layout.leftMargin: paddingMedium
                                     icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
                                     icon.width: 24
                                     icon.height: 24
@@ -1531,11 +1500,11 @@ ApplicationWindow {
                             }
                         }
                         delegate: OpenFileListingButton {
+                            readonly property var dbugger: root.dbugger
+                            readonly property bool frameIndex: model[index].frameIndex
+
                             radius: roundedCornersRadiusSmall
                             text: modelData.value
-                            //detailText: modelData.partial ?
-                            //                "" :
-                            //                modelData.file + ":" + modelData.line
                             icon.source: modelData.currentFrame ?
                                              Qt.resolvedUrl("qrc:/assets/asterisk.circle@2x.png") :
                                              ""
@@ -1549,7 +1518,7 @@ ApplicationWindow {
                                            root.palette.buttonText :
                                            root.palette.button
                             onClicked: {
-                                dbugger.selectFrame(modelData.frameIndex)
+                                dbugger.selectFrame(frameIndex)
                                 dbugger.getFrameValues()
                             }
                         }

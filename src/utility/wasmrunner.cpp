@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <stdio.h>
 
+#include "debugger.h"
+
 constexpr uint32_t stack_size = 16777216;
 constexpr uint32_t heap_size = 16777216;
 constexpr uint32_t max_threads = 64;
@@ -37,7 +39,7 @@ void WasmRunner::deinit()
 #endif
 
 WasmRunner::WasmRunner(QObject *parent)
-    : QObject{parent}, m_running{false}
+    : QObject{parent}, m_running{false}, m_system{nullptr}, m_debugger{nullptr}
 {
 }
 
@@ -49,11 +51,6 @@ void WasmRunner::signalStart()
 {
     m_running = true;
     emit runningChanged();
-}
-
-void WasmRunner::signalDebugSession(const int port)
-{
-    emit debugSessionStarted(port);
 }
 
 void WasmRunner::signalEnd()
@@ -143,10 +140,9 @@ void* runInThread(void* userdata)
     if (shared.debug) {
         wasm_exec_env_t debug_exec_env = wasm_runtime_get_exec_env_singleton(shared.module_inst);
         const auto debug_port = wasm_runtime_start_debug_instance(debug_exec_env);
-        shared.runner->signalDebugSession(debug_port);
+        shared.debugger->connectToRemote(debug_port);
 
-        // TODO: wasm_runtime_wait_for_remote_start(shared.exec_env);
-        usleep(1000 * 1000);
+        wasm_runtime_wait_for_remote_start(debug_exec_env);
     }
 
     if (!wasm_application_execute_main(shared.module_inst, 0, NULL)) {
@@ -157,6 +153,8 @@ void* runInThread(void* userdata)
 
     shared.main_result = wasm_runtime_get_wasi_exit_code(shared.module_inst);
     shared.killed = false;
+    if (shared.debug)
+        shared.debugger->killDebugger();
 
     qDebug() << "Execution complete, exit code:" << shared.main_result;
 
@@ -240,12 +238,20 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
 
     sharedData.stdio = m_spec;
     sharedData.debug = debug;
+    if (debug) {
+        sharedData.debugger = m_debugger;
+    }
     sharedData.runner = this;
     pthread_create(&m_runThread, nullptr, runInThread, &sharedData);
 }
 
 void WasmRunner::kill()
 {
+    if (sharedData.debug && m_debugger) {
+        m_debugger->killDebugger();
+        sharedData.debug = false;
+    }
+
     if (m_runThread) {
         pthread_cancel(m_runThread);
         pthread_join(m_runThread, nullptr);
@@ -265,9 +271,9 @@ void WasmRunner::kill()
         wasm_runtime_unload(sharedData.module);
         sharedData.module = nullptr;
     }
-    if (sharedData.killed) {
+    /*if (sharedData.killed) {
         WasmRunner::deinit();
-    }
+    }*/
 #endif
 
     signalEnd();
@@ -277,6 +283,11 @@ void WasmRunner::prepareStdio(StdioSpec spec)
 {
     m_spec = spec;
     qDebug() << "stdio prepared";
+}
+
+void WasmRunner::registerDebugger(Debugger* debugger)
+{
+    m_debugger = debugger;
 }
 
 bool WasmRunner::running()
