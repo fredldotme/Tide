@@ -15,8 +15,8 @@ class Debugger : public QObject
 {
     Q_OBJECT
 
-    Q_PROPERTY(WasmRunner* runner MEMBER m_runner NOTIFY runnerChanged)
-    Q_PROPERTY(SystemGlue* system MEMBER m_system NOTIFY systemChanged)
+    Q_PROPERTY(WasmRunner* runner READ runner WRITE setRunner NOTIFY runnerChanged)
+    Q_PROPERTY(SystemGlue* system READ system WRITE setSystem NOTIFY systemChanged)
     Q_PROPERTY(bool running MEMBER m_running NOTIFY runningChanged);
     Q_PROPERTY(QStringList breakpoints MEMBER m_breakpoints NOTIFY breakpointsChanged)
     Q_PROPERTY(QVariantList backtrace MEMBER m_backtrace NOTIFY backtraceChanged)
@@ -38,6 +38,7 @@ public slots:
     void stepOver();
     void pause();
     void cont();
+    void selectFrame(const int frame);
 
     void getBacktrace();
     void getFrameValues();
@@ -50,6 +51,14 @@ private:
     void readError();
     void read(FILE* io);
     void writeToStdIn(const QByteArray& input);
+    QVariantMap filterStackFrame(const QString output);
+    QVariantMap filterCallStack(const QString output);
+
+    WasmRunner* runner();
+    void setRunner(WasmRunner* runner);
+
+    SystemGlue* system();
+    void setSystem(SystemGlue* system);
 
     bool m_running;
     WasmRunner* m_runner;

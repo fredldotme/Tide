@@ -138,15 +138,13 @@ void* runInThread(void* userdata)
         goto fail;
     }
 
+    shared.runner->signalStart();
+
     if (shared.debug) {
         wasm_exec_env_t debug_exec_env = wasm_runtime_get_exec_env_singleton(shared.module_inst);
         const auto debug_port = wasm_runtime_start_debug_instance(debug_exec_env);
         shared.runner->signalDebugSession(debug_port);
-    }
 
-    shared.runner->signalStart();
-
-    if (shared.debug) {
         // TODO: wasm_runtime_wait_for_remote_start(shared.exec_env);
         usleep(1000 * 1000);
     }
@@ -158,6 +156,8 @@ void* runInThread(void* userdata)
     }
 
     shared.main_result = wasm_runtime_get_wasi_exit_code(shared.module_inst);
+    shared.killed = false;
+
     qDebug() << "Execution complete, exit code:" << shared.main_result;
 
 fail:
@@ -187,7 +187,9 @@ fail:
                          QStringLiteral(" --max-threads=%1 ").arg(max_threads) +
                          (shared.debug ? QStringLiteral(" -g=127.0.0.1:1234") : QString()) +
                          shared.binary + QStringLiteral(" ") + shared.args.join(" ");
-    shared.runner->signalDebugSession(1234);
+    if (shared.debug) {
+        shared.runner->signalDebugSession(1234);
+    }
 
     shared.main_result = shared.system->runCommand(command, shared.stdio);
     shared.runner->signalEnd();
@@ -229,6 +231,9 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
     sharedData.exec_env = nullptr;
     sharedData.module = nullptr;
     sharedData.module_inst = nullptr;
+
+    // Set to true now so that we have to reset it after a successful run.
+    sharedData.killed = true;
 #else
     sharedData.system = m_system;
 #endif
@@ -259,6 +264,9 @@ void WasmRunner::kill()
     if (sharedData.module) {
         wasm_runtime_unload(sharedData.module);
         sharedData.module = nullptr;
+    }
+    if (sharedData.killed) {
+        WasmRunner::deinit();
     }
 #endif
 

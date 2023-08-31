@@ -24,6 +24,7 @@ struct WasmRunnerSharedData {
     wasm_module_t module = nullptr;
     wasm_module_inst_t module_inst = nullptr;
     wasm_exec_env_t exec_env = nullptr;
+    bool killed;
 #endif
     WasmRunner* runner = nullptr;
     SystemGlue* system = nullptr;

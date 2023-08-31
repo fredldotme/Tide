@@ -51,5 +51,6 @@
         <file>assets/trash.fill@2x.png</file>
         <file>assets/questionmark.circle.fill@2x.png</file>
         <file>assets/circle.fill@2x.png</file>
+        <file>assets/asterisk.circle@2x.png</file>
     </qresource>
 </RCC>

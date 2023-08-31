@@ -5,12 +5,16 @@
 #include <QVariant>
 #include <QTemporaryFile>
 #include <QRegularExpression>
+#include <QRegularExpressionMatch>
 
 #include <unistd.h>
 #include <poll.h>
 #include <signal.h>
 
-static const QRegularExpression stackFrameRegex = QRegularExpression("^(.*) .* = .*");
+static const auto stackFrameRegex = QRegularExpression("^(.*) (.*) = (.*)");
+static const auto filterCallStackRegex = QRegularExpression("( *) frame #(\\d): (.*)");
+static const auto filterStackFrameRegex = QRegularExpression("^\\((.*)\\) (.*) = (.*)");
+static const auto filterFileStrRegex = QRegularExpression("^(.*):(\\d*):(\\d*)");
 
 Debugger::Debugger(QObject *parent)
     : QObject{parent}, m_runner{nullptr}, m_system{nullptr}, m_forceQuit{false}
@@ -89,13 +93,11 @@ void Debugger::read(FILE* io)
 
                     qDebug() << "LLDB:" << output;
                     if (stackFrameRegex.match(output).hasMatch()) {
-                        QVariantMap varmap;
-                        varmap.insert("value", output);
+                        const QVariantMap varmap = filterStackFrame(output);
                         m_values.append(varmap);
                         emit valuesChanged();
                     } else if (!output.startsWith("(lldb)")) {
-                        QVariantMap varmap;
-                        varmap.insert("trace", output);
+                        const QVariantMap varmap = filterCallStack(output);
                         m_backtrace.append(varmap);
                         emit backtraceChanged();
                     }
@@ -113,6 +115,51 @@ void Debugger::read(FILE* io)
         tv.tv_sec = 1;
         tv.tv_usec = 0;
     }
+}
+
+QVariantMap Debugger::filterCallStack(const QString output)
+{
+    QVariantMap ret;
+    const auto regexMatch = filterCallStackRegex.match(output);
+    qDebug() << Q_FUNC_INFO << regexMatch << "for input" << output;
+
+    if (regexMatch.hasMatch()) {
+        const auto fileStr = regexMatch.captured(4);
+        const auto fileStrMatch = filterFileStrRegex.match(fileStr);
+        const auto file = fileStrMatch.captured(1);
+        const auto line = fileStrMatch.captured(2);
+        const auto column = fileStrMatch.captured(3);
+        const auto index = regexMatch.captured(2);
+
+        ret.insert("partial", false);
+        ret.insert("file", file);
+        ret.insert("line", line);
+        ret.insert("column", column);
+        ret.insert("currentFrame", output.startsWith("  *"));
+        ret.insert("frameIndex", index);
+        ret.insert("value", regexMatch.captured(0));
+    } else {
+        ret.insert("partial", true);
+        ret.insert("value", QString(output));
+    }
+
+    return ret;
+}
+
+QVariantMap Debugger::filterStackFrame(const QString output)
+{
+    QVariantMap ret;
+    auto regexMatch = filterStackFrameRegex.match(output);
+    qDebug() << Q_FUNC_INFO << regexMatch << "for input" << output;
+
+    if (regexMatch.hasMatch()) {
+        ret.insert("partial", false);
+        ret.insert("type", regexMatch.captured(1));
+        ret.insert("name", regexMatch.captured(2));
+        ret.insert("value", regexMatch.captured(3));
+    }
+
+    return ret;
 }
 
 void Debugger::readOutput()
@@ -145,22 +192,6 @@ void Debugger::debug(const QString binary, const QStringList args)
         m_stdioPair = m_system->setupPipes();
         hasPair = true;
     }
-
-    QObject::disconnect(m_runner, nullptr, nullptr, nullptr);
-
-    QObject::connect(m_runner, &WasmRunner::debugSessionStarted, this, [=](int port){
-            m_port = port;
-            std::thread debugThread([=]() {
-                runDebugSession();
-            });
-            debugThread.detach();
-            m_running = true;
-            emit runningChanged();
-        }, Qt::QueuedConnection);
-
-    QObject::connect(m_runner, &WasmRunner::runEnded, this, [=](int){
-            quitDebugger();
-        }, Qt::QueuedConnection);
 
     m_binary = binary;
     m_args = args;
@@ -215,7 +246,7 @@ void Debugger::runDebugSession()
     }
 
     auto debugCommand =
-        QStringLiteral("platform select remote-wasm-server\n") +
+        QStringLiteral("platform select remote-linux\n") +
         QStringLiteral("process connect -p wasm connect://127.0.0.1:%1\n").arg(m_port);
 
     for (const auto& breakpoint : m_breakpoints) {
@@ -227,17 +258,14 @@ void Debugger::runDebugSession()
     tmpFile.write(debugCommand.toUtf8());
     tmpFile.close();
 
-    const QStringList cmds { QStringLiteral("lldb --debug -S \"%1\"").arg(tmpFile.fileName()) };
+    const QString cmd { QStringLiteral("lldb -S \"%1\"").arg(tmpFile.fileName()) };
 
     m_readThreadOut.start();
     m_readThreadErr.start();
 
-    qDebug() <<
-        "m_stdioPair.first.stdin" << m_stdioPair.first.stdin <<
-        "m_stdioPair.second.stdin" << m_stdioPair.second.stdin;
-
     signal(SIGPIPE, SIG_IGN);
-    m_system->runBuildCommands(cmds, m_stdioPair.first);
+    const int ret = m_system->runCommand(cmd, m_stdioPair.first);
+    qDebug() << "Debugger return value:" << ret;
     signal(SIGPIPE, SIG_IGN);
 
     m_forceQuit = true;
@@ -255,19 +283,62 @@ void Debugger::writeToStdIn(const QByteArray& input)
     fflush(m_stdioPair.second.stdin);
 }
 
+WasmRunner* Debugger::runner()
+{
+    return m_runner;
+}
+
+void Debugger::setRunner(WasmRunner* runner)
+{
+    if (runner == m_runner)
+        return;
+
+    if (m_runner)
+        QObject::disconnect(m_runner, nullptr, nullptr, nullptr);
+
+    m_runner = runner;
+
+    QObject::connect(m_runner, &WasmRunner::debugSessionStarted, this, [=](int port){
+            m_port = port;
+            std::thread debugThread([=]() {
+                runDebugSession();
+            });
+            debugThread.detach();
+            m_running = true;
+            emit runningChanged();
+        }, Qt::DirectConnection);
+
+    QObject::connect(m_runner, &WasmRunner::runEnded, this, [=](int){
+            quitDebugger();
+        }, Qt::DirectConnection);
+}
+
+SystemGlue* Debugger::system()
+{
+    return m_system;
+}
+
+void Debugger::setSystem(SystemGlue* system)
+{
+    if (m_system == system)
+        return;
+
+    m_system = system;
+}
+
 void Debugger::stepIn()
 {
-    writeToStdIn("step\n");
+    writeToStdIn("thread step-in\n");
 }
 
 void Debugger::stepOut()
 {
-    writeToStdIn("finish\n");
+    writeToStdIn("thread step-out\n");
 }
 
 void Debugger::stepOver()
 {
-    writeToStdIn("next\n");
+    writeToStdIn("thread step-over\n");
 }
 
 void Debugger::pause()
@@ -280,6 +351,12 @@ void Debugger::cont()
     writeToStdIn("process continue\n");
 }
 
+void Debugger::selectFrame(const int frame)
+{
+    const QString inputStr = QStringLiteral("frame select %1\n").arg(frame);
+    writeToStdIn(inputStr.toUtf8());
+}
+
 void Debugger::quitDebugger()
 {
     writeToStdIn("process detach\nquit\n");
@@ -287,9 +364,11 @@ void Debugger::quitDebugger()
 
 void Debugger::killDebugger()
 {
+    QObject::disconnect(m_runner, nullptr, nullptr, nullptr);
+
     signal(SIGPIPE, SIG_IGN);
-    quitDebugger();
     m_forceQuit = true;
+    quitDebugger();
 
     m_running = false;
     emit runningChanged();
@@ -297,17 +376,11 @@ void Debugger::killDebugger()
 
 void Debugger::getBacktrace()
 {
-    m_backtrace.clear();
-    emit backtraceChanged();
-
     const auto input = QByteArrayLiteral("bt\n");
     writeToStdIn(input);
 }
 
 void Debugger::getFrameValues()
 {
-    m_values.clear();
-    emit valuesChanged();
-
     writeToStdIn("frame variable\n");
 }

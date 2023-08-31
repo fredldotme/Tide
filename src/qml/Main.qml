@@ -359,7 +359,7 @@ ApplicationWindow {
                     rightPadding: paddingMedium
                     icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
                     icon.color: root.palette.button
-                    visible: projectBuilder.projectFile !== ""
+                    visible: projectBuilder.projectFile !== "" && dbugger.running
 
                     onClicked: debugContextMenu.open()
                     onPressAndHold: debugContextMenu.open()
@@ -432,12 +432,12 @@ ApplicationWindow {
                             runRequested = false
                             releaseRequested = false
 
+                            if (dbugger.running)
+                                dbugger.killDebugger()
                             if (wasmRunner.running)
                                 wasmRunner.kill()
                             if (projectBuilder.building)
                                 projectBuilder.cancel()
-                            if (dbugger.running)
-                                dbugger.killDebugger()
                         }
                     }
                     onPressAndHold: {
@@ -479,7 +479,7 @@ ApplicationWindow {
                         }
                         MenuItem {
                             property bool visibility: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
-                            enabled: !projectBuilder.building && visibility
+                            enabled: !projectBuilder.building && !dbugger.running && visibility
                             text: qsTr("Debug")
                             icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
 
@@ -490,7 +490,6 @@ ApplicationWindow {
                             }
 
                             onClicked: {
-                                console.log("DOIT")
                                 root.debugRequested = true
                                 root.runRequested = false
                                 root.attemptBuild()
@@ -1415,7 +1414,8 @@ ApplicationWindow {
             }
         }
 
-        Rectangle {
+        /* Debugger area */
+        Item {
             id: debuggerArea
             width: showDebugArea ? sideBarWidth - (paddingSmall * 2): 0
             anchors.topMargin: paddingMedium
@@ -1427,64 +1427,15 @@ ApplicationWindow {
             anchors.leftMargin: paddingSmall
             anchors.bottomMargin: paddingMedium + paddingSmall
             visible: width > 0
-            color: root.palette.base
-            radius: roundedCornersRadiusMedium
 
-            readonly property int usableHeight : debuggerArea.height - debuggerAreaToolbar.height
+            readonly property int usableHeight : debuggerArea.height
 
             Behavior on width {
                 NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
             }
 
-            Item {
-                id: debuggerAreaToolbar
-                width: projectNavigationStack.width
-                height: root.headerItemHeight
-
-                RowLayout {
-                    anchors.fill: parent
-                    spacing: paddingSmall * 2
-                    ToolButton {
-                        Layout.alignment: Qt.AlignLeft
-                        Layout.leftMargin: paddingMedium
-                        icon.source: "" // Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
-                        icon.width: 24
-                        icon.height: 24
-                        text: qsTr("Step in")
-                        enabled: dbugger.running
-                        font.pixelSize: 16
-                        onClicked: dbugger.stepIn()
-                    }
-                    ToolButton {
-                        Layout.alignment: Qt.AlignRight
-                        Layout.rightMargin: paddingMedium
-                        icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
-                        icon.width: 24
-                        icon.height: 24
-                        text: qsTr("Step out")
-                        enabled: dbugger.running
-                        font.pixelSize: 16
-                        onClicked: dbugger.stepOut()
-                    }
-                    ToolButton {
-                        Layout.alignment: Qt.AlignRight
-                        Layout.rightMargin: paddingMedium
-                        icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
-                        icon.width: 24
-                        icon.height: 24
-                        text: qsTr("Step over")
-                        enabled: dbugger.running
-                        font.pixelSize: 16
-                        onClicked: dbugger.stepOver()
-                    }
-                }
-            }
-
             Column {
-                anchors.top: debuggerAreaToolbar.bottom
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
+                anchors.fill: parent
                 clip: true
                 spacing: paddingSmall
 
@@ -1496,23 +1447,58 @@ ApplicationWindow {
                     height: (debuggerArea.usableHeight / 3) - paddingSmall
                     radius: roundedCornersRadiusMedium
                     color: root.palette.base
-                    border.color: root.palette.alternateBase
-                    border.width: 1
 
                     ListView {
                         anchors.fill: parent
+                        anchors.margins: paddingSmall
                         clip: true
                         model: dbugger.breakpoints
-                        header: TideButton {
-                            font.pixelSize: 16
-                            text: qsTr("Breakpoints:")
-                            color: root.palette.button
+                        header: Item {
+                            width: projectNavigationStack.width
+                            height: root.headerItemHeight
+
+                            RowLayout {
+                                anchors.fill: parent
+                                spacing: paddingSmall * 2
+                                ToolButton {
+                                    Layout.leftMargin: paddingMedium
+                                    icon.source: "" // Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
+                                    icon.width: 24
+                                    icon.height: 24
+                                    text: qsTr("Step in")
+                                    enabled: dbugger.running
+                                    font.pixelSize: 16
+                                    onClicked: dbugger.stepIn()
+                                }
+                                ToolButton {
+                                    Layout.rightMargin: paddingMedium
+                                    icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
+                                    icon.width: 24
+                                    icon.height: 24
+                                    text: qsTr("Step out")
+                                    enabled: dbugger.running
+                                    font.pixelSize: 16
+                                    onClicked: dbugger.stepOut()
+                                }
+                                ToolButton {
+                                    Layout.rightMargin: paddingMedium
+                                    icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
+                                    icon.width: 24
+                                    icon.height: 24
+                                    text: qsTr("Step over")
+                                    enabled: dbugger.running
+                                    font.pixelSize: 16
+                                    onClicked: dbugger.stepOver()
+                                }
+                            }
                         }
                         delegate: TideButton {
                             icon.source: Qt.resolvedUrl("qrc:/assets/circle.fill@2x.png")
                             icon.color: "red"
                             text: modelData
-                            font.pixelSize: 16
+                            width: parent.width
+                            height: headerItemHeight
+                            font.pixelSize: 18
                             color: root.palette.button
                             onClicked: {
                                 consoleView.hide()
@@ -1529,26 +1515,43 @@ ApplicationWindow {
                     height: (debuggerArea.usableHeight / 3) - paddingSmall
                     radius: roundedCornersRadiusMedium
                     color: root.palette.base
-                    border.color: root.palette.alternateBase
-                    border.width: 1
 
                     ListView {
                         anchors.fill: parent
+                        anchors.margins: paddingSmall
                         model: dbugger.backtrace
                         clip: true
                         header: TideButton {
-                            font.pixelSize: 16
-                            text: qsTr("Callstack:")
+                            font.pixelSize: 18
+                            text: qsTr("Callstack & frames:")
+                            height: headerItemHeight
                             color: root.palette.button
                             onClicked: {
                                 dbugger.getBacktrace();
                             }
                         }
-                        delegate: TideButton {
-                            text: modelData.trace
-                            font.pixelSize: 16
-                            color: root.palette.button
+                        delegate: OpenFileListingButton {
+                            radius: roundedCornersRadiusSmall
+                            text: modelData.value
+                            //detailText: modelData.partial ?
+                            //                "" :
+                            //                modelData.file + ":" + modelData.line
+                            icon.source: modelData.currentFrame ?
+                                             Qt.resolvedUrl("qrc:/assets/asterisk.circle@2x.png") :
+                                             ""
+                            font.pixelSize: 18
                             width: parent.width
+                            height: headerItemHeight
+                            color: modelData.currentFrame ?
+                                       root.palette.active.button :
+                                       "transparent"
+                            textColor: modelData.currentFrame ?
+                                           root.palette.buttonText :
+                                           root.palette.button
+                            onClicked: {
+                                dbugger.selectFrame(modelData.frameIndex)
+                                dbugger.getFrameValues()
+                            }
                         }
                     }
                 }
@@ -1561,26 +1564,29 @@ ApplicationWindow {
                     height: (debuggerArea.usableHeight / 3) - paddingSmall
                     radius: roundedCornersRadiusMedium
                     color: root.palette.base
-                    border.color: root.palette.alternateBase
-                    border.width: 1
 
                     ListView {
                         anchors.fill: parent
+                        anchors.margins: paddingSmall
                         model: dbugger.values
                         clip: true
                         header: TideButton {
-                            font.pixelSize: 16
+                            font.pixelSize: 18
                             text: qsTr("Values:")
                             color: root.palette.button
+                            height: headerItemHeight
                             onClicked: {
                                 dbugger.getFrameValues();
                             }
                         }
                         delegate: TideButton {
-                            text: modelData.value
-                            font.pixelSize: 16
-                            color: root.palette.button
+                            text: modelData.partial || modelData.name === undefined ?
+                                      modelData.value :
+                                      modelData.type + " " + modelData.name + " = " + modelData.value
+                            font.pixelSize: 18
                             width: parent.width
+                            height: headerItemHeight
+                            color: root.palette.button
                         }
                     }
                 }
