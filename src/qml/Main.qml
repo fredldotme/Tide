@@ -381,10 +381,12 @@ ApplicationWindow {
                             enabled: dbugger.running
                             text: dbugger.paused ? qsTr("Continue") : qsTr("Interrupt")
                             onTriggered: {
-                                if (dbugger.paused)
+                                if (dbugger.paused) {
                                     dbugger.cont()
-                                else
+                                    consoleView.show()
+                                } else {
                                     dbugger.pause()
+                                }
                             }
                         }
                     }
