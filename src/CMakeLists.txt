@@ -280,7 +280,7 @@ if(IOS)
     find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # CMake and Ninja
-    find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+    #find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
     #find_library(NINJAFW REQUIRED NAMES ninja PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # Debugger's lldb requires some trickery
