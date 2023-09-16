@@ -11,8 +11,13 @@
 
 #include <unistd.h>
 #include <stdio.h>
+#include <signal.h>
 
 #include "debugger.h"
+#include "platform_internal.h"
+
+//#include "api-bindings/opengles2.h"
+//#include "api-bindings/qmlwindow.h"
 
 constexpr uint32_t stack_size = 16777216;
 constexpr uint32_t heap_size = 16777216;
@@ -30,10 +35,18 @@ void WasmRunner::init()
     init_args.max_thread_num = 64;
 
     wasm_runtime_full_init(&init_args);
+
+    // Register native API bindings
+    //register_wamr_opengles_bindings();
+    //register_wamr_tideui_bindings();
+    //register_wamr_sdl2_bindings();
 }
 
 void WasmRunner::deinit()
 {
+#ifdef TIDEUI_API_BINDING_H
+    cleanup_wamr_tideui_memory();
+#endif
     wasm_runtime_destroy();
 }
 #endif
@@ -58,10 +71,9 @@ void WasmRunner::signalEnd()
     if (!m_running)
         return;
 
-    emit runEnded(sharedData.main_result);
-
     m_running = false;
     emit runningChanged();
+    emit runEnded(sharedData.main_result);
 }
 
 void* runInThread(void* userdata)
@@ -252,6 +264,12 @@ void WasmRunner::kill()
         sharedData.debug = false;
     }
 
+#if 0 //USE_EMBEDDED_WAMR
+    if (sharedData.module_inst) {
+        wasm_runtime_terminate(sharedData.module_inst);
+    }
+#endif
+
     if (m_runThread) {
         pthread_cancel(m_runThread);
         pthread_join(m_runThread, nullptr);
@@ -271,9 +289,10 @@ void WasmRunner::kill()
         wasm_runtime_unload(sharedData.module);
         sharedData.module = nullptr;
     }
-    /*if (sharedData.killed) {
-        WasmRunner::deinit();
-    }*/
+#endif
+
+#ifdef TIDEUI_API_BINDING_H
+    cleanup_wamr_tideui_memory();
 #endif
 
     signalEnd();
