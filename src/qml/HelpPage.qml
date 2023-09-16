@@ -6,10 +6,13 @@ ColumnLayout {
     spacing: paddingMedium
     RowLayout {
         width: parent.width
+        height: root.topBarHeight
+        Item {
+            Layout.fillWidth: true
+        }
         ToolButton {
             text: qsTr("Close")
             font.bold: true
-            leftPadding: paddingMedium
             onClicked: {
                 helpDialog.hide()
             }
@@ -24,7 +27,7 @@ ColumnLayout {
     }
 
     Label {
-        text: qsTr("The Tide IDE")
+        text: qsTr("Tide IDE")
         font.pixelSize: 24
         font.bold: true
         wrapMode: Label.WrapAtWordBoundaryOrAnywhere

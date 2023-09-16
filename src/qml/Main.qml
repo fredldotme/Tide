@@ -25,7 +25,8 @@ ApplicationWindow {
     readonly property int roundedCornersRadius: 16
     readonly property int roundedCornersRadiusMedium: 24
     readonly property int sideBarExpandedDefault: 324
-    readonly property int sideBarWidth: width > height ? Math.min(sideBarExpandedDefault, width) : width
+    readonly property bool landscapeMode : width > height
+    readonly property int sideBarWidth: landscapeMode ? Math.min(sideBarExpandedDefault, width) : width
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
                                                 openFiles.files.length > 0)
     readonly property bool shouldAllowDebugArea: (dbugger.running && wasmRunner.running) ||
@@ -33,6 +34,7 @@ ApplicationWindow {
     readonly property bool padStatusBar : true
     readonly property int headerItemHeight : 48
     readonly property int topBarHeight : 72
+    readonly property int menuItemIconSize : 24
 
     property font fixedFont: standardFixedFont
     property bool showLeftSideBar: true
@@ -104,6 +106,35 @@ ApplicationWindow {
         dbugger.debug(projectBuilder.runnableFile(), [])
     }
 
+    function stopRunAndDebug() {
+        debugRequested = false
+        runRequested = false
+        releaseRequested = false
+
+        if (dbugger.running)
+            dbugger.killDebugger()
+        if (wasmRunner.running)
+            wasmRunner.kill()
+        if (projectBuilder.building)
+            projectBuilder.cancel()
+    }
+
+    function toggleSettingsDialog() {
+        if (settingsDialog.visibility) {
+            settingsDialog.hide()
+        } else {
+            settingsDialog.show()
+        }
+    }
+
+    function toggleHelpDialog() {
+        if (helpDialog.visibility) {
+            helpDialog.hide()
+        } else {
+            helpDialog.show()
+        }
+    }
+
     onActiveChanged: {
         if (active) {
             cleanObsoleteProjects()
@@ -147,6 +178,7 @@ ApplicationWindow {
 
                 TideToolButton {
                     id: contextButton
+                    enabled: !sysrootManager.installing
                     icon.source: Qt.resolvedUrl("qrc:/assets/ellipsis.circle@2x.png")
                     icon.color: root.palette.button
                     leftPadding: paddingMedium
@@ -188,6 +220,17 @@ ApplicationWindow {
 
                     TideMenu {
                         id: contextMenu
+
+                        MenuItem {
+                            id: settingsButton
+                            icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
+                            text: qsTr("Settings")
+
+                            onClicked: {
+                                root.toggleSettingsDialog()
+                            }
+                        }
+
                         MenuItem {
                             id: contextFieldSearchButton
                             text: qsTr("Find && replace")
@@ -248,8 +291,7 @@ ApplicationWindow {
 
                             onClicked: {
                                 releaseRequested = true
-                                projectBuilder.clean()
-                                projectBuilder.build(false)
+                                root.attemptBuild()
                             }
                         }
 
@@ -259,25 +301,7 @@ ApplicationWindow {
                             text: qsTr("Help")
 
                             onClicked: {
-                                if (helpDialog.visibility) {
-                                    helpDialog.hide()
-                                } else {
-                                    helpDialog.show()
-                                }
-                            }
-                        }
-
-                        MenuItem {
-                            id: settingsButton
-                            icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
-                            text: qsTr("Settings")
-
-                            onClicked: {
-                                if (settingsDialog.visibility) {
-                                    settingsDialog.hide()
-                                } else {
-                                    settingsDialog.show()
-                                }
+                                root.toggleHelpDialog()
                             }
                         }
                     }
@@ -302,7 +326,10 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignHCenter
                     color: root.palette.button
-                    text: compiling ? qsTr("Building project...") : ""
+                    text: compiling ?
+                              qsTr("Building project...") :
+                              delayedDebugContinue.running ? qsTr("Heating up for debugging...") :
+                                                             ""
                     elide: Text.ElideRight
                     font.bold: true
                     horizontalAlignment: Label.AlignHCenter
@@ -413,16 +440,7 @@ ApplicationWindow {
                         if (idle) {
                             buildContextMenu.open()
                         } else {
-                            debugRequested = false
-                            runRequested = false
-                            releaseRequested = false
-
-                            if (dbugger.running)
-                                dbugger.killDebugger()
-                            if (wasmRunner.running)
-                                wasmRunner.kill()
-                            if (projectBuilder.building)
-                                projectBuilder.cancel()
+                            root.stopRunAndDebug()
                         }
                     }
                     onPressAndHold: {
@@ -457,9 +475,13 @@ ApplicationWindow {
                                              Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
                             enabled: !projectBuilder.building && projectBuilder.projectFile !== ""
                             onTriggered: {
-                                root.debugRequested = false
-                                root.runRequested = true
-                                root.attemptBuild()
+                                if (!isRunning) {
+                                    root.debugRequested = false
+                                    root.runRequested = true
+                                    root.attemptBuild()
+                                } else {
+                                    root.stopRunAndDebug()
+                                }
                             }
                         }
                         MenuItem {
@@ -487,6 +509,7 @@ ApplicationWindow {
                     icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
                     icon.color: root.palette.button
                     rightPadding: paddingMedium
+                    enabled: !sysrootManager.installing
 
                     onClicked: {
                         if (consoleView.visibility)
@@ -572,7 +595,9 @@ ApplicationWindow {
 
                 if (releaseRequested) {
                     releaseRequested = false
-                    Qt.openUrlExternally("shareddocuments://" + projectBuilder.runnableFile())
+                    const coords = contextButton.mapToGlobal(0, 0)
+                    const pos = Qt.rect(coords.x, coords.y, contextButton.width, contextButton.height)
+                    iosSystem.share("", "file://" + projectBuilder.runnableFile(), pos)
                 }
             }
     }
@@ -599,17 +624,26 @@ ApplicationWindow {
         system: iosSystem
         onRunningChanged: {
             showDebugArea = shouldAllowDebugArea;
-            dbugger.clearBacktrace();
-            dbugger.clearFrameValues();
+            if (running) {
+                dbugger.clearBacktrace();
+                dbugger.clearFrameValues();
+            }
+            if (running && settings.clearConsole)
+                clearConsoleOutput()
         }
         onProcessPaused: {
-            dbugger.getBacktrace()
-            dbugger.selectFrame(0)
-            dbugger.getFrameValues()
+            dbugger.getBacktraceAndFrameValues()
         }
         onAttachedToProcess: {
-            debugContextMenu.open()
+            delayedDebugContinue.start()
         }
+    }
+
+    Timer {
+        id: delayedDebugContinue
+        repeat: false
+        interval: 1000
+        onTriggered: dbugger.cont()
     }
 
     Component.onCompleted: {
@@ -748,10 +782,28 @@ ApplicationWindow {
 
         Row {
             id: mainView
-            anchors.fill: parent
             spacing: 1
             visible: projectList.projects.length > 0
             onVisibleChanged: mainView.forceLayout()
+
+            x: !centered ? 0 : ((parent.width - width) / 2)
+            y: !centered ? 0 : ((parent.height - height) / 2)
+            width: !centered ? parent.width : dialogWidth
+            height: !centered ? parent.height : dialogHeight
+
+            readonly property bool centered : editor.invalidated
+            Behavior on x {
+                NumberAnimation { duration: 300; easing.type: Easing.OutCubic; }
+            }
+            Behavior on y {
+                NumberAnimation { duration: 300; easing.type: Easing.OutCubic; }
+            }
+            Behavior on width {
+                NumberAnimation { duration: 300; easing.type: Easing.OutCubic; }
+            }
+            Behavior on height {
+                NumberAnimation { duration: 300; easing.type: Easing.OutCubic; }
+            }
 
             readonly property int dialogWidth: parent.width <= sideBarWidth ?
                                                    sideBarWidth :
@@ -759,6 +811,13 @@ ApplicationWindow {
             readonly property int dialogHeight: width === sideBarWidth ?
                                                     parent.height :
                                                     ((parent.height / 8) * 6)
+
+            readonly property int settingsDialogWidth: parent.width <= sideBarWidth ?
+                                                           sideBarWidth :
+                                                           (parent.width / 2)
+            readonly property int settingsDialogHeight: width === sideBarWidth ?
+                                                            parent.height :
+                                                            (parent.height / 2)
 
             Pane {
                 id: leftSideBar
@@ -784,7 +843,8 @@ ApplicationWindow {
                 }
 
                 Pane {
-                    anchors.fill: parent
+                    width: parent.width
+                    height: parent.height
                     topInset: 0
                     leftInset: 0
                     rightInset: 0
@@ -872,7 +932,7 @@ ApplicationWindow {
                                     Rectangle {
                                         width: parent.width
                                         radius: roundedCornersRadiusMedium
-                                        color: root.palette.base
+                                        color: root.tidePalette.base
                                         clip: true
 
                                         ListView {
@@ -881,7 +941,7 @@ ApplicationWindow {
                                                 clip: true
                                                 width: projectNavigationStack.width
                                                 height: root.headerItemHeight
-                                                color: root.tidePalette.base
+                                                color: "transparent"
                                                 radius: roundedCornersRadiusMedium
                                                 RowLayout {
                                                     anchors.fill: parent
@@ -1048,7 +1108,7 @@ ApplicationWindow {
                                                 width: projectNavigationStack.width
                                                 height: root.headerItemHeight
                                                 clip: true
-                                                color: root.tidePalette.base
+                                                color: "transparent"
                                                 radius: roundedCornersRadiusMedium
                                                 RowLayout {
                                                     anchors.fill: parent
@@ -1204,6 +1264,10 @@ ApplicationWindow {
                             property bool showArea : true
                             readonly property int usualHeight: (parent.height / 2) - (contextField.height / 2) - (paddingMedium / 2)
 
+                            opacity: !mainView.centered ? 1.0 : 0.0
+                            Behavior on opacity {
+                                NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
+                            }
 
                             width: parent.width
                             height: openFiles.files.length > 0 ?
@@ -1252,6 +1316,10 @@ ApplicationWindow {
                                                         console.log("Closing: " + i)
                                                         openFiles.close(openFiles.files[i])
                                                     }
+                                                    for (let i = dbugger.breakpoints.length - 1; i >= 0; i--) {
+                                                        dbugger.removeBreakpoint(dbugger.breakpoints[i])
+                                                    }
+                                                    showDebugArea = false
                                                 }
                                             }
                                             ToolButton {
@@ -1391,6 +1459,36 @@ ApplicationWindow {
             }
         }
 
+        Rectangle {
+            id: dialogShadow
+            width: parent.width
+            height: parent.height
+            color: "black"
+            opacity: 0.0
+            visible: opacity > 0.0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: dialogShadow.consoleAnimation
+                    easing.type: Easing.OutCubic
+                }
+            }
+
+            readonly property int consoleAnimation: 250
+
+            // Due to a Qt bug it is possible to crash the IDE by tapping a CodeEditor
+            // while the console is open and overlaid on top, apparently due to the TextField
+            // being instantiated in a different thread (how?). Catch any accidental presses
+            // in a modal way to work around this issue.
+            MouseArea {
+                anchors.fill: parent
+                onClicked:
+                    (mouse) => {
+                        mouse.accepted = true
+                    }
+            }
+        }
+
         /* Debugger area */
         Item {
             id: debuggerArea
@@ -1404,6 +1502,7 @@ ApplicationWindow {
             anchors.leftMargin: paddingSmall
             anchors.bottomMargin: paddingMedium + paddingSmall
             visible: width > 0
+            z: consoleView.z + 1
 
             readonly property int usableHeight : debuggerArea.height
 
@@ -1505,41 +1604,46 @@ ApplicationWindow {
                     color: root.palette.base
 
                     ListView {
+                        id: backtracesListView
                         anchors.fill: parent
                         anchors.margins: paddingSmall
                         model: dbugger.backtrace
                         clip: true
+                        spacing: paddingSmall
                         header: TideButton {
                             font.pixelSize: 18
                             text: qsTr("Callstack & frames:")
                             height: headerItemHeight
                             color: root.palette.button
-                            onClicked: {
+                            /*onClicked: {
                                 dbugger.getBacktrace();
-                            }
+                            }*/
                         }
-                        delegate: OpenFileListingButton {
+                        delegate: DebuggerListEntry {
                             readonly property var dbugger: root.dbugger
-                            readonly property bool frameIndex: model[index].frameIndex
+                            readonly property bool frameIndex: modelData.frameIndex
 
                             radius: roundedCornersRadiusSmall
                             text: modelData.value
-                            icon.source: modelData.currentFrame ?
-                                             Qt.resolvedUrl("qrc:/assets/asterisk.circle@2x.png") :
-                                             ""
+                            detailText: modelData.file === undefined || modelData.file === "" ?
+                                            qsTr("Unknown file") :
+                                            modelData.file + ":" + modelData.line
                             font.pixelSize: 18
-                            width: parent.width
-                            height: headerItemHeight
+                            width: backtracesListView.width
+                            height: paddingSmall +
+                                    Math.max(label.height, boldLabel.height) +
+                                    paddingSmall +
+                                    detailControl.font.pixelSize +
+                                    paddingSmall
                             color: modelData.currentFrame ?
                                        root.palette.active.button :
                                        "transparent"
                             textColor: modelData.currentFrame ?
                                            root.palette.buttonText :
                                            root.palette.button
-                            onClicked: {
-                                dbugger.selectFrame(frameIndex)
-                                dbugger.getFrameValues()
-                            }
+                            label.wrapMode: Label.WrapAtWordBoundaryOrAnywhere
+                            outline: true
+                            outlineColor: root.palette.button
                         }
                     }
                 }
@@ -1554,66 +1658,72 @@ ApplicationWindow {
                     color: root.palette.base
 
                     ListView {
+                        id: frameValuesListView
                         anchors.fill: parent
                         anchors.margins: paddingSmall
                         model: dbugger.values
+                        spacing: paddingSmall
                         clip: true
                         header: TideButton {
                             font.pixelSize: 18
-                            text: qsTr("Values:")
+                            text: qsTr("Values & instructions:")
                             color: root.palette.button
                             height: headerItemHeight
                             onClicked: {
                                 dbugger.getFrameValues();
                             }
                         }
-                        delegate: TideButton {
+                        delegate: DebuggerListEntry {
+                            id: valueOrInstruction
+                            boldText: modelData.partial || modelData.name === undefined ?
+                                          "" :
+                                          modelData.type
                             text: modelData.partial || modelData.name === undefined ?
                                       modelData.value :
-                                      modelData.type + " " + modelData.name + " = " + modelData.value
+                                      modelData.name
+                            detailText: modelData.partial || modelData.name === undefined ?
+                                            "" :
+                                            modelData.value
                             font.pixelSize: 18
-                            width: parent.width
-                            height: headerItemHeight
-                            color: root.palette.button
+                            width: frameValuesListView.width
+                            height: paddingSmall +
+                                    label.font.pixelSize +
+                                    paddingSmall +
+                                    detailControl.font.pixelSize +
+                                    paddingSmall
+                            outline: true
+                            outlineColor: root.palette.button
+                            textColor: root.palette.button
+                            radius: roundedCornersRadiusSmall
+
+                            property bool showToolTip : false
+                            onClicked: {
+                                showToolTip = true
+                            }
+                            onPressedChanged: {
+                                if (!pressed) {
+                                    showToolTip = false;
+                                }
+                            }
+
+                            ToolTip {
+                                visible: valueOrInstruction.showToolTip
+                                text: modelData.value
+                                width: valueOrInstruction.width
+                                x: (valueOrInstruction.width - width) / 2
+                                y: ((valueOrInstruction.height) / 2) - height
+                            }
                         }
                     }
                 }
             }
         }
 
-        Rectangle {
-            id: dialogShadow
-            anchors.fill: parent
-            color: root.palette.shadow
-            opacity: 0.0
-            visible: opacity > 0.0
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: dialogShadow.consoleAnimation
-                    easing.type: Easing.OutCubic
-                }
-            }
-
-            readonly property int consoleAnimation: 250
-
-            // Due to a Qt bug it is possible to crash the IDE by tapping a CodeEditor
-            // while the console is open and overlaid on top, apparently due to the TextField
-            // being instantiated in a different thread (how?). Catch any accidental presses
-            // in a modal way to work around this issue.
-            MouseArea {
-                anchors.fill: parent
-                onClicked:
-                    (mouse) => {
-                        mouse.accepted = true
-                    }
-            }
-        }
-
         SettingsDialog {
             id: settingsDialog
-            width: mainView.dialogWidth
-            height: mainView.dialogHeight
+            width: mainView.settingsDialogWidth
+            height: mainView.settingsDialogHeight
+            anchors.centerIn: parent
         }
 
         ListModel {
@@ -1674,13 +1784,17 @@ ApplicationWindow {
 
         ConsoleView {
             id: consoleView
-            width: mainView.dialogWidth - debuggerArea.width
+            width: !landscapeMode && showDebugArea ?
+                       0 : // Don't overlap debugger area and ConsoleView in portraitMode
+                       mainView.dialogWidth - (debuggerArea.width / 2)
             height: mainView.dialogHeight
         }
 
         ContextView {
             id: contextDialog
-            width: mainView.dialogWidth
+            width: !landscapeMode && showDebugArea ?
+                    0 : // Don't overlap debugger area and ConsoleView in portraitMode
+                    mainView.dialogWidth - (debuggerArea.width / 2)
             height: mainView.dialogHeight
             onOpenRequested: {
                 openEditorFile(contextDialog.currentPath)
@@ -1876,6 +1990,61 @@ ApplicationWindow {
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                     text: ""
                 }
+            }
+        }
+
+        // Loading splash screen
+        Rectangle {
+            property bool visibility: sysrootManager.installing
+            anchors.fill: parent
+            visible: opacity > 0.0
+            color: "black"
+            opacity: visibility ? 0.85 : 0.0
+
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: 150
+                }
+            }
+
+            Label {
+                id: preparationHint
+                anchors.centerIn: parent
+                width: parent.width - (paddingSmall * 2)
+                font.pixelSize: 30
+                text: qsTr("Preparing environment, hold on...")
+                color: "white"
+                wrapMode: Label.WrapAtWordBoundaryOrAnywhere
+                horizontalAlignment: Qt.AlignHCenter
+            }
+
+            ProgressBar {
+                id: preparationProgressBar
+                clip: true
+                anchors.top: preparationHint.bottom
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.topMargin: paddingSmall
+                anchors.leftMargin: parent.width / 4
+                anchors.rightMargin: parent.width / 4
+                value: sysrootManager.progress
+                onValueChanged: {
+                    preparationProgressBar.indeterminate = false
+                    indeterminateTimer.start()
+                }
+            }
+
+            Timer {
+                id: indeterminateTimer
+                interval: 1000
+                repeat: false
+                onTriggered: {
+                    preparationProgressBar.indeterminate = true
+                }
+            }
+
+            MouseArea {
+                anchors.fill: parent
             }
         }
     }

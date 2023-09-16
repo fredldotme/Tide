@@ -2,40 +2,28 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Pane {
+TideDialog {
     id: settingsDialog
-    x: (parent.width - width) / 2
-    y: visibility ? ((parent.height - height) / 2) : parent.height
-    opacity: visibility ? 1.0 : 0.0
-    visible: true
     clip: true
 
     readonly property bool paneHeight : mainPane.height
 
-    property bool visibility : false
-
     function show() {
-        visibility = true
+        settingsDialog.open()
     }
 
     function hide() {
-        visibility = false
+        settingsDialog.close()
     }
 
-    Behavior on y {
-        NumberAnimation {
-            duration: dialogShadow.consoleAnimation
-            easing.type: Easing.OutCubic
-        }
-    }
-
-    Column {
+    Item {
         id: mainColumn
         anchors.fill: parent
 
-        ToolBar {
+        Item {
             id: consoleToolBar
             width: parent.width
+            height: root.topBarHeight
 
             RowLayout {
                 anchors.fill: parent
@@ -60,12 +48,19 @@ Pane {
             }
         }
 
-        Pane {
+        ScrollView {
             id: mainPane
-            width: parent.width
             contentWidth: -1
+            anchors {
+                top: consoleToolBar.bottom
+                left: parent.left
+                right: parent.right
+                bottom: parent.bottom
+            }
 
             Column {
+                width: childrenRect.width
+                height: childrenRect.height
                 spacing: paddingSmall
                 RowLayout {
                     Label {

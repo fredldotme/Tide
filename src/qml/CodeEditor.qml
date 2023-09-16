@@ -273,26 +273,70 @@ Rectangle {
         lineNumbersHelper.refresh()
     }
 
-    ColumnLayout {
+    Column {
         anchors.centerIn: parent
         width: parent.width
-        visible: codeEditor.invalidated
         spacing: paddingMedium
 
-        Image {
-            Layout.alignment: Qt.AlignCenter
-            source: Qt.resolvedUrl("qrc:/assets/TideNaked@2x.png")
-            Layout.preferredWidth: Math.min(128, parent.width)
-            Layout.preferredHeight: width
+        opacity: invalidated ? 1.0 : 0.0
+        Behavior on opacity {
+            NumberAnimation { duration: 500; easing: Easing.OutCubic }
         }
-        Label {
-            Layout.alignment: Qt.AlignCenter
-            Layout.preferredWidth: parent.width
-            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-            text: qsTr("Select a project or file to edit")
-            font.pixelSize: 32
-            color: root.palette.text
-            horizontalAlignment: Text.AlignHCenter
+
+        ColumnLayout {
+            width: parent.width
+            spacing: paddingSmall
+
+            Image {
+                Layout.alignment: Qt.AlignCenter
+                source: Qt.resolvedUrl("qrc:/assets/TideNaked@2x.png")
+                Layout.preferredWidth: Math.min(128, parent.width)
+                Layout.preferredHeight: width
+            }
+            Label {
+                Layout.alignment: Qt.AlignCenter
+                Layout.preferredWidth: parent.width
+                wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                text: qsTr("Tide IDE")
+                font.pixelSize: 26
+                color: root.palette.text
+                horizontalAlignment: Text.AlignHCenter
+            }
+        }
+
+        ColumnLayout {
+            width: parent.width
+            spacing: 0
+            Button {
+                Layout.alignment: Qt.AlignCenter
+                Layout.preferredWidth: parent.width
+                flat: true
+                text: qsTr("Examples")
+                font.pixelSize: 20
+                onClicked: {
+                    Qt.openUrlExternally("https://github.com/fredldotme/TideExamples")
+                }
+            }
+            Button {
+                Layout.alignment: Qt.AlignCenter
+                Layout.preferredWidth: parent.width
+                flat: true
+                text: qsTr("Settings")
+                font.pixelSize: 20
+                onClicked: {
+                    root.toggleSettingsDialog()
+                }
+            }
+            Button {
+                Layout.alignment: Qt.AlignCenter
+                Layout.preferredWidth: parent.width
+                flat: true
+                text: qsTr("Help")
+                font.pixelSize: 20
+                onClicked: {
+                    root.toggleHelpDialog()
+                }
+            }
         }
     }
 
@@ -305,9 +349,15 @@ Rectangle {
 
     Column {
         anchors.fill: parent
+        clip: true
         anchors {
             leftMargin: roundedCornersRadius
             rightMargin: roundedCornersRadius
+        }
+
+        opacity: invalidated ? 0.0 : 1.0
+        Behavior on opacity {
+            NumberAnimation { duration: 500; easing: Easing.OutCubic }
         }
 
         ScrollView {
@@ -318,6 +368,26 @@ Rectangle {
             visible: !codeEditor.invalidated
             width: parent.width
             height: parent.height - detailArea.height
+
+            ScrollBar.horizontal: ScrollBar {
+                parent: scrollView
+                hoverEnabled: true
+                anchors.left: scrollView.left
+                anchors.right: scrollView.right
+                anchors.bottom: scrollView.bottom
+                policy: ScrollBar.AlwaysOn
+                size: scrollView.width / codeView.width
+                visible: !settings.wrapEditor
+            }
+            ScrollBar.vertical: ScrollBar {
+                parent: scrollView
+                hoverEnabled: true
+                anchors.top: scrollView.top
+                anchors.right: scrollView.right
+                anchors.bottom: scrollView.bottom
+                policy: ScrollBar.AlwaysOn
+                size: scrollView.height / codeView.height
+            }
 
             RowLayout {
                 id: codeView
@@ -341,9 +411,8 @@ Rectangle {
 
                             Connections {
                                 target: dbugger
-                                onBreakpointsChanged: {
+                                function onBreakpointsChanged() {
                                     lineLabel.isBreakpoint = dbugger.hasBreakpoint(file.name + ":" + (index + 1))
-                                    console.log("is Breakpoint at line " + (index+1) + "? " + lineLabel.isBreakpoint)
                                 }
                             }
 

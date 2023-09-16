@@ -5,12 +5,13 @@ import Tide
 
 Rectangle {
     id: contextDialog
-    x: (parent.width - width) / 2
     radius: roundedCornersRadius
+    x: ((parent.width - width - debuggerArea.width) / 2)
     y: visibility ? ((parent.height - height) / 2) : parent.height
     opacity: visibility ? 1.0 : 0.0
     visible: opacity > 0.0
     clip: true
+    color: root.palette.base
 
     readonly property bool paneHeight : mainPane.height
 
@@ -39,8 +40,20 @@ Rectangle {
             easing.type: Easing.OutCubic
         }
     }
+    Behavior on width {
+        NumberAnimation {
+            duration: dialogShadow.consoleAnimation
+            easing.type: Easing.OutCubic
+        }
+    }
+    Behavior on opacity {
+        NumberAnimation {
+            duration: dialogShadow.consoleAnimation
+            easing.type: Easing.OutCubic
+        }
+    }
 
-    Pane {
+    Column {
         id: mainPane
         anchors.fill: parent
         spacing: paddingMedium
@@ -49,6 +62,7 @@ Rectangle {
 
         Column {
             anchors.fill: parent
+            anchors.leftMargin: paddingSmall
             spacing: paddingMedium
             ScrollView {
                 id: toolBar
