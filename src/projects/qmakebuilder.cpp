@@ -22,7 +22,6 @@ inline static QString resolveDefaultVariables(const QString& line,
 QMakeBuilder::QMakeBuilder(QObject *parent)
     : QObject{parent}, iosSystem{nullptr}, m_building(false)
 {
-    ClangCompiler compiler;
 }
 
 void QMakeBuilder::setSysroot(const QString path)
@@ -102,14 +101,15 @@ void QMakeBuilder::build(const bool debug)
     }
 
     const auto threadFlags = (useThreads ?
-                              QStringLiteral(" --target=wasm32-wasi-threads -ftls-model=local-exec  -pthread ") :
-                              QStringLiteral(" --target=wasm32-wasi "));
+                                  QStringLiteral(" --target=wasm32-wasi-threads -ftls-model=local-exec -pthread ") :
+                                  QStringLiteral(" --target=wasm32-wasi "));
 
-    const auto defaultFlags = QStringLiteral(" -msimd128 ") + threadFlags;
-    const auto defaultLinkFlags = defaultFlags + threadFlags +
+    const auto defaultFlags = threadFlags;
+    const auto commonLinkFlags = QStringLiteral("");
+    const auto defaultLinkFlags = commonLinkFlags + threadFlags +
                                   ((projectTemplate == typeApp) ?
-                                        QStringLiteral(" -Wl,--export-all ") :
-                                        QStringLiteral(" -Wl,--no-entry -Wl,--export-all "));
+                                       QStringLiteral(" -Wl,--export-all ") :
+                                       QStringLiteral(" -Wl,--no-entry -Wl,--export-all "));
 
     if (variables.find("SOURCES") == variables.end()) {
         const auto err = "No SOURCES found in project file.";
@@ -134,7 +134,7 @@ void QMakeBuilder::build(const bool debug)
         for (const auto& library : libraries.values) {
             qDebug() << "Adding library:" << library;
             QString resolvedLibrary = resolveDefaultVariables(library, sourceDirPath, buildDirPath);
-            libraryFlags += QStringLiteral(" %1 ").arg(resolvedLibrary);
+            libraryFlags += QStringLiteral(" -Wl,%1 ").arg(resolvedLibrary);
         }
     }
 
@@ -190,7 +190,6 @@ void QMakeBuilder::build(const bool debug)
                                 defaultFlags +
                                 includeFlags +
                                 defineFlags +
-                                libraryFlags +
                                 QStringLiteral(" -o \"%1\" ").arg(buildObject) +
                                 QStringLiteral(" \"%1\"").arg(sourceFile) +
                                 (source.endsWith(".c") ? cFlags : cxxFlags);
@@ -209,11 +208,20 @@ void QMakeBuilder::build(const bool debug)
         for (const auto& flag : flags.values) {
             qDebug() << "Adding flag:" << flag;
             QString resolvedFlag = resolveDefaultVariables(flag, sourceDirPath, buildDirPath);
-            linkFlags += QStringLiteral(" %1 ").arg(resolvedFlag);
+            linkFlags += QStringLiteral(" -Wl,%1 ").arg(resolvedFlag);
         }
     }
+
+    const auto undefinedSymbolsFile =
+        useThreads ?
+            QStringLiteral("%1/share/wasm32-wasi-threads/undefined-symbols.txt").arg(m_sysroot) :
+            QStringLiteral("%1/share/wasm32-wasi/undefined-symbols.txt").arg(m_sysroot);
+    const auto undefinedSymbolsLinkFlags =
+        QStringLiteral(" -Wl,--allow-undefined-file=%1 ").arg(undefinedSymbolsFile);
+
     const QString linkCommand = QStringLiteral("clang++") +
                                 (debug ? QStringLiteral(" -g ") : QString()) +
+                                undefinedSymbolsLinkFlags +
                                 defaultLinkFlags +
                                 objectFlags +
                                 libraryFlags +
