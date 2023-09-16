@@ -270,8 +270,10 @@ void QSourceHighliter::highlightSyntax(const QString &text)
     const QTextCharFormat &formatBuiltIn = _formats[CodeBuiltIn];
     const QTextCharFormat &formatOther = _formats[CodeOther];
 
-    for (int i = 0; i < textLen; ++i) {
-
+    // Last-resort safety measure to counteract on endless loops
+    int outerCounter = 0;
+    for (int i = 0; i < textLen; i++) {
+        if (++outerCounter >= textLen) break;
         if (currentBlockState() % 2 != 0) goto Comment;
 
         while (i < textLen && !text[i].isLetter()) {
@@ -341,7 +343,7 @@ void QSourceHighliter::highlightSyntax(const QString &text)
 
         const int pos = i;
 
-        if (i == textLen || !text[i].isLetter()) continue;
+        if (i >= textLen || !text[i].isLetter()) continue;
 
         /* Highlight Types */
         i = applyCodeFormat(i, types, text, formatType);
@@ -355,19 +357,27 @@ void QSourceHighliter::highlightSyntax(const QString &text)
          in the beginning of the loop to the word's first letter but I am not
          sure about its efficiency yet.
          ************************************************/
-        if (i == textLen || !text[i].isLetter()) continue;
+        if (i >= textLen || !text[i].isLetter()) {
+            continue;
+        }
 
         /* Highlight Keywords */
         i = applyCodeFormat(i, keywords, text, formatKeyword);
-        if (i == textLen || !text[i].isLetter()) continue;
+        if (i >= textLen || !text[i].isLetter()) {
+            continue;
+        }
 
         /* Highlight Literals (true/false/NULL,nullptr) */
         i = applyCodeFormat(i, literals, text, formatNumLit);
-        if (i == textLen || !text[i].isLetter()) continue;
+        if (i >= textLen || !text[i].isLetter()) {
+            continue;
+        }
 
         /* Highlight Builtin library stuff */
         i = applyCodeFormat(i, builtin, text, formatBuiltIn);
-        if (i == textLen || !text[i].isLetter()) continue;
+        if (i >= textLen || !text[i].isLetter()) {
+            continue;
+        }
 
         /* Highlight other stuff (preprocessor etc.) */
         if (( i == 0 || !text.at(i-1).isLetter()) && others.contains(text[i].toLatin1())) {
@@ -388,13 +398,13 @@ void QSourceHighliter::highlightSyntax(const QString &text)
         }
 
         //we were unable to find any match, lets skip this word
-        if (pos == i) {
+        if (pos < i) {
             int count = i;
             while (count < textLen) {
                 if (!text[count].isLetter()) break;
                 ++count;
             }
-            i = count;
+            i += count;
         }
     }
 

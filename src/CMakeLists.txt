@@ -55,6 +55,7 @@ set(CLANGRT ${CLANGRT_DIR}/lib/wasi)
 
 if(IOS)
     resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
+    resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
 endif()
 
 # Qt6
@@ -77,8 +78,7 @@ qt_add_executable(${PROJECT_NAME}
     common/directorylisting.cpp
     common/clangwrapper.cpp
     common/clangcompiler.cpp
-    common/clang_main.cpp
-    common/lld_main.cpp
+
     editor/linenumbershelper.cpp
     editor/qsourcehighliter.cpp
     editor/languagedata.cpp
@@ -105,6 +105,9 @@ qt_add_executable(${PROJECT_NAME}
     common/stdiospec.h
     common/searchresult.h
 
+    # API Bindings with QObjects in them
+    # api-bindings/qmlwindow.h
+
     # QMake parser
     ${QMAKEPARSER_DIR}/lib/include/qmakeblock.h
     ${QMAKEPARSER_DIR}/lib/include/qmakecursor.h
@@ -126,6 +129,7 @@ qt_add_executable(${PROJECT_NAME}
 
     # Ship the sysroot
     ${THE_SYSROOT}
+    ${BOOST_TAR}
 
     # Assets
     assets.qrc
@@ -150,6 +154,7 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/TideDialog.qml
     qml/TideInteractiveDialog.qml
     qml/HelpPage.qml
+    qml/DebuggerListEntry.qml
 
     NO_LINT
 )
@@ -165,7 +170,6 @@ set(NOSYSTEM_FRAMEWORK ${LLVM_DIR}/no_system/${LLVM_BUILD_DIR}/Debug-iphoneos)
 add_subdirectory(lib)
 
 if(IOS)
-    set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfloat-abi=hard")
     set (WAMR_BUILD_PLATFORM "darwin")
     if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
         set (WAMR_BUILD_TARGET "X86_64")
@@ -186,8 +190,11 @@ if(IOS)
     set (WASM_ENABLE_THREAD_MGR 1)
     set (WAMR_BUILD_MINI_LOADER 0)
     set (WAMR_BUILD_DEBUG_INTERP 1)
+    set (WAMR_BUILD_REF_TYPES 1)
+    set (WAMR_BUILD_MULTI_MODULE 1)
+    set (WAMR_BUILD_EXCE_HANDLING 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
-    add_definitions(-DWASM_UINT32_IS_ATOMIC -DIWASM_AS_LIBRARY)
+    add_definitions(-DWASM_UINT32_IS_ATOMIC=1 -DIWASM_AS_LIBRARY -DWASM_CONFIGUABLE_BOUNDS_CHECKS=1)
 
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
@@ -228,6 +235,7 @@ if(IOS)
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
         MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
         WIN32_EXECUTABLE TRUE
         XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks @loader_path/Frameworks"
         XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/Tide.entitlements"
@@ -290,319 +298,21 @@ if(IOS)
     #    XCODE_FILE_ATTRIBUTES "CodeSignOnCopy"
     #)
 
-    # Set a few properties for file sharing & UI tweaks
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND plutil -replace UIFileSharingEnabled -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND plutil -replace LSSupportsOpeningDocumentsInPlace -bool true "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND plutil -replace LSApplicationCategoryType -string public.app-category.developer-tools "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
-    )
-
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND plutil -replace NSLocalNetworkUsageDescription -string "WebAssembly Micro Runtime support for sockets" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Info.plist"
-    )
+    # Ship SDL headers generated as part of its build process
+    #add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+    #    COMMAND tar cvf "$<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL.tar" -C "${CMAKE_CURRENT_BINARY_DIR}/../3rdparty/SDL/include" .  -C "${CMAKE_CURRENT_BINARY_DIR}/../3rdparty/SDL/include-config-debug" .
+    #)
 
     # ANGLE for consumption by WebAssembly apps
     set(ANGLE_A "${CLANGRT_DIR}/angle-metal/arm64/libangle.a")
     set(ANGLE_HEADERS "${CLANGRT_DIR}/angle-metal/include")
 
     # Clang built-in
-    set(LIBCLANGAPINOTES "${LLVM_LIBS}/libclangAPINotes.a")
-    set(LIBCLANGARCMIGRATE "${LLVM_LIBS}/libclangARCMigrate.a")
-    set(LIBCLANGAST "${LLVM_LIBS}/libclangAST.a")
-    set(LIBCLANGASTMATCHERS "${LLVM_LIBS}/libclangASTMatchers.a")
-    set(LIBCLANGANALYSIS "${LLVM_LIBS}/libclangAnalysis.a")
-    set(LIBCLANGANALYSISFLOWSENSITIVE "${LLVM_LIBS}/libclangAnalysisFlowSensitive.a")
-    set(LIBCLANGBASIC "${LLVM_LIBS}/libclangBasic.a")
-    set(LIBCLANGCODEGEN "${LLVM_LIBS}/libclangCodeGen.a")
-    set(LIBCLANGCROSSTU "${LLVM_LIBS}/libclangCrossTU.a")
-    set(LIBCLANGDEPENDENCYSCANNING "${LLVM_LIBS}/libclangDependencyScanning.a")
-    set(LIBCLANGDRIVER "${LLVM_LIBS}/libclangDriver.a")
-    set(LIBCLANGDYNAMICASTMATCHERS "${LLVM_LIBS}/libclangDynamicASTMatchers.a")
-    set(LIBCLANGEDIT "${LLVM_LIBS}/libclangEdit.a")
-    set(LIBCLANGFORMAT "${LLVM_LIBS}/libclangFormat.a")
-    set(LIBCLANGFRONTEND "${LLVM_LIBS}/libclangFrontend.a")
-    set(LIBCLANGFRONTENDTOOL "${LLVM_LIBS}/libclangFrontendTool.a")
-    set(LIBCLANGHANDLECXX "${LLVM_LIBS}/libclangHandleCXX.a")
-    set(LIBCLANGHANDLELLVM "${LLVM_LIBS}/libclangHandleLLVM.a")
-    set(LIBCLANGINDEX "${LLVM_LIBS}/libclangIndex.a")
-    set(LIBCLANGINDEXSERIALIZATION "${LLVM_LIBS}/libclangIndexSerialization.a")
-    set(LIBCLANGINTERPRETER "${LLVM_LIBS}/libclangInterpreter.a")
-    set(LIBCLANGLEX "${LLVM_LIBS}/libclangLex.a")
-    set(LIBCLANGPARSE "${LLVM_LIBS}/libclangParse.a")
-    set(LIBCLANGREWRITE "${LLVM_LIBS}/libclangRewrite.a")
-    set(LIBCLANGREWRITEFRONTEND "${LLVM_LIBS}/libclangRewriteFrontend.a")
-    set(LIBCLANGSEMA "${LLVM_LIBS}/libclangSema.a")
-    set(LIBCLANGSERIALIZATION "${LLVM_LIBS}/libclangSerialization.a")
-    set(LIBCLANGSTATICANALYZERCHECKERS "${LLVM_LIBS}/libclangStaticAnalyzerCheckers.a")
-    set(LIBCLANGSTATICANALYZERCORE "${LLVM_LIBS}/libclangStaticAnalyzerCore.a")
-    set(LIBCLANGSTATICANALYZERFRONTEND "${LLVM_LIBS}/libclangStaticAnalyzerFrontend.a")
-    set(LIBCLANGTESTING "${LLVM_LIBS}/libclangTesting.a")
-    set(LIBCLANGTOOLING "${LLVM_LIBS}/libclangTooling.a")
-    set(LIBCLANGTOOLINGASTDIFF "${LLVM_LIBS}/libclangToolingASTDiff.a")
-    set(LIBCLANGTOOLINGCORE "${LLVM_LIBS}/libclangToolingCore.a")
-    set(LIBCLANGTOOLINGINCLUSIONS "${LLVM_LIBS}/libclangToolingInclusions.a")
-    set(LIBCLANGTOOLINGREFACTORING "${LLVM_LIBS}/libclangToolingRefactoring.a")
-    set(LIBCLANGTOOLINGSYNTAX "${LLVM_LIBS}/libclangToolingSyntax.a")
-    set(LIBCLANGTRANSFORMER "${LLVM_LIBS}/libclangTransformer.a")
-    set(LIBCLANGTOOL "${LLVM_LIBS}/libclang_tool.a")
-    set(CLANG_AS
-        "${LIBCLANGAPINOTES}"
-        "${LIBCLANGARCMIGRATE}"
-        "${LIBCLANGAST}"
-        "${LIBCLANGASTMATCHERS}"
-        "${LIBCLANGANALYSIS}"
-        "${LIBCLANGANALYSISFLOWSENSITIVE}"
-        "${LIBCLANGBASIC}"
-        "${LIBCLANGCODEGEN}"
-        "${LIBCLANGCROSSTU}"
-        "${LIBCLANGDEPENDENCYSCANNING}"
-        "${LIBCLANGDRIVER}"
-        "${LIBCLANGDYNAMICASTMATCHERS}"
-        "${LIBCLANGEDIT}"
-        "${LIBCLANGFORMAT}"
-        "${LIBCLANGFRONTEND}"
-        "${LIBCLANGFRONTENDTOOL}"
-        "${LIBCLANGHANDLECXX}"
-        "${LIBCLANGHANDLELLVM}"
-        "${LIBCLANGINDEX}"
-        "${LIBCLANGINDEXSERIALIZATION}"
-        "${LIBCLANGINTERPRETER}"
-        "${LIBCLANGLEX}"
-        "${LIBCLANGPARSE}"
-        "${LIBCLANGREWRITE}"
-        "${LIBCLANGREWRITEFRONTEND}"
-        "${LIBCLANGSEMA}"
-        "${LIBCLANGSERIALIZATION}"
-        "${LIBCLANGSTATICANALYZERCHECKERS}"
-        "${LIBCLANGSTATICANALYZERCORE}"
-        "${LIBCLANGSTATICANALYZERFRONTEND}"
-        "${LIBCLANGTESTING}"
-        "${LIBCLANGTOOLING}"
-        "${LIBCLANGTOOLINGASTDIFF}"
-        "${LIBCLANGTOOLINGCORE}"
-        "${LIBCLANGTOOLINGINCLUSIONS}"
-        "${LIBCLANGTOOLINGREFACTORING}"
-        "${LIBCLANGTOOLINGSYNTAX}"
-        "${LIBCLANGTRANSFORMER}"
-        "${LIBCLANGTOOL}"
-    )
+    file(GLOB CLANG_AS ${LLVM_LIBS}/libclang*.a)
+    list(FILTER CLANG_AS EXCLUDE REGEX ".*libclang_rt.*.a$")
 
-    # lld built-in
-    set(LIBLLDCOFF "${LLVM_LIBS}/liblldCOFF.a")
-    set(LIBLLDCOMMON "${LLVM_LIBS}/liblldCommon.a")
-    set(LIBLLDELF "${LLVM_LIBS}/liblldELF.a")
-    set(LIBLLDMACHO "${LLVM_LIBS}/liblldMachO.a")
-    set(LIBLLDMINGW "${LLVM_LIBS}/liblldMinGW.a")
-    set(LIBLLDWASM "${LLVM_LIBS}/liblldWasm.a")
-    set(LLD_AS
-        "${LIBLLDCOFF}"
-        "${LIBLLDCOMMON}"
-        "${LIBLLDELF}"
-        "${LIBLLDMACHO}"
-        "${LIBLLDMINGW}"
-        "${LIBLLDWASM}"
-    )
-
-    # LLDB built-in
-    set(LIBLLDB "${LLVM_LIBS}/liblldb.a")
-    set(LIBLLDBBREAKPOINT "${LLVM_LIBS}/liblldbBreakpoint.a")
-    set(LIBLLDBCOMMANDS "${LLVM_LIBS}/liblldbCommands.a")
-    set(LIBLLDBCORE "${LLVM_LIBS}/liblldbCore.a")
-    set(LIBLLDBDATAFORMATTERS "${LLVM_LIBS}/liblldbDataFormatters.a")
-    set(LIBLLDBEXPRESSION "${LLVM_LIBS}/liblldbExpression.a")
-    set(LIBLLDBHOST "${LLVM_LIBS}/liblldbHost.a")
-    set(LIBLLDBHOSTMACOSXOBJCXX "${LLVM_LIBS}/liblldbHostMacOSXObjCXX.a")
-    set(LIBLLDBINITIALIZATION "${LLVM_LIBS}/liblldbInitialization.a")
-    set(LIBLLDBINTERPRETER "${LLVM_LIBS}/liblldbInterpreter.a")
-    set(LIBLLDBPLUGINAPPLEOBJCRUNTIME "${LLVM_LIBS}/liblldbPluginAppleObjCRuntime.a")
-    set(LIBLLDBPLUGINARCHITECTUREAARCH64 "${LLVM_LIBS}/liblldbPluginArchitectureAArch64.a")
-    set(LIBLLDBPLUGINARCHITECTUREARM "${LLVM_LIBS}/liblldbPluginArchitectureArm.a")
-    set(LIBLLDBPLUGINARCHITECTUREMIPS "${LLVM_LIBS}/liblldbPluginArchitectureMips.a")
-    set(LIBLLDBPLUGINARCHITECTUREPPC64 "${LLVM_LIBS}/liblldbPluginArchitecturePPC64.a")
-    set(LIBLLDBPLUGINCPPRUNTIME "${LLVM_LIBS}/liblldbPluginCPPRuntime.a")
-    set(LIBLLDBPLUGINCPLUSPLUSLANGUAGE "${LLVM_LIBS}/liblldbPluginCPlusPlusLanguage.a")
-    set(LIBLLDBPLUGINCXXITANIUMABI "${LLVM_LIBS}/liblldbPluginCXXItaniumABI.a")
-    set(LIBLLDBPLUGINCLANGCOMMON "${LLVM_LIBS}/liblldbPluginClangCommon.a")
-    set(LIBLLDBPLUGINCLANGREPL "${LLVM_LIBS}/liblldbPluginClangREPL.a")
-    set(LIBLLDBPLUGINDISASSEMBLERLLVMC "${LLVM_LIBS}/liblldbPluginDisassemblerLLVMC.a")
-    set(LIBLLDBPLUGINDYNAMICLOADERDARWINKERNEL "${LLVM_LIBS}/liblldbPluginDynamicLoaderDarwinKernel.a")
-    set(LIBLLDBPLUGINDYNAMICLOADERHEXAGONDYLD "${LLVM_LIBS}/liblldbPluginDynamicLoaderHexagonDYLD.a")
-    set(LIBLLDBPLUGINDYNAMICLOADERMACOSXDYLD "${LLVM_LIBS}/liblldbPluginDynamicLoaderMacOSXDYLD.a")
-    set(LIBLLDBPLUGINDYNAMICLOADERPOSIXDYLD "${LLVM_LIBS}/liblldbPluginDynamicLoaderPosixDYLD.a")
-    set(LIBLLDBPLUGINDYNAMICLOADERSTATIC "${LLVM_LIBS}/liblldbPluginDynamicLoaderStatic.a")
-    set(LIBLLDBPLUGINDYNAMICLOADERWASMDYLD "${LLVM_LIBS}/liblldbPluginDynamicLoaderWasmDYLD.a")
-    set(LIBLLDBPLUGINDYNAMICLOADERWINDOWSDYLD "${LLVM_LIBS}/liblldbPluginDynamicLoaderWindowsDYLD.a")
-    set(LIBLLDBPLUGINEXPRESSIONPARSERCLANG "${LLVM_LIBS}/liblldbPluginExpressionParserClang.a")
-    set(LIBLLDBPLUGININSTRUCTIONARM "${LLVM_LIBS}/liblldbPluginInstructionARM.a")
-    set(LIBLLDBPLUGININSTRUCTIONARM64 "${LLVM_LIBS}/liblldbPluginInstructionARM64.a")
-    set(LIBLLDBPLUGININSTRUCTIONMIPS "${LLVM_LIBS}/liblldbPluginInstructionMIPS.a")
-    set(LIBLLDBPLUGININSTRUCTIONMIPS64 "${LLVM_LIBS}/liblldbPluginInstructionMIPS64.a")
-    set(LIBLLDBPLUGININSTRUCTIONPPC64 "${LLVM_LIBS}/liblldbPluginInstructionPPC64.a")
-    set(LIBLLDBPLUGININSTRUMENTATIONRUNTIMEASAN "${LLVM_LIBS}/liblldbPluginInstrumentationRuntimeASan.a")
-    set(LIBLLDBPLUGININSTRUMENTATIONRUNTIMEMAINTHREADCHECKER "${LLVM_LIBS}/liblldbPluginInstrumentationRuntimeMainThreadChecker.a")
-    set(LIBLLDBPLUGININSTRUMENTATIONRUNTIMETSAN "${LLVM_LIBS}/liblldbPluginInstrumentationRuntimeTSan.a")
-    set(LIBLLDBPLUGININSTRUMENTATIONRUNTIMEUBSAN "${LLVM_LIBS}/liblldbPluginInstrumentationRuntimeUBSan.a")
-    set(LIBLLDBPLUGINJITLOADERGDB "${LLVM_LIBS}/liblldbPluginJITLoaderGDB.a")
-    set(LIBLLDBPLUGINMEMORYHISTORYASAN "${LLVM_LIBS}/liblldbPluginMemoryHistoryASan.a")
-    set(LIBLLDBPLUGINOBJCLANGUAGE "${LLVM_LIBS}/liblldbPluginObjCLanguage.a")
-    set(LIBLLDBPLUGINOBJCPLUSPLUSLANGUAGE "${LLVM_LIBS}/liblldbPluginObjCPlusPlusLanguage.a")
-    set(LIBLLDBPLUGINOBJCRUNTIME "${LLVM_LIBS}/liblldbPluginObjCRuntime.a")
-    set(LIBLLDBPLUGINOBJECTCONTAINERBSDARCHIVE "${LLVM_LIBS}/liblldbPluginObjectContainerBSDArchive.a")
-    set(LIBLLDBPLUGINOBJECTCONTAINERMACHOARCHIVE "${LLVM_LIBS}/liblldbPluginObjectContainerMachOArchive.a")
-    set(LIBLLDBPLUGINOBJECTFILEBREAKPAD "${LLVM_LIBS}/liblldbPluginObjectFileBreakpad.a")
-    set(LIBLLDBPLUGINOBJECTFILEELF "${LLVM_LIBS}/liblldbPluginObjectFileELF.a")
-    set(LIBLLDBPLUGINOBJECTFILEJIT "${LLVM_LIBS}/liblldbPluginObjectFileJIT.a")
-    set(LIBLLDBPLUGINOBJECTFILEMACHO "${LLVM_LIBS}/liblldbPluginObjectFileMachO.a")
-    set(LIBLLDBPLUGINOBJECTFILEMINIDUMP "${LLVM_LIBS}/liblldbPluginObjectFileMinidump.a")
-    set(LIBLLDBPLUGINOBJECTFILEPDB "${LLVM_LIBS}/liblldbPluginObjectFilePDB.a")
-    set(LIBLLDBPLUGINOBJECTFILEPECOFF "${LLVM_LIBS}/liblldbPluginObjectFilePECOFF.a")
-    set(LIBLLDBPLUGINOBJECTFILEWASM "${LLVM_LIBS}/liblldbPluginObjectFileWasm.a")
-    set(LIBLLDBPLUGINPLATFORMANDROID "${LLVM_LIBS}/liblldbPluginPlatformAndroid.a")
-    set(LIBLLDBPLUGINPLATFORMFREEBSD "${LLVM_LIBS}/liblldbPluginPlatformFreeBSD.a")
-    set(LIBLLDBPLUGINPLATFORMGDB "${LLVM_LIBS}/liblldbPluginPlatformGDB.a")
-    set(LIBLLDBPLUGINPLATFORMLINUX "${LLVM_LIBS}/liblldbPluginPlatformLinux.a")
-    set(LIBLLDBPLUGINPLATFORMMACOSX "${LLVM_LIBS}/liblldbPluginPlatformMacOSX.a")
-    set(LIBLLDBPLUGINPLATFORMMACOSXOBJCXX "${LLVM_LIBS}/liblldbPluginPlatformMacOSXObjCXX.a")
-    set(LIBLLDBPLUGINPLATFORMNETBSD "${LLVM_LIBS}/liblldbPluginPlatformNetBSD.a")
-    set(LIBLLDBPLUGINPLATFORMOPENBSD "${LLVM_LIBS}/liblldbPluginPlatformOpenBSD.a")
-    set(LIBLLDBPLUGINPLATFORMPOSIX "${LLVM_LIBS}/liblldbPluginPlatformPOSIX.a")
-    set(LIBLLDBPLUGINPLATFORMQEMUUSER "${LLVM_LIBS}/liblldbPluginPlatformQemuUser.a")
-    set(LIBLLDBPLUGINPLATFORMWASM "${LLVM_LIBS}/liblldbPluginPlatformWasm.a")
-    set(LIBLLDBPLUGINPLATFORMWINDOWS "${LLVM_LIBS}/liblldbPluginPlatformWindows.a")
-    set(LIBLLDBPLUGINPROCESSELFCORE "${LLVM_LIBS}/liblldbPluginProcessElfCore.a")
-    set(LIBLLDBPLUGINPROCESSGDBREMOTE "${LLVM_LIBS}/liblldbPluginProcessGDBRemote.a")
-    set(LIBLLDBPLUGINPROCESSMACHCORE "${LLVM_LIBS}/liblldbPluginProcessMachCore.a")
-    set(LIBLLDBPLUGINPROCESSMINIDUMP "${LLVM_LIBS}/liblldbPluginProcessMinidump.a")
-    set(LIBLLDBPLUGINPROCESSUTILITY "${LLVM_LIBS}/liblldbPluginProcessUtility.a")
-    set(LIBLLDBPLUGINPROCESSWASM "${LLVM_LIBS}/liblldbPluginProcessWasm.a")
-    set(LIBLLDBPLUGINRENDERSCRIPTRUNTIME "${LLVM_LIBS}/liblldbPluginRenderScriptRuntime.a")
-    set(LIBLLDBPLUGINSCRIPTINTERPRETERNONE "${LLVM_LIBS}/liblldbPluginScriptInterpreterNone.a")
-    set(LIBLLDBPLUGINSCRIPTEDPROCESS "${LLVM_LIBS}/liblldbPluginScriptedProcess.a")
-    set(LIBLLDBPLUGINSTRUCTUREDDATADARWINLOG "${LLVM_LIBS}/liblldbPluginStructuredDataDarwinLog.a")
-    set(LIBLLDBPLUGINSYMBOLFILEBREAKPAD "${LLVM_LIBS}/liblldbPluginSymbolFileBreakpad.a")
-    set(LIBLLDBPLUGINSYMBOLFILEDWARF "${LLVM_LIBS}/liblldbPluginSymbolFileDWARF.a")
-    set(LIBLLDBPLUGINSYMBOLFILENATIVEPDB "${LLVM_LIBS}/liblldbPluginSymbolFileNativePDB.a")
-    set(LIBLLDBPLUGINSYMBOLFILEPDB "${LLVM_LIBS}/liblldbPluginSymbolFilePDB.a")
-    set(LIBLLDBPLUGINSYMBOLFILESYMTAB "${LLVM_LIBS}/liblldbPluginSymbolFileSymtab.a")
-    set(LIBLLDBPLUGINSYMBOLVENDORELF "${LLVM_LIBS}/liblldbPluginSymbolVendorELF.a")
-    set(LIBLLDBPLUGINSYMBOLVENDORMACOSX "${LLVM_LIBS}/liblldbPluginSymbolVendorMacOSX.a")
-    set(LIBLLDBPLUGINSYMBOLVENDORWASM "${LLVM_LIBS}/liblldbPluginSymbolVendorWasm.a")
-    set(LIBLLDBPLUGINSYSTEMRUNTIMEMACOSX "${LLVM_LIBS}/liblldbPluginSystemRuntimeMacOSX.a")
-    set(LIBLLDBPLUGINTRACECOMMON "${LLVM_LIBS}/liblldbPluginTraceCommon.a")
-    set(LIBLLDBPLUGINTRACEEXPORTERCTF "${LLVM_LIBS}/liblldbPluginTraceExporterCTF.a")
-    set(LIBLLDBPLUGINTRACEEXPORTERCOMMON "${LLVM_LIBS}/liblldbPluginTraceExporterCommon.a")
-    set(LIBLLDBPLUGINTYPESYSTEMCLANG "${LLVM_LIBS}/liblldbPluginTypeSystemClang.a")
-    set(LIBLLDBPLUGINUNWINDASSEMBLYINSTEMULATION "${LLVM_LIBS}/liblldbPluginUnwindAssemblyInstEmulation.a")
-    set(LIBLLDBPLUGINUNWINDASSEMBLYX86 "${LLVM_LIBS}/liblldbPluginUnwindAssemblyX86.a")
-    set(LIBLLDBPLUGINWASMDWARFEVALUATORFACTORY "${LLVM_LIBS}/liblldbPluginWasmDWARFEvaluatorFactory.a")
-    set(LIBLLDBSYMBOL "${LLVM_LIBS}/liblldbSymbol.a")
-    set(LIBLLDBTARGET "${LLVM_LIBS}/liblldbTarget.a")
-    set(LIBLLDBUTILITY "${LLVM_LIBS}/liblldbUtility.a")
-    set(LIBLLDBVERSION "${LLVM_LIBS}/liblldbVersion.a")
-    set(LIBLLDB_TOOL "${LLVM_LIBS}/liblldb_tool.a")
-
-    set(LLDB_AS
-        "${LIBLLDB}"
-        "${LIBLLDBBREAKPOINT}"
-        "${LIBLLDBCOMMANDS}"
-        "${LIBLLDBCORE}"
-        "${LIBLLDBDATAFORMATTERS}"
-        "${LIBLLDBEXPRESSION}"
-        "${LIBLLDBHOST}"
-        "${LIBLLDBHOSTMACOSXOBJCXX}"
-        "${LIBLLDBINITIALIZATION}"
-        "${LIBLLDBINTERPRETER}"
-        "${LIBLLDBPLUGINAPPLEOBJCRUNTIME}"
-        "${LIBLLDBPLUGINARCHITECTUREAARCH64}"
-        "${LIBLLDBPLUGINARCHITECTUREARM}"
-        "${LIBLLDBPLUGINARCHITECTUREMIPS}"
-        "${LIBLLDBPLUGINARCHITECTUREPPC64}"
-        "${LIBLLDBPLUGINCPPRUNTIME}"
-        "${LIBLLDBPLUGINCPLUSPLUSLANGUAGE}"
-        "${LIBLLDBPLUGINCXXITANIUMABI}"
-        "${LIBLLDBPLUGINCLANGCOMMON}"
-        "${LIBLLDBPLUGINCLANGREPL}"
-        "${LIBLLDBPLUGINDISASSEMBLERLLVMC}"
-        "${LIBLLDBPLUGINDYNAMICLOADERDARWINKERNEL}"
-        "${LIBLLDBPLUGINDYNAMICLOADERHEXAGONDYLD}"
-        "${LIBLLDBPLUGINDYNAMICLOADERMACOSXDYLD}"
-        "${LIBLLDBPLUGINDYNAMICLOADERPOSIXDYLD}"
-        "${LIBLLDBPLUGINDYNAMICLOADERSTATIC}"
-        "${LIBLLDBPLUGINDYNAMICLOADERWASMDYLD}"
-        "${LIBLLDBPLUGINDYNAMICLOADERWINDOWSDYLD}"
-        "${LIBLLDBPLUGINEXPRESSIONPARSERCLANG}"
-        "${LIBLLDBPLUGININSTRUCTIONARM}"
-        "${LIBLLDBPLUGININSTRUCTIONARM64}"
-        "${LIBLLDBPLUGININSTRUCTIONMIPS}"
-        "${LIBLLDBPLUGININSTRUCTIONMIPS64}"
-        "${LIBLLDBPLUGININSTRUCTIONPPC64}"
-        "${LIBLLDBPLUGININSTRUMENTATIONRUNTIMEASAN}"
-        "${LIBLLDBPLUGININSTRUMENTATIONRUNTIMEMAINTHREADCHECKER}"
-        "${LIBLLDBPLUGININSTRUMENTATIONRUNTIMETSAN}"
-        "${LIBLLDBPLUGININSTRUMENTATIONRUNTIMEUBSAN}"
-        "${LIBLLDBPLUGINJITLOADERGDB}"
-        "${LIBLLDBPLUGINMEMORYHISTORYASAN}"
-        "${LIBLLDBPLUGINOBJCLANGUAGE}"
-        "${LIBLLDBPLUGINOBJCPLUSPLUSLANGUAGE}"
-        "${LIBLLDBPLUGINOBJCRUNTIME}"
-        "${LIBLLDBPLUGINOBJECTCONTAINERBSDARCHIVE}"
-        "${LIBLLDBPLUGINOBJECTCONTAINERMACHOARCHIVE}"
-        "${LIBLLDBPLUGINOBJECTFILEBREAKPAD}"
-        "${LIBLLDBPLUGINOBJECTFILEELF}"
-        "${LIBLLDBPLUGINOBJECTFILEJIT}"
-        "${LIBLLDBPLUGINOBJECTFILEMACHO}"
-        "${LIBLLDBPLUGINOBJECTFILEMINIDUMP}"
-        "${LIBLLDBPLUGINOBJECTFILEPDB}"
-        "${LIBLLDBPLUGINOBJECTFILEPECOFF}"
-        "${LIBLLDBPLUGINOBJECTFILEWASM}"
-        "${LIBLLDBPLUGINPLATFORMANDROID}"
-        "${LIBLLDBPLUGINPLATFORMFREEBSD}"
-        "${LIBLLDBPLUGINPLATFORMGDB}"
-        "${LIBLLDBPLUGINPLATFORMLINUX}"
-        "${LIBLLDBPLUGINPLATFORMMACOSX}"
-        "${LIBLLDBPLUGINPLATFORMMACOSXOBJCXX}"
-        "${LIBLLDBPLUGINPLATFORMNETBSD}"
-        "${LIBLLDBPLUGINPLATFORMOPENBSD}"
-        "${LIBLLDBPLUGINPLATFORMPOSIX}"
-        "${LIBLLDBPLUGINPLATFORMQEMUUSER}"
-        "${LIBLLDBPLUGINPLATFORMWASM}"
-        "${LIBLLDBPLUGINPLATFORMWINDOWS}"
-        "${LIBLLDBPLUGINPROCESSELFCORE}"
-        "${LIBLLDBPLUGINPROCESSGDBREMOTE}"
-        "${LIBLLDBPLUGINPROCESSMACHCORE}"
-        "${LIBLLDBPLUGINPROCESSMINIDUMP}"
-        "${LIBLLDBPLUGINPROCESSUTILITY}"
-        "${LIBLLDBPLUGINPROCESSWASM}"
-        "${LIBLLDBPLUGINRENDERSCRIPTRUNTIME}"
-        "${LIBLLDBPLUGINSCRIPTINTERPRETERNONE}"
-        "${LIBLLDBPLUGINSCRIPTEDPROCESS}"
-        "${LIBLLDBPLUGINSTRUCTUREDDATADARWINLOG}"
-        "${LIBLLDBPLUGINSYMBOLFILEBREAKPAD}"
-        "${LIBLLDBPLUGINSYMBOLFILEDWARF}"
-        "${LIBLLDBPLUGINSYMBOLFILENATIVEPDB}"
-        "${LIBLLDBPLUGINSYMBOLFILEPDB}"
-        "${LIBLLDBPLUGINSYMBOLFILESYMTAB}"
-        "${LIBLLDBPLUGINSYMBOLVENDORELF}"
-        "${LIBLLDBPLUGINSYMBOLVENDORMACOSX}"
-        "${LIBLLDBPLUGINSYMBOLVENDORWASM}"
-        "${LIBLLDBPLUGINSYSTEMRUNTIMEMACOSX}"
-        "${LIBLLDBPLUGINTRACECOMMON}"
-        "${LIBLLDBPLUGINTRACEEXPORTERCTF}"
-        "${LIBLLDBPLUGINTRACEEXPORTERCOMMON}"
-        "${LIBLLDBPLUGINTYPESYSTEMCLANG}"
-        "${LIBLLDBPLUGINUNWINDASSEMBLYINSTEMULATION}"
-        "${LIBLLDBPLUGINUNWINDASSEMBLYX86}"
-        "${LIBLLDBPLUGINWASMDWARFEVALUATORFACTORY}"
-        "${LIBLLDBSYMBOL}"
-        "${LIBLLDBTARGET}"
-        "${LIBLLDBUTILITY}"
-        "${LIBLLDBVERSION}"
-        "${LIBLLDB_TOOL}"
-    )
+    # lld & lldb built-in
+    file(GLOB LLD_LLDB_AS ${LLVM_LIBS}/liblld*.a)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -627,6 +337,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set (WAMR_BUILD_SIMD 1)
     set (WAMR_DISABLE_HW_BOUND_CHECK 1)
     set (WAMR_BUILD_DEBUG_INTERP 1)
+    set (WAMR_BUILD_REF_TYPES 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
 
     qt_add_library(${PROJECT_NAME}-platform
@@ -699,8 +410,7 @@ target_link_libraries(${PROJECT_NAME}
     ${NOSYSTEM}
     ${LIBCLANG_CPP}
     ${CLANG_AS}
-    ${LLD_AS}
-    ${LLDB_AS}
+    ${LLD_LLDB_AS}
     ${COMPRESSION}
     ${XML2}
     ${FOUNDATION_LIBRARY}
@@ -708,6 +418,7 @@ target_link_libraries(${PROJECT_NAME}
     ${ANGLE_A}
     ${PROJECT_NAME}-platform
     vmlib
+    #SDL2-static
 )
 
 # Deployment on iOS
