@@ -13,8 +13,9 @@
 #include <signal.h>
 
 static const auto stackFrameRegex = QRegularExpression("^(.*) (.*) = (.*)");
-static const auto filterCallStackRegex = QRegularExpression("^(   |  \\*) frame #(\\d): (.*)");
+static const auto filterCallStackRegex = QRegularExpression("^(   |  \\*) frame #(\\d): ((.*)\\`(.*) at (.*)|(.*))");
 static const auto filterStackFrameRegex = QRegularExpression("^\\((.*)\\) (.*) = (.*)");
+static const auto filterStackFrameInstructions = QRegularExpression("^(->|  )  (.*): (.*) (.*)");
 static const auto filterFileStrRegex = QRegularExpression("^(.*):(\\d*):(\\d*)");
 
 Debugger::Debugger(QObject *parent)
@@ -43,10 +44,18 @@ void Debugger::spawnDebugger()
 Debugger::~Debugger()
 {
     m_forceQuit = true;
+    writeToStdIn("quit\n");
+
+    close(fileno(m_stdioPair.second.stdout));
+    close(fileno(m_stdioPair.second.stderr));
+
     m_readThreadOut.quit();
     m_readThreadErr.quit();
+    m_debuggerThread.quit();
+
     m_readThreadOut.wait();
     m_readThreadErr.wait();
+    m_debuggerThread.wait();
 }
 
 void Debugger::read(FILE* io)
@@ -73,27 +82,14 @@ void Debugger::read(FILE* io)
             const QStringList splitOutput = wholeOutput.split('\n', Qt::KeepEmptyParts);
 
             if (io == m_stdioPair.second.stdout) {
-                bool hasFrameValues = false;
-                bool hasCallStack = false;
+                QVariantMap varmap;
+                bool multiLineValues = false;
 
-                for (const auto& output : splitOutput) {
-                    if (output.isEmpty())
-                        continue;
-
-                    if (stackFrameRegex.match(output).hasMatch()) {
-                        hasFrameValues = true;
-                    } else if (filterCallStackRegex.match(output).hasMatch()) {
-                        hasCallStack = true;
-                    }
-                }
-
-                if (hasCallStack) {
-                    clearBacktrace();
-                }
-
-                if (hasFrameValues) {
-                    clearFrameValues();
-                }
+                auto appendToValue = [=](const QString val, QVariantMap& variantMap) {
+                    const auto oldVal = variantMap.value("value");
+                    const auto newVal = oldVal.toString() + QStringLiteral(" ") + val;
+                    variantMap.insert("value", newVal);
+                };
 
                 for (const auto output : splitOutput) {
                     if (output.isEmpty())
@@ -114,18 +110,42 @@ void Debugger::read(FILE* io)
                         continue;
                     }
 
-                    if (stackFrameRegex.match(output).hasMatch()) {
-                        const QVariantMap varmap = filterStackFrame(output);
-                        QMutexLocker locker(&m_valuesMutex);
-                        if (!varmap.isEmpty())
-                            m_values.append(varmap);
-                        emit valuesChanged();
+                    if (multiLineValues) {
+                        appendToValue(output.trimmed(), varmap);
+
+                        // Go on until the end is reached
+                        if (output != QStringLiteral("}"))
+                            continue;
+                    } else if (stackFrameRegex.match(output).hasMatch() ||
+                               filterStackFrameInstructions.match(output).hasMatch()) {
+                        varmap = filterStackFrame(output);
+
+                        // If this is a complex structure we need to continue at the next line
+                        if (output.endsWith(" = {")) {
+                            multiLineValues = true;
+                            continue;
+                        }
+                        // Otherwise fall through to insertion
                     } else if (filterCallStackRegex.match(output).hasMatch()) {
-                        const QVariantMap varmap = filterCallStack(output);
+                        varmap = filterCallStack(output);
                         QMutexLocker locker(&m_backtraceMutex);
                         if (!varmap.isEmpty())
                             m_backtrace.append(varmap);
                         emit backtraceChanged();
+
+                        // Continue here to leave the bottom for multi-line values
+                        continue;
+                    }
+
+                    // Insert from here for multi-line value support
+                    {
+                        QMutexLocker locker(&m_valuesMutex);
+                        if (!varmap.isEmpty())
+                            m_values.append(varmap);
+                        emit valuesChanged();
+
+                        multiLineValues = false;
+                        varmap.clear();
                     }
                 }
             }
@@ -150,13 +170,14 @@ QVariantMap Debugger::filterCallStack(const QString output)
     qDebug() << Q_FUNC_INFO << regexMatch << "for input" << output;
 
     if (regexMatch.hasMatch()) {
-        const auto fileStr = regexMatch.captured(4);
+        const auto fileStr = regexMatch.captured(6);
         const auto fileStrMatch = filterFileStrRegex.match(fileStr);
         const auto file = fileStrMatch.captured(1);
         const auto line = fileStrMatch.captured(2);
         const auto column = fileStrMatch.captured(3);
         const auto index = regexMatch.captured(2);
-        const auto value = regexMatch.captured(3);
+        const auto value = regexMatch.lastCapturedIndex() == 7 ?
+                               regexMatch.captured(7) : regexMatch.captured(5);
 
         ret.insert("partial", false);
         ret.insert("file", file);
@@ -174,13 +195,19 @@ QVariantMap Debugger::filterStackFrame(const QString output)
 {
     QVariantMap ret;
     auto regexMatch = filterStackFrameRegex.match(output);
-    qDebug() << Q_FUNC_INFO << regexMatch << "for input" << output;
+    auto regex2Match = filterStackFrameInstructions.match(output);
+    qDebug() << Q_FUNC_INFO << regexMatch << "or" << regex2Match << "for input" << output;
 
     if (regexMatch.hasMatch()) {
         ret.insert("partial", false);
         ret.insert("type", regexMatch.captured(1));
         ret.insert("name", regexMatch.captured(2));
         ret.insert("value", regexMatch.captured(3));
+    } else if (regex2Match.hasMatch()) {
+        ret.insert("partial", false);
+        ret.insert("type", regex2Match.captured(2));
+        ret.insert("name", regex2Match.captured(3));
+        ret.insert("value", regex2Match.captured(4));
     }
 
     return ret;
@@ -320,6 +347,7 @@ void Debugger::connectToRemote(const int port)
     auto debugCommand =
         QStringLiteral("process detach\n") +
         QStringLiteral("br del\ny\n") +
+        QStringLiteral("settings set auto-one-line-summaries true\n") +
         QStringLiteral("platform select remote-linux\n") +
         QStringLiteral("process connect -p wasm connect://127.0.0.1:%1\n").arg(port);
 
@@ -329,7 +357,7 @@ void Debugger::connectToRemote(const int port)
 
     static bool inited = false;
     if (!inited) {
-        debugCommand += QStringLiteral("target stop-hook add --one-liner \"frame variable\"");
+        debugCommand += QStringLiteral("target stop-hook add --one-liner \"frame variable\"\n");
         inited = true;
     }
 
@@ -340,17 +368,17 @@ void Debugger::connectToRemote(const int port)
 
 void Debugger::stepIn()
 {
-    writeToStdIn("thread step-in\n");
+    writeToStdIn("step\n");
 }
 
 void Debugger::stepOut()
 {
-    writeToStdIn("thread step-out\n");
+    writeToStdIn("finish\n");
 }
 
 void Debugger::stepOver()
 {
-    writeToStdIn("thread step-over\n");
+    writeToStdIn("next\n");
 }
 
 void Debugger::pause()
@@ -379,6 +407,8 @@ void Debugger::killDebugger()
     if (!m_spawned)
         return;
 
+    clearBacktrace();
+    clearFrameValues();
     quitDebugger();
 
     m_running = false;
@@ -387,24 +417,35 @@ void Debugger::killDebugger()
 
 void Debugger::getBacktrace()
 {
+    clearBacktrace();
     writeToStdIn("bt\n");
 }
 
 void Debugger::clearBacktrace()
 {
     QMutexLocker locker(&m_backtraceMutex);
+    qDebug() << "Clearing backtrace";
     m_backtrace.clear();
     emit backtraceChanged();
 }
 
 void Debugger::getFrameValues()
 {
+    clearFrameValues();
     writeToStdIn("frame variable\n");
 }
 
 void Debugger::clearFrameValues()
 {
     QMutexLocker locker(&m_valuesMutex);
+    qDebug() << "Clearing frame values";
     m_values.clear();
     emit valuesChanged();
+}
+
+void Debugger::getBacktraceAndFrameValues()
+{
+    clearBacktrace();
+    clearFrameValues();
+    writeToStdIn("bt\nframe variable\n");
 }

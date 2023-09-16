@@ -48,6 +48,7 @@ public slots:
     void clearBacktrace();
     void getFrameValues();
     void clearFrameValues();
+    void getBacktraceAndFrameValues();
 
     void quitDebugger();
     void killDebugger();
