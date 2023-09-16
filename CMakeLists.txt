@@ -9,5 +9,7 @@ set(CLANGRT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tmp)
 set(WAMR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/wamr)
 set(QMAKEPARSER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libqmakeparser)
 set(MICROTAR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/microtar)
+# set(SDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/SDL)
 
+# When it's time: add_subdirectory(${SDL_DIR})
 add_subdirectory(src)
