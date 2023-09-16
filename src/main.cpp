@@ -4,6 +4,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
+#include <QStyleHints>
 #include <QStandardPaths>
 
 #include "linenumbershelper.h"
@@ -21,6 +22,7 @@
 #include "cppformatter.h"
 #include "searchandreplace.h"
 #include "debugger.h"
+#include "clangcompiler.h"
 
 #include "platform/systemglue.h"
 
@@ -37,11 +39,15 @@ int main(int argc, char *argv[])
 
     qputenv("SYSROOT", sysroot.toUtf8().data());
     QQuickStyle::setStyle("iOS");
+
+    // Setup static initialization of LLVM tools
+    {
+        ClangCompiler setup;
+    }
 #elif defined(Q_OS_LINUX)
     const QString sysroot = QStringLiteral("/usr");
     QQuickStyle::setStyle("Material");
 #endif
-
     //qputenv("LIBCLANG_DISABLE_CRASH_RECOVERY", "1");
     //qputenv("LLVM_DISABLE_CRASH_REPORT", "1");
     //qputenv("NOSYSTEM_DEBUG", "1");
@@ -49,6 +55,9 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     app.setOrganizationDomain("fredl.me");
     app.setApplicationName("Tide");
+
+    auto styleHints = app.styleHints();
+    styleHints->setUseHoverEffects(true);
 
     QQmlApplicationEngine engine;
     qmlRegisterType<ProjectPicker>("Tide", 1, 0, "ExternalProjectPicker");
