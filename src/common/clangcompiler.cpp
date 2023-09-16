@@ -9,8 +9,10 @@
 #include <QDebug>
 #include <QStringList>
 
-extern int clang_main(int argc, char const **argv);
-extern int lld_main(int argc, char const **argv);
+#include <llvm/Support/LLVMDriver.h>
+
+extern int clang_main(int argc, char **argv, const llvm::ToolContext &);
+extern int lld_main(int argc, char **argv, const llvm::ToolContext &);
 extern int lldb_main(int argc, char const **argv);
 
 extern "C" {
@@ -19,11 +21,11 @@ extern int iwasm_main(int argc, char **argv);
 }
 
 static int clang_hook(int argc, char **argv) {
-    return clang_main(argc, (char const**) argv);
+    return clang_main(argc, (char**) argv, {argv[0], nullptr, false});
 }
 
 static int lld_hook(int argc, char **argv) {
-    return lld_main(argc, (char const**) argv);
+    return lld_main(argc, (char**) argv, {argv[0], nullptr, false});
 }
 
 static int lldb_hook(int argc, char **argv) {
