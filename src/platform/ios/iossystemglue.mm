@@ -20,10 +20,15 @@ IosSystemGlue::IosSystemGlue(QObject* parent) : QObject(parent)
 
 IosSystemGlue::~IosSystemGlue()
 {
-    fwrite("\n", sizeof(char), 1, m_spec.stdout);
-    fflush(m_spec.stdout);
-    fwrite("\n", sizeof(char), 1, m_spec.stderr);
-    fflush(m_spec.stderr);
+    if (m_spec.stdout) {
+        fwrite("\n", sizeof(char), 1, m_spec.stdout);
+        fflush(m_spec.stdout);
+    }
+
+    if (m_spec.stderr) {
+        fwrite("\n", sizeof(char), 1, m_spec.stderr);
+        fflush(m_spec.stderr);
+    }
 }
 
 StdioSpec IosSystemGlue::consumerSpec()
@@ -86,15 +91,21 @@ void IosSystemGlue::setupStdIo()
 // Blocking and hence shouldn't be called from the main or GUI threads
 bool IosSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spec)
 {
+    StdioSpec copy;
+
     if (spec.stdin || spec.stdout || spec.stderr) {
-        nosystem_stdin = spec.stdin;
-        nosystem_stdout = spec.stdout;
-        nosystem_stderr = spec.stderr;
+        copy.stdin = fdopen(dup(fileno(spec.stdin)), "r");
+        copy.stdout = fdopen(dup(fileno(spec.stdout)), "w");
+        copy.stderr = fdopen(dup(fileno(spec.stderr)), "w");
     } else {
-        nosystem_stdin = m_spec.stdin;
-        nosystem_stdout = m_spec.stdout;
-        nosystem_stderr = m_spec.stderr;
+        copy.stdin = fdopen(dup(fileno(m_spec.stdin)), "r");
+        copy.stdout = fdopen(dup(fileno(m_spec.stdout)), "w");
+        copy.stderr = fdopen(dup(fileno(m_spec.stderr)), "w");
     }
+
+    nosystem_stdin = copy.stdin;
+    nosystem_stdout = copy.stdout;
+    nosystem_stderr = copy.stderr;
 
     for (const auto& command : cmds) {
         const auto stdcmd = command.toStdString();
@@ -102,24 +113,47 @@ bool IosSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spe
         if (ret != 0)
             return false;
     }
+
+    if (copy.stdin)
+        fclose(copy.stdin);
+    if (copy.stdout)
+        fclose(copy.stdout);
+    if (copy.stderr)
+        fclose(copy.stderr);
+
     return true;
 }
 
 // Blocking and hence shouldn't be called from the main or GUI threads
 int IosSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
 {
+    StdioSpec copy;
+
     if (spec.stdin || spec.stdout || spec.stderr) {
-        nosystem_stdin = spec.stdin;
-        nosystem_stdout = spec.stdout;
-        nosystem_stderr = spec.stderr;
+        copy.stdin = fdopen(dup(fileno(spec.stdin)), "r");
+        copy.stdout = fdopen(dup(fileno(spec.stdout)), "w");
+        copy.stderr = fdopen(dup(fileno(spec.stderr)), "w");
     } else {
-        nosystem_stdin = m_spec.stdin;
-        nosystem_stdout = m_spec.stdout;
-        nosystem_stderr = m_spec.stderr;
+        copy.stdin = fdopen(dup(fileno(m_spec.stdin)), "r");
+        copy.stdout = fdopen(dup(fileno(m_spec.stdout)), "w");
+        copy.stderr = fdopen(dup(fileno(m_spec.stderr)), "w");
     }
+
+    nosystem_stdin = copy.stdin;
+    nosystem_stdout = copy.stdout;
+    nosystem_stderr = copy.stderr;
 
     const auto stdcmd = cmd.toStdString();
     const int ret = nosystem_system(stdcmd.c_str());
+    qWarning() << "Return" << ret << "from command" << cmd;
+
+    if (copy.stdin)
+        fclose(copy.stdin);
+    if (copy.stdout)
+        fclose(copy.stdout);
+    if (copy.stderr)
+        fclose(copy.stderr);
+
     return ret;
 }
 
