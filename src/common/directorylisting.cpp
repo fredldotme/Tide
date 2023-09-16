@@ -10,11 +10,8 @@ DirectoryListing::DirectoryListing(const ListingType type,
 {
     QStringList parts = path.split(QDir::separator(), Qt::SkipEmptyParts);
     if (parts.isEmpty()) {
-        qWarning() << "Failed to get name: path must have been empty";
         name = QString();
     } else {
         name = parts.last();
     }
-
-    qDebug() << "New directory listing: " << path << type << name;
 }
