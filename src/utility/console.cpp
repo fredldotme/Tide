@@ -48,7 +48,7 @@ void Console::read(FILE* io)
     qDebug() << Q_FUNC_INFO << io;
     char buffer[4096];
     memset(buffer, 0, 4096);
-    while (::read(fileno(io), buffer, 1024))
+    while (::read(fileno(io), buffer, 4096))
     {
         const auto wholeOutput = QString::fromUtf8(buffer);
         const QStringList splitOutput = wholeOutput.split('\n', Qt::KeepEmptyParts);
