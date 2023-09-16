@@ -56,3 +56,17 @@
 [submodule "3rdparty/SDL"]
 	path = 3rdparty/SDL
 	url = https://github.com/libsdl-org/SDL.git
+[submodule "3rdparty/libyaml"]
+	path = 3rdparty/libyaml
+	url = https://github.com/fredldotme/libyaml.git
+[submodule "3rdparty/wasi-sdk"]
+	path = 3rdparty/wasi-sdk
+	url = https://github.com/fredldotme/wasi-sdk.git
+[submodule "3rdparty/wasi-sdk/"]
+	url = git@github.com:fredldotme/wasi-sdk.git
+[submodule "3rdparty/wasi-libc"]
+	path = 3rdparty/wasi-libc
+	url = https://github.com/WebAssembly/wasi-libc.git
+[submodule "3rdparty/openssl-wasm"]
+	path = 3rdparty/openssl-wasm
+	url = https://github.com/fredldotme/openssl-wasm.git
