@@ -14,7 +14,7 @@
 
 static const auto stackFrameRegex = QRegularExpression("^(.*) (.*) = (.*)");
 static const auto filterCallStackRegex = QRegularExpression("^(   |  \\*) frame #(\\d): ((.*)\\`(.*) at (.*)|(.*))");
-static const auto filterStackFrameRegex = QRegularExpression("^\\((.*)\\) (.*) = (.*)");
+static const auto filterStackFrameRegex = QRegularExpression("^\\((.*)\\) ([^=]*) = (.*)");
 static const auto filterStackFrameInstructions = QRegularExpression("^(->|  )  (.*): (.*) (.*)");
 static const auto filterFileStrRegex = QRegularExpression("^(.*):(\\d*):(\\d*)");
 
@@ -71,6 +71,8 @@ void Debugger::read(FILE* io)
     FD_SET(fileno(io), &rfds);
     tv.tv_sec = 1;
     tv.tv_usec = 0;
+
+    ::setvbuf(io, nullptr, _IOLBF, 4096);
 
     while (select(1, &rfds, NULL, NULL, &tv) != -1) {
         if (!m_spawned || m_forceQuit)

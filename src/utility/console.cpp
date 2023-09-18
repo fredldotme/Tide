@@ -48,13 +48,11 @@ void Console::read(FILE* io)
     qDebug() << Q_FUNC_INFO << io;
     char buffer[4096];
     memset(buffer, 0, 4096);
+    ::setvbuf(io, nullptr, _IOLBF, 4096);
     while (::read(fileno(io), buffer, 4096))
     {
-        const auto wholeOutput = QString::fromUtf8(buffer);
-        const QStringList splitOutput = wholeOutput.split('\n', Qt::KeepEmptyParts);
-        for (const auto& output : splitOutput) {
-            emit contentRead(output, (this->m_spec.stdout == io));
-        }
+        const auto output = QString::fromUtf8(buffer);
+        emit contentRead(output, (this->m_spec.stdout == io));
         memset(buffer, 0, 4096);
         if (m_quitting)
             return;
