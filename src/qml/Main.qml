@@ -155,7 +155,7 @@ ApplicationWindow {
         }
 
         // Hide the debug area on small screens
-        if (width < height && shouldAllowDebugArea) {
+        if (width < height || shouldAllowDebugArea) {
             showDebugArea = false;
         } else {
             showDebugArea = shouldAllowDebugArea;

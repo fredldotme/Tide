@@ -158,14 +158,16 @@ ColumnLayout {
         text: qsTr("Get Tide example projects!")
         icon.source: Qt.resolvedUrl("qrc:/assets/link@2x.png")
         font.pixelSize: 18
+        spacing: 8
         onClicked: {
             Qt.openUrlExternally("https://github.com/fredldotme/TideExamples")
         }
     }
     Button {
-        text: qsTr("Get Tide source code!")
+        text: qsTr("Get the Tide source code!")
         icon.source: Qt.resolvedUrl("qrc:/assets/link@2x.png")
         font.pixelSize: 18
+        spacing: 8
         onClicked: {
             Qt.openUrlExternally("https://github.com/fredldotme/Tide")
         }

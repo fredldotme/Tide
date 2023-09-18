@@ -160,7 +160,9 @@ Rectangle {
 
         const lang = languageForLowerCaseFileName(file.name.toLowerCase())
         console.log("Language: " + lang)
+
         highlighter.setCurrentLanguage(lang)
+        highlighter.setVisibleRect(codeView.width, codeView.height);
         showAutoCompletor = false
         reloadAst()
     }
@@ -277,10 +279,12 @@ Rectangle {
         anchors.centerIn: parent
         width: parent.width
         spacing: paddingMedium
+        enabled: opacity > 0.0
+        visible: opacity > 0.0
 
         opacity: invalidated ? 1.0 : 0.0
         Behavior on opacity {
-            NumberAnimation { duration: 500; easing: Easing.OutCubic }
+            NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
         }
 
         ColumnLayout {
@@ -312,6 +316,8 @@ Rectangle {
                 Layout.preferredWidth: parent.width
                 flat: true
                 text: qsTr("Examples")
+                spacing: 8
+                icon.source: Qt.resolvedUrl("qrc:/assets/link@2x.png")
                 font.pixelSize: 20
                 onClicked: {
                     Qt.openUrlExternally("https://github.com/fredldotme/TideExamples")
@@ -322,6 +328,8 @@ Rectangle {
                 Layout.preferredWidth: parent.width
                 flat: true
                 text: qsTr("Settings")
+                spacing: 8
+                icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
                 font.pixelSize: 20
                 onClicked: {
                     root.toggleSettingsDialog()
@@ -332,6 +340,8 @@ Rectangle {
                 Layout.preferredWidth: parent.width
                 flat: true
                 text: qsTr("Help")
+                spacing: 8
+                icon.source: Qt.resolvedUrl("qrc:/assets/questionmark.circle.fill@2x.png")
                 font.pixelSize: 20
                 onClicked: {
                     root.toggleHelpDialog()
@@ -357,12 +367,12 @@ Rectangle {
 
         opacity: invalidated ? 0.0 : 1.0
         Behavior on opacity {
-            NumberAnimation { duration: 500; easing: Easing.OutCubic }
+            NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
         }
 
         ScrollView {
             id: scrollView
-            contentWidth: settings.wrapEditor ?
+            contentWidth: settings.wrapEditor || width > codeView.width ?
                               -1 :
                               codeField.implicitWidth + paddingSmall + lineNumbersColumn.width
             visible: !codeEditor.invalidated
@@ -375,7 +385,7 @@ Rectangle {
                 anchors.left: scrollView.left
                 anchors.right: scrollView.right
                 anchors.bottom: scrollView.bottom
-                policy: ScrollBar.AlwaysOn
+                policy: ScrollBar.AsNeeded
                 size: scrollView.width / codeView.width
                 visible: !settings.wrapEditor
             }
@@ -385,7 +395,7 @@ Rectangle {
                 anchors.top: scrollView.top
                 anchors.right: scrollView.right
                 anchors.bottom: scrollView.bottom
-                policy: ScrollBar.AlwaysOn
+                policy: ScrollBar.AsNeeded
                 size: scrollView.height / codeView.height
             }
 
