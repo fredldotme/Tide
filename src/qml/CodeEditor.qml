@@ -162,7 +162,7 @@ Rectangle {
         console.log("Language: " + lang)
 
         highlighter.setCurrentLanguage(lang)
-        highlighter.setVisibleRect(codeView.width, codeView.height);
+        //highlighter.setVisibleRect(codeView.width, codeView.height);
         showAutoCompletor = false
         reloadAst()
     }
@@ -372,9 +372,10 @@ Rectangle {
 
         ScrollView {
             id: scrollView
-            contentWidth: settings.wrapEditor || width > codeView.width ?
+            contentWidth: settings.wrapEditor ?
                               -1 :
                               codeField.implicitWidth + paddingSmall + lineNumbersColumn.width
+            contentHeight: codeField.implicitHeight
             visible: !codeEditor.invalidated
             width: parent.width
             height: parent.height - detailArea.height
