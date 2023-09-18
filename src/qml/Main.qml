@@ -1444,11 +1444,10 @@ ApplicationWindow {
                     onSaveRequested: saveCurrentFile()
                     onFindRequested: contextDialog.show(editor.file.path)
                     onBuildRequested: {
-                        projectBuilder.clean()
-                        projectBuilder.build(false)
+                        attemptBuild();
                     }
                     onRunRequested: {
-                        wasmRunner.run()
+                        attemptRun();
                     }
 
                     onInvalidatedChanged: {
