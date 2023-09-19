@@ -9,6 +9,8 @@
 
 #include <thread>
 
+#define SUPPORT_AOT 1
+
 inline static QString resolveDefaultVariables(const QString& line,
                                               const QString& sourceDir,
                                               const QString& buildDir)
@@ -66,7 +68,7 @@ void QMakeBuilder::clean()
     }
 }
 
-void QMakeBuilder::build(const bool debug)
+void QMakeBuilder::build(const bool debug, const bool aot)
 {
     const auto buildDirPath = projectBuildRoot();
     if (buildDirPath.isEmpty()) {
@@ -232,10 +234,12 @@ void QMakeBuilder::build(const bool debug)
     buildCommands << linkCommand;
 
 #if SUPPORT_AOT
-    if (!debug) {
+    if (aot) {
         const QString aotPath = runnableFile() + QStringLiteral(".aot");
         const QString aotCommand =
-            QStringLiteral("wamr-compiler -o \"%1\" \"%2\"").arg(aotPath, runnableFile());
+            QStringLiteral("wamrc --size-level=3") +
+            (useThreads ? QStringLiteral(" --enable-multi-thread ") : QString()) +
+            QStringLiteral(" -o \"%1\" \"%2\"").arg(aotPath, runnableFile());
         buildCommands << aotCommand;
     }
 #endif
@@ -246,7 +250,7 @@ void QMakeBuilder::build(const bool debug)
 
         const bool success = iosSystem->runBuildCommands(buildCommands);
         if (success) {
-            emit buildSuccess(debug);
+            emit buildSuccess(debug, aot);
         } else {
             emit buildError(QStringLiteral("Build failed"));
         }

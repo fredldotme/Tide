@@ -28,7 +28,7 @@ public slots:
     bool loadProject(const QString path) override;
     void unloadProject() override;
     void clean() override;
-    void build(const bool debug) override;
+    void build(const bool debug, const bool aot) override;
     void cancel() override;
     QString runnableFile() override;
     QStringList includePaths() override;
@@ -47,7 +47,7 @@ signals:
     void projectFileChanged();
     void commandRunnerChanged();
     void buildingChanged();
-    void buildSuccess(bool debug);
+    void buildSuccess(bool debug, bool aot);
     void buildError(QString str);
 };
 

@@ -74,7 +74,7 @@ ApplicationWindow {
         saveCurrentFile()
         root.compiling = true
         projectBuilder.clean()
-        projectBuilder.build(debugRequested)
+        projectBuilder.build(debugRequested, !releaseRequested && settings.aotOptimizations)
     }
 
     function attemptRun() {
@@ -1779,6 +1779,7 @@ ApplicationWindow {
             property bool wiggleHints : true
             property bool wrapEditor : true
             property bool clearConsole: true
+            property bool aotOptimizations : false
         }
 
         ConsoleView {

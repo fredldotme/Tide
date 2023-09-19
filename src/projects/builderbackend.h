@@ -10,7 +10,7 @@ public:
     virtual void unloadProject() = 0;
 
     virtual void clean() = 0;
-    virtual void build(const bool debug) = 0;
+    virtual void build(const bool debug, const bool aot) = 0;
     virtual void cancel() = 0;
     virtual QString runnableFile() = 0;
     virtual QStringList includePaths() = 0;

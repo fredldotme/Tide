@@ -91,6 +91,14 @@ TideDialog {
                     }
                 }
                 Switch {
+                    id: aotSwitch
+                    text: qsTr("AOT optimizations")
+                    checked: settings.aotOptimizations
+                    onCheckedChanged: {
+                        settings.aotOptimizations = checked
+                    }
+                }
+                Switch {
                     id: autocompleteSwitch
                     text: qsTr("Autocomplete (Shift+⌘+S)")
                     checked: settings.autocomplete

@@ -2,6 +2,7 @@
 
 #include <QDebug>
 #include <QFile>
+#include <QFileInfo>
 #include <QStandardPaths>
 
 #include <cstring>
@@ -229,9 +230,21 @@ int WasmRunner::exitCode()
 
 void WasmRunner::start(const QString binary, const QStringList args, const bool debug)
 {
-    qDebug() << "Running" << binary << args << debug;
-
     kill();
+
+    QString applicationFile = binary;
+    {
+        const QString aotPath = binary + QStringLiteral(".aot");
+        if (QFile::exists(aotPath)) {
+            QFileInfo aot(aotPath);
+            QFileInfo wasm(binary);
+
+            if (aot.lastModified() > wasm.lastModified())
+                applicationFile = aotPath;
+        }
+    }
+
+    qDebug() << "Running" << applicationFile << args << debug;
 
     sharedData.binary = binary;
     sharedData.args = args;

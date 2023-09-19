@@ -122,7 +122,7 @@ qt_add_executable(${PROJECT_NAME}
     ${WAMR_DIR}/product-mini/platforms/darwin/main.c
 
     # Enable once WAMR issues are sorted out
-    #${WAMR_DIR}/wamr-compiler/main.c
+    ${WAMR_DIR}/wamr-compiler/main.c
 
     # tar implementation
     ${MICROTAR_DIR}/src/microtar.c
@@ -177,7 +177,7 @@ if(IOS)
         set (WAMR_BUILD_TARGET "AARCH64")
     endif()
     set (WAMR_BUILD_INTERP 1)
-    set (WAMR_BUILD_AOT 0)
+    set (WAMR_BUILD_AOT 1)
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
     set (WAMR_BUILD_LIB_WASI_THREADS 1)
@@ -193,8 +193,9 @@ if(IOS)
     set (WAMR_BUILD_REF_TYPES 1)
     set (WAMR_BUILD_MULTI_MODULE 1)
     set (WAMR_BUILD_EXCE_HANDLING 1)
+    set (WAMR_BUILD_WAMR_COMPILER 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
-    add_definitions(-DWASM_UINT32_IS_ATOMIC=1 -DIWASM_AS_LIBRARY -DWASM_CONFIGUABLE_BOUNDS_CHECKS=1)
+    add_definitions(-DWASM_UINT32_IS_ATOMIC=1 -DIWASM_AS_LIBRARY -DWASM_ENABLE_WAMR_COMPILER=1)
 
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
@@ -356,7 +357,7 @@ include(${WAMR_DIR}/core/shared/utils/shared_utils.cmake)
 include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
 include(${WAMR_DIR}/core/shared/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
 #include(${WAMR_DIR}/core/iwasm/aot/iwasm_aot.cmake)
-#include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
+include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
 include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
 
 add_library(vmlib

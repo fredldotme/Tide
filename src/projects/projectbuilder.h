@@ -27,7 +27,7 @@ public slots:
     void unloadProject();
 
     void clean();
-    void build(const bool debug);
+    void build(const bool debug, const bool aot);
     void cancel();
 
     QString runnableFile();
@@ -52,7 +52,7 @@ signals:
     void projectFileChanged();
     void commandRunnerChanged();
     void buildingChanged();
-    void buildSuccess(bool debug);
+    void buildSuccess(bool debug, bool aot);
     void buildError(QString str);
 };
 

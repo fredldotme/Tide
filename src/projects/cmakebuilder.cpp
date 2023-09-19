@@ -54,7 +54,7 @@ void CMakeBuilder::clean()
     }
 }
 
-void CMakeBuilder::build(const bool debug)
+void CMakeBuilder::build(const bool debug, const bool aot)
 {
     const auto sourcePath = sourceRoot() + "/CMakeTest";
     const auto buildPath = sourcePath + "/build";
@@ -73,7 +73,7 @@ void CMakeBuilder::build(const bool debug)
         //const bool success = iosSystem->runBuildCommands(buildCommands, buildPath, false, false);
         const bool success = false;
         if (success) {
-            emit buildSuccess(debug);
+            emit buildSuccess(debug, aot);
         } else {
             emit buildError(QStringLiteral("Build failed"));
         }
