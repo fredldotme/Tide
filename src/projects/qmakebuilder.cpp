@@ -234,7 +234,7 @@ void QMakeBuilder::build(const bool debug, const bool aot)
     buildCommands << linkCommand;
 
 #if SUPPORT_AOT
-    if (aot) {
+    if (aot && !debug) {
         const QString aotPath = runnableFile() + QStringLiteral(".aot");
         const QString aotCommand =
             QStringLiteral("wamrc --size-level=3") +
