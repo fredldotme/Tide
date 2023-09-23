@@ -1,4 +1,4 @@
-import QtCore
+import Qt.labs.settings
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
@@ -1078,7 +1078,7 @@ ApplicationWindow {
                                             }
 
                                             function getDetailText(listing) {
-                                                if (listing.type === DirectoryListing.Directory) {
+                                                if (listing.type === DirectoryListing.Directory) {
                                                     return qsTr("%1 contents").arg(fileIo.directoryContents(listing.path))
                                                 } else {
                                                     return qsTr("%1 bytes").arg(fileIo.fileSize(listing.path))
@@ -1429,7 +1429,7 @@ ApplicationWindow {
                 CodeEditor {
                     id: editor
                     anchors.fill: parent
-                    anchors {
+                    anchors {
                         topMargin: paddingMedium
                         rightMargin: paddingMedium
                         leftMargin: showLeftSideBar ? paddingSmall : paddingMedium
@@ -1674,13 +1674,13 @@ ApplicationWindow {
                         }
                         delegate: DebuggerListEntry {
                             id: valueOrInstruction
-                            boldText: modelData.partial || modelData.name === undefined ?
+                            boldText: modelData.partial || modelData.name === undefined ?
                                           "" :
                                           modelData.type
-                            text: modelData.partial || modelData.name === undefined ?
+                            text: modelData.partial || modelData.name === undefined ?
                                       modelData.value :
                                       modelData.name
-                            detailText: modelData.partial || modelData.name === undefined ?
+                            detailText: modelData.partial || modelData.name === undefined ?
                                             "" :
                                             modelData.value
                             font.pixelSize: 18
@@ -1994,7 +1994,7 @@ ApplicationWindow {
         }
 
         // Loading splash screen
-        Rectangle {
+        Rectangle {
             property bool visibility: sysrootManager.installing
             anchors.fill: parent
             visible: opacity > 0.0

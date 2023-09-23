@@ -27,7 +27,7 @@ Rectangle {
         codeField.startCursorPosition = codeField.cursorPosition
     }
 
-    Connections {
+    Connections {
         target: openFiles
         function onFilesChanged() {
             if (openFiles.files.length === 0) {
@@ -134,7 +134,7 @@ Rectangle {
         if (name.endsWith(".rs")) {
             return SourceHighliter.CodeRust;
         }
-        if (name.endsWith(".java")) {
+        if (name.endsWith(".java")) {
             return SourceHighliter.CodeJava;
         }
         if (name.endsWith(".go")) {
@@ -225,7 +225,7 @@ Rectangle {
         if (projectBuilder.building)
             return;
 
-        if (file.name.toLowerCase().endsWith(".cpp") || file.name.toLowerCase().endsWith(".c") ||
+        if (file.name.toLowerCase().endsWith(".cpp") || file.name.toLowerCase().endsWith(".c") ||
                 file.name.toLowerCase().endsWith(".h") || file.name.toLowerCase().endsWith(".hpp") ||
                 file.name.toLowerCase().endsWith(".cc") || file.name.toLowerCase().endsWith(".cxx")) {
             autoCompleter.setIncludePaths(projectBuilder.includePaths());
@@ -254,9 +254,7 @@ Rectangle {
         }
     }
 
-    AutoCompleter {
-        id: autoCompleter
-    }
+    property var autoCompleter : AutoCompleter { }
 
     CppFormatter {
         id: cppFormatter
@@ -360,7 +358,7 @@ Rectangle {
     Column {
         anchors.fill: parent
         clip: true
-        anchors {
+        anchors {
             leftMargin: roundedCornersRadius
             rightMargin: roundedCornersRadius
         }
@@ -546,7 +544,7 @@ Rectangle {
                         }
                     }
 
-                    Rectangle {
+                    Rectangle {
                         anchors.fill: parent
                         color: root.palette.shadow
                         opacity: showAutoCompletor ? 0.5 : 0.0
@@ -618,7 +616,7 @@ Rectangle {
                                 width: Math.min(autoCompletionList.contentItem.childrenRect.width, 300)
                                 height: Math.min(autoCompletionList.contentItem.childrenRect.height, 300)
 
-                                function iconForKind(kind) {
+                                function iconForKind(kind) {
                                     if (kind === AutoCompleter.Function)
                                         return Qt.resolvedUrl("qrc:/assets/function@2x.png");
                                     else if (kind === AutoCompleter.Variable)
