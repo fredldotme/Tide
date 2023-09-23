@@ -126,7 +126,7 @@ qt_add_executable(${PROJECT_NAME}
     ${QMAKEPARSER_DIR}/lib/src/qmakereader.cpp
 
     # IWASM
-    ${IWASM}
+    ${IWAMR}
 
     # AOT compiler
     ${WAMR_COMPILER}
