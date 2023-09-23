@@ -697,8 +697,15 @@ ApplicationWindow {
     // Main container
     Item {
         id: mainContainer
-        anchors.fill: parent
-        anchors.bottomMargin: oskReactor.oskVisible ? oskReactor.oskHeight : 0;
+        width: parent.width
+        height: parent.height - (oskReactor.oskVisible ? oskReactor.oskHeight : 0)
+
+        Behavior on height {
+            NumberAnimation {
+                easing.type: Easing.OutCubic
+                duration: 300
+            }
+        }
 
         Component.onCompleted: {
             oskReactor.item = mainContainer
@@ -819,17 +826,13 @@ ApplicationWindow {
                                                             parent.height :
                                                             (parent.height / 2)
 
-            Pane {
+            Item {
                 id: leftSideBar
-                width: showLeftSideBar ? sideBarWidth : 0
+                readonly property int rightPadding: showLeftSideBar && sideBarWidth == root.width ? paddingMedium : 0
+                y: rightPadding
+                width: showLeftSideBar ? sideBarWidth - rightPadding : 0
                 height: parent.height
                 clip: true
-                topInset: 0
-                bottomInset: 0
-                topPadding: 0
-                leftPadding: 0
-                rightPadding: showLeftSideBar && sideBarWidth == root.width ? paddingMedium : 0
-                rightInset: showLeftSideBar ? 0 : paddingMedium
 
                 Behavior on width {
                     NumberAnimation { duration: 250; easing.type: Easing.OutCubic; }
@@ -842,66 +845,22 @@ ApplicationWindow {
                     editor.refreshLineNumbers()
                 }
 
-                Pane {
-                    width: parent.width
-                    height: parent.height
-                    topInset: 0
-                    leftInset: 0
-                    rightInset: 0
-                    bottomInset: 0
-                    topPadding: paddingMedium
-                    bottomPadding: paddingMedium
-                    rightPadding: 0
+                Item {
+                    x: paddingMedium
+                    y: paddingMedium
+                    width: parent.width - paddingMedium
+                    height: parent.height - (paddingMedium * 2)
+                    readonly property int spaceBetweenSections : openFiles.files.length > 0 ? paddingSmall : 0
 
                     Column {
                         width: parent.width
                         height: parent.height
-                        spacing: paddingMedium
+                        spacing: parent.spaceBetweenSections
 
-                        Grid {
-                            id: contextField
-                            width: parent.width
-                            clip: true
-                            columns: {
-                                let columns = 0;
-                                let rowWidth = 0;
-                                for (let i = 0; i < children.length; i++) {
-                                    if (rowWidth + children[i].width < width) {
-                                        ++columns
-                                        rowWidth += children[i].width
-                                    } else {
-                                        break
-                                    }
-                                }
-                                return columns;
-                            }
-
-                            readonly property bool visibility: openFiles.files.length > 0
-                            height: visibility ? childrenRect.height : 0
-                            visible: height > 0
-
-                            Behavior on height {
-                                NumberAnimation {
-                                    duration: 100
-                                    easing.type: Easing.OutCubic
-                                }
-                            }
-
-                            // TODO: Maybe keep for other purposes?
-                        }
-
-                        Column {
+                        Item {
                             y: paddingSmall
                             width: parent.width
-                            anchors {
-                                top: contextField.bottom
-                                bottom: openFilesArea.top
-                                bottomMargin: openFilesArea.height > 0 ? paddingSmall : 0
-                            }
-
-                            Behavior on height {
-                                NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
-                            }
+                            height: parent.height - openFilesArea.height - paddingMedium
 
                             StackView {
                                 id: projectNavigationStack
@@ -937,12 +896,9 @@ ApplicationWindow {
 
                                         ListView {
                                             headerPositioning: ListView.PullBackHeader
-                                            header: Rectangle {
-                                                clip: true
+                                            header: Item {
                                                 width: projectNavigationStack.width
                                                 height: root.headerItemHeight
-                                                color: "transparent"
-                                                radius: roundedCornersRadiusMedium
                                                 RowLayout {
                                                     anchors.fill: parent
                                                     spacing: paddingSmall * 2
@@ -1259,10 +1215,10 @@ ApplicationWindow {
                             }
                         }
 
-                        Column {
+                        Item {
                             id: openFilesArea
                             property bool showArea : true
-                            readonly property int usualHeight: (parent.height / 2) - (contextField.height / 2) - (paddingMedium / 2)
+                            readonly property int usualHeight: (parent.height  - paddingMedium) / 2
 
                             opacity: !mainView.centered ? 1.0 : 0.0
                             Behavior on opacity {
@@ -1272,7 +1228,6 @@ ApplicationWindow {
                             width: parent.width
                             height: openFiles.files.length > 0 ?
                                         (showArea ? openFilesArea.usualHeight : root.headerItemHeight) : 0
-                            anchors.bottom: parent.bottom
 
                             Behavior on height {
                                 NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
@@ -1423,7 +1378,7 @@ ApplicationWindow {
             Item {
                 id: editorContainer
                 width: parent.width - leftSideBar.width - debuggerArea.width
-                height: parent.height
+                height: parent.height - (openFiles.files.length > 0 ? 0 : paddingSmall)
                 visible: projectList.projects.length > 0
 
                 CodeEditor {
@@ -1447,7 +1402,8 @@ ApplicationWindow {
                         attemptBuild();
                     }
                     onRunRequested: {
-                        attemptRun();
+                        root.runRequested = true
+                        attemptBuild();
                     }
 
                     onInvalidatedChanged: {
@@ -1497,7 +1453,6 @@ ApplicationWindow {
             anchors.bottom: parent.bottom
             anchors.right: parent.right
             anchors.rightMargin: paddingSmall
-            anchors.left: editorContainer.right
             anchors.leftMargin: paddingSmall
             anchors.bottomMargin: paddingMedium + paddingSmall
             visible: width > 0
