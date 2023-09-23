@@ -67,7 +67,7 @@ private:
 
     StdioSpec m_spec;
     WasmRunnerSharedData sharedData;
-    pthread_t* m_runThread;
+    pthread_t m_runThread;
     SystemGlue* m_system;
     Debugger* m_debugger;
     bool m_running;
