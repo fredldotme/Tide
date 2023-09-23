@@ -220,7 +220,7 @@ void WasmRunner::debug(const QString binary, const QStringList args)
 
 void WasmRunner::waitForFinished()
 {
-    pthread_join(m_runThread, nullptr);
+    pthread_join(*m_runThread, nullptr);
 }
 
 int WasmRunner::exitCode()
@@ -267,7 +267,7 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
         sharedData.debugger = m_debugger;
     }
     sharedData.runner = this;
-    pthread_create(&m_runThread, nullptr, runInThread, &sharedData);
+    pthread_create(m_runThread, nullptr, runInThread, &sharedData);
 }
 
 void WasmRunner::kill()
@@ -284,8 +284,8 @@ void WasmRunner::kill()
 #endif
 
     if (m_runThread) {
-        pthread_cancel(m_runThread);
-        pthread_join(m_runThread, nullptr);
+        pthread_cancel(*m_runThread);
+        pthread_join(*m_runThread, nullptr);
         m_runThread = nullptr;
     }
 
