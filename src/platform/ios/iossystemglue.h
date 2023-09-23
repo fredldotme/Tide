@@ -26,8 +26,6 @@ public:
     Q_INVOKABLE void copyToClipboard(const QString text);
     Q_INVOKABLE void share(const QString text, const QUrl url, const QRect pos);
 
-    void changeDir(const QString path);
-
 private:
     StdioSpec m_spec;
     StdioSpec m_consumerSpec;

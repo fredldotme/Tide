@@ -197,7 +197,3 @@ void IosSystemGlue::share(const QString text, const QUrl url, const QRect pos) {
 
 }
 
-void IosSystemGlue::changeDir(const QString path)
-{
-    chdir(path.toStdString().c_str());
-}

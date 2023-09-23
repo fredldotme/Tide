@@ -9,6 +9,7 @@
 #include "platform/posix/posixintegrationdelegate.h"
 #include "platform/posix/nullinputmethodfixerinstaller.h"
 #include "platform/posix/posixprojectlist.h"
+#include "platform/posix/clangcompiler.h"
 
 typedef PosixSystemGlue SystemGlue;
 typedef ProjectDirectoryPicker ProjectPicker;
@@ -21,6 +22,7 @@ typedef PosixProjectList ProjectList;
 #include "platform/ios/iosintegrationdelegate.h"
 #include "platform/ios/imfixerinstaller.h"
 #include "platform/ios/iosprojectlist.h"
+#include "platform/ios/clangcompiler.h"
 
 typedef IosSystemGlue SystemGlue;
 typedef ExternalProjectPicker ProjectPicker;
