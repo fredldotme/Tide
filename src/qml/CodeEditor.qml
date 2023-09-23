@@ -519,12 +519,18 @@ Rectangle {
 
                     Shortcut {
                         sequence: "Ctrl+B"
-                        onActivated: codeEditor.buildRequested()
+                        onActivated: {
+                            codeEditor.saveRequested()
+                            codeEditor.buildRequested()
+                        }
                     }
 
                     Shortcut {
                         sequence: "Ctrl+R"
-                        onActivated: codeEditor.runRequested()
+                        onActivated: {
+                            codeEditor.saveRequested()
+                            codeEditor.runRequested()
+                        }
                     }
 
                     Shortcut {

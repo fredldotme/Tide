@@ -246,7 +246,7 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
 
     qDebug() << "Running" << applicationFile << args << debug;
 
-    sharedData.binary = binary;
+    sharedData.binary = applicationFile;
     sharedData.args = args;
     sharedData.main_result = -1;
 
