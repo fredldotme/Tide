@@ -1,5 +1,6 @@
 #include "cmakebuilder.h"
 
+#include <QCoreApplication>
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>

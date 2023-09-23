@@ -1,6 +1,6 @@
 #include "qmakebuilder.h"
 
-#include <common/clangcompiler.h>
+#include <platform/systemglue.h>
 
 #include <QCryptographicHash>
 #include <QDir>
