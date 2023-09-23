@@ -51,6 +51,12 @@ if(IOS OR CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
     )
 endif()
 
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set(LLVM_LIBS /usr/lib/llvm-15/lib)
+
+    find_library(LLVM REQUIRED NAMES libLLVM-15.so PATHS ${LLVM_FRAMEWORKS})
+endif()
+
 # Clang's formatting lib and dependencies
 set(LIBCLANGBASIC "${LLVM_LIBS}/libclangBasic.a")
 set(LIBCLANGLEX "${LLVM_LIBS}/libclangLex.a")

@@ -22,7 +22,6 @@
 #include "cppformatter.h"
 #include "searchandreplace.h"
 #include "debugger.h"
-#include "clangcompiler.h"
 
 #include "platform/systemglue.h"
 
@@ -100,7 +99,7 @@ int main(int argc, char *argv[])
         engine.rootContext()->setContextProperty("sysroot", sysroot);
         engine.rootContext()->setContextProperty("oskReactor", &oskReactor);
         engine.rootContext()->setContextProperty("iosSystem", &iosSystemGlue);
-        engine.rootContext()->setContextProperty("runtime", runtime);
+        //engine.rootContext()->setContextProperty("runtime", runtime);
 
         const QUrl url(u"qrc:/Tide/qml/Main.qml"_qs);
 #ifdef Q_OS_IOS

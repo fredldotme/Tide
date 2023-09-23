@@ -84,6 +84,6 @@ char* formatCode(const char* text, int style) {
         return nullptr;
 
     char* ret = new char[formatted.length() + 1]();
-    strlcpy(ret, (char*)formatted.data(), formatted.length());
+    strncpy(ret, (char*)formatted.data(), formatted.length());
     return ret;
 }

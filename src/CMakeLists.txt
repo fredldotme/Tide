@@ -56,6 +56,8 @@ set(CLANGRT ${CLANGRT_DIR}/lib/wasi)
 if(IOS)
     resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
+    set (WAMR_COMPILER ${WAMR_DIR}/wamr-compiler/main.c)
+    set (IWAMR ${WAMR_DIR}/product-mini/platforms/darwin/main.c)
 endif()
 
 # Qt6
@@ -68,6 +70,9 @@ include_directories(${PROJECT_NAME}
     # tar implementation
     ${MICROTAR_DIR}/src
 
+    # LLVM 15 on GNU/Linux
+    ${LLVM_INCLUDE}
+
     # libclang
     ${LLVM_DIR}/clang/include
 )
@@ -77,7 +82,6 @@ qt_add_executable(${PROJECT_NAME}
     main.cpp
     common/directorylisting.cpp
     common/clangwrapper.cpp
-    common/clangcompiler.cpp
 
     editor/linenumbershelper.cpp
     editor/qsourcehighliter.cpp
@@ -119,10 +123,10 @@ qt_add_executable(${PROJECT_NAME}
     ${QMAKEPARSER_DIR}/lib/src/qmakereader.cpp
 
     # IWASM
-    ${WAMR_DIR}/product-mini/platforms/darwin/main.c
+    ${IWASM}
 
-    # Enable once WAMR issues are sorted out
-    ${WAMR_DIR}/wamr-compiler/main.c
+    # AOT compiler
+    ${WAMR_COMPILER}
 
     # tar implementation
     ${MICROTAR_DIR}/src/microtar.c
@@ -207,6 +211,7 @@ if(IOS)
         platform/ios/iossystemglue.mm
         platform/ios/imeventfixer.cpp
         platform/ios/imfixerinstaller.cpp
+        platform/ios/clangcompiler.cpp
     )
 
     include_directories(${PROJECT_NAME}
@@ -324,10 +329,9 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     endif()
 
     set (WAMR_BUILD_PLATFORM "linux")
-    set (WAMR_BUILD_TARGET "AARCH64")
     set (WAMR_BUILD_INTERP 1)
     set (WAMR_BUILD_FAST_INTERP 0)
-    set (WAMR_BUILD_AOT 0)
+    set (WAMR_BUILD_AOT 1)
     set (WAMR_BUILD_JIT 0)
     set (WAMR_BUILD_LIB_WASI_THREADS 1)
     set (WAMR_BUILD_SHARED_MEMORY 1)
@@ -338,8 +342,17 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set (WAMR_BUILD_SIMD 1)
     set (WAMR_DISABLE_HW_BOUND_CHECK 1)
     set (WAMR_BUILD_DEBUG_INTERP 1)
+    set (WAMR_BUILD_MULTI_MODULE 1)
+    set (WAMR_BUILD_EXCE_HANDLING 1)
     set (WAMR_BUILD_REF_TYPES 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
+    add_definitions(-DWASM_UINT32_IS_ATOMIC=1 -DWASM_ENABLE_WAMR_COMPILER=1)
+
+    find_library(LLVM REQUIRED NAMES libLLVM-15.so PATHS /usr/lib/llvm-15/lib)
+
+    include_directories(${PROJECT_NAME}
+        "/usr/include/llvm-15"
+    )
 
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
@@ -349,6 +362,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
         platform/posix/posixintegrationdelegate.cpp
         platform/posix/nullinputmethodfixerinstaller.cpp
         platform/posix/posixprojectlist.cpp
+        platform/posix/clangcompiler.cpp
     )
 endif()
 
@@ -356,7 +370,6 @@ endif()
 include(${WAMR_DIR}/core/shared/utils/shared_utils.cmake)
 include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
 include(${WAMR_DIR}/core/shared/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
-#include(${WAMR_DIR}/core/iwasm/aot/iwasm_aot.cmake)
 include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
 include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
 
@@ -408,6 +421,7 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::QuickControls2
     Qt6::Sql
     ${LLVM}
+    ${LLVM_AS}
     ${NOSYSTEM}
     ${LIBCLANG_CPP}
     ${CLANG_AS}
