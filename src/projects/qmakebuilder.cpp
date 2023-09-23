@@ -10,6 +10,7 @@
 #include <thread>
 
 #define SUPPORT_AOT 1
+#define SUPPORT_EXCEPTIONS 0
 
 inline static QString resolveDefaultVariables(const QString& line,
                                               const QString& sourceDir,
@@ -63,7 +64,7 @@ void QMakeBuilder::clean()
         return;
     }
 
-    if (!buildDir.rmpath(buildDirPath)) {
+    if (!buildDir.removeRecursively()) {
         qWarning() << "Failed to clean build directory" << buildDirPath;
     }
 }
@@ -102,15 +103,20 @@ void QMakeBuilder::build(const bool debug, const bool aot)
         useThreads = (std::find(configs.begin(), configs.end(), "threads") != configs.end());
     }
 
+#if SUPPORT_EXCEPTIONS
+    const auto commonFlags = QStringLiteral(" -fwasm-exceptions ");
+#else
+    const auto commonFlags = QStringLiteral(" -fno-exceptions ");
+#endif
+
     const auto threadFlags = (useThreads ?
                                   QStringLiteral(" --target=wasm32-wasi-threads -ftls-model=local-exec -pthread ") :
                                   QStringLiteral(" --target=wasm32-wasi "));
 
     const auto defaultFlags = threadFlags;
-    const auto commonLinkFlags = QStringLiteral("");
-    const auto defaultLinkFlags = commonLinkFlags + threadFlags +
+    const auto defaultLinkFlags = threadFlags +
                                   ((projectTemplate == typeApp) ?
-                                       QStringLiteral(" -Wl,--export-all ") :
+                                       QString() :
                                        QStringLiteral(" -Wl,--no-entry -Wl,--export-all "));
 
     if (variables.find("SOURCES") == variables.end()) {
@@ -190,6 +196,7 @@ void QMakeBuilder::build(const bool debug, const bool aot)
                                 QStringLiteral(" -c ") +
                                 (debug ? QStringLiteral(" -g ") : QString()) +
                                 defaultFlags +
+                                commonFlags +
                                 includeFlags +
                                 defineFlags +
                                 QStringLiteral(" -o \"%1\" ").arg(buildObject) +
@@ -223,11 +230,12 @@ void QMakeBuilder::build(const bool debug, const bool aot)
 
     const QString linkCommand = QStringLiteral("clang++") +
                                 (debug ? QStringLiteral(" -g ") : QString()) +
+                                commonFlags +
                                 undefinedSymbolsLinkFlags +
                                 defaultLinkFlags +
+                                linkFlags +
                                 objectFlags +
                                 libraryFlags +
-                                linkFlags +
                                 QStringLiteral(" -o \"%1\"").arg(runnableFile());
 
     qDebug() << "Link command:" << linkCommand;
@@ -237,8 +245,7 @@ void QMakeBuilder::build(const bool debug, const bool aot)
     if (aot && !debug) {
         const QString aotPath = runnableFile() + QStringLiteral(".aot");
         const QString aotCommand =
-            QStringLiteral("wamrc --size-level=3") +
-            (useThreads ? QStringLiteral(" --enable-multi-thread ") : QString()) +
+            QStringLiteral("wamrc --size-level=3 --format=aot ") +
             QStringLiteral(" -o \"%1\" \"%2\"").arg(aotPath, runnableFile());
         buildCommands << aotCommand;
     }
