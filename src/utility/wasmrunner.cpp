@@ -81,9 +81,6 @@ void* runInThread(void* userdata)
 {
     WasmRunnerSharedData& shared = *static_cast<WasmRunnerSharedData*>(userdata);
 
-    // Make this thread killable the dirty way
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, nullptr);
-
 #if USE_EMBEDDED_WAMR
     char error_buf[128];
     int main_result;
@@ -159,8 +156,12 @@ void* runInThread(void* userdata)
     }
 
     if (!wasm_application_execute_main(shared.module_inst, 0, NULL)) {
-        const QString err = QStringLiteral("call wasm function main failed. error: %1\n").arg(wasm_runtime_get_exception(shared.module_inst));
-        emit shared.runner->errorOccured(err);
+        if (!shared.killing) {
+            const QString err = QStringLiteral("call wasm function main failed. error: %1\n").arg(wasm_runtime_get_exception(shared.module_inst));
+            emit shared.runner->errorOccured(err);
+        } else {
+            emit shared.runner->runEnded(255);
+        }
         goto fail;
     }
 
@@ -172,6 +173,8 @@ void* runInThread(void* userdata)
     qDebug() << "Execution complete, exit code:" << shared.main_result;
 
 fail:
+    // Whether killed or not, we can reset state here
+    shared.killing = false;
     shared.runner->signalEnd();
 
     if (shared.exec_env) {
@@ -255,6 +258,8 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
     sharedData.module = nullptr;
     sharedData.module_inst = nullptr;
 
+    sharedData.killing = false;
+
     // Set to true now so that we have to reset it after a successful run.
     sharedData.killed = true;
 #else
@@ -272,36 +277,32 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
 
 void WasmRunner::kill()
 {
+#if USE_EMBEDDED_WAMR
+    sharedData.killing = true;
+#endif
+
     if (sharedData.debug && m_debugger) {
         m_debugger->killDebugger();
         sharedData.debug = false;
     }
 
-#if 0 //USE_EMBEDDED_WAMR
+#if USE_EMBEDDED_WAMR
     if (sharedData.module_inst) {
         wasm_runtime_terminate(sharedData.module_inst);
     }
 #endif
 
-    if (m_runThread) {
-        pthread_cancel(m_runThread);
-        pthread_join(m_runThread, nullptr);
-        m_runThread = nullptr;
-    }
-
+#if 0
 #if USE_EMBEDDED_WAMR
     if (sharedData.exec_env) {
         wasm_runtime_destroy_exec_env(sharedData.exec_env);
         sharedData.exec_env = nullptr;
     }
-    if (sharedData.module_inst) {
-        wasm_runtime_deinstantiate(sharedData.module_inst);
-        sharedData.module_inst = nullptr;
-    }
     if (sharedData.module) {
         wasm_runtime_unload(sharedData.module);
         sharedData.module = nullptr;
     }
+#endif
 #endif
 
 #ifdef TIDEUI_API_BINDING_H

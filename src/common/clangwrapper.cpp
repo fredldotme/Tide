@@ -30,7 +30,17 @@ ClangWrapper::ClangWrapper()
     *(void**)(&Cursor_isNull) = dlsym(this->handle, "clang_Cursor_isNull");
     *(void**)(&equalCursors) = dlsym(this->handle, "clang_equalCursors");
     *(void**)(&getCursorSemanticParent) = dlsym(this->handle, "clang_getCursorSemanticParent");
+    *(void**)(&getCursorLexicalParent) = dlsym(this->handle, "clang_getCursorLexicalParent");
     *(void**)(&isCursorDefinition) = dlsym(this->handle, "clang_isCursorDefinition");
+    *(void**)(&getNullCursor) = dlsym(this->handle, "clang_getNullCursor");
+    *(void**)(&getCursorType) = dlsym(this->handle, "clang_getCursorType");
+    *(void**)(&getTypeSpelling) = dlsym(this->handle, "clang_getTypeSpelling");
+    *(void**)(&getCursorExtent) = dlsym(this->handle, "clang_getCursorExtent");
+    *(void**)(&getRangeStart) = dlsym(this->handle, "clang_getRangeStart");
+    *(void**)(&getRangeEnd) = dlsym(this->handle, "clang_getRangeEnd");
+    *(void**)(&getExpansionLocation) = dlsym(this->handle, "clang_getExpansionLocation");
+    *(void**)(&getCursorReferenced) = dlsym(this->handle, "clang_getCursorReferenced");
+    *(void**)(&parseTranslationUnit) = dlsym(this->handle, "clang_parseTranslationUnit");
 }
 
 ClangWrapper::~ClangWrapper()

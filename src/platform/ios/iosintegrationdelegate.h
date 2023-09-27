@@ -9,7 +9,7 @@ class IosIntegrationDelegate : public QObject
     Q_OBJECT
     Q_PROPERTY(bool oskVisible MEMBER m_oskVisible NOTIFY oskVisibleChanged)
     Q_PROPERTY(int oskHeight MEMBER m_oskHeight NOTIFY oskHeightChanged)
-    Q_PROPERTY(QQuickItem* item MEMBER m_item NOTIFY itemChanged)
+    Q_PROPERTY(QQuickItem* item WRITE setItem READ item NOTIFY itemChanged)
     Q_PROPERTY(int statusBarHeight MEMBER m_statusBarHeight CONSTANT);
 
 public:
@@ -17,6 +17,11 @@ public:
 
     void setOskRect(const int width, const int height);
     void setOskVisible(const bool val);
+    void setItem(QQuickItem* item);
+    QQuickItem* item();
+
+public slots:
+    void hookUpNativeView(QQuickItem* item);
 
 private:
     bool m_oskVisible;

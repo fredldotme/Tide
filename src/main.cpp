@@ -76,19 +76,18 @@ int main(int argc, char *argv[])
     qmlRegisterType<CppFormatter>("Tide", 1, 0, "CppFormatter");
     qmlRegisterType<SearchAndReplace>("Tide", 1, 0, "SearchAndReplace");
     qmlRegisterType<Debugger>("Tide", 1, 0, "Debugger");
+    qmlRegisterType<PlatformIntegrationDelegate>("Tide", 1, 0, "PlatformIntegrationDelegate");
 
     qmlRegisterUncreatableType<SystemGlue>("Tide", 1, 0, "IosSystemGlue", "Created in main() as 'iosSystem'.");
     qmlRegisterUncreatableType<StdioSpec>("Tide", 1, 0, "ProgramSpec", "StdioSpec is protocol between 'iosSystem' and 'Console'.");
     qmlRegisterUncreatableType<QSourceHighliter>("Tide", 1, 0, "SourceHighliter", "Use 'SyntaxHighlighter' instead.");
     qmlRegisterUncreatableType<InputMethodFixerInstaller>("Tide", 1, 0, "ImFixerInstaller", "Instantiated in main() as 'imFixer'.");
-    qmlRegisterUncreatableType<PlatformIntegrationDelegate>("Tide", 1, 0, "IosKeyboardReactorDelegate", "Created in main() as 'oskReactor'.");
     qmlRegisterUncreatableType<SearchResult>("Tide", 1, 0, "SearchResult", "Created 'searchAndReplace'.");
 
     int ret;
     {
         SystemGlue iosSystemGlue;
         InputMethodFixerInstaller imFixer;
-        PlatformIntegrationDelegate oskReactor;
 
         QFont standardFixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
         standardFixedFont.setPixelSize(14);
@@ -97,7 +96,6 @@ int main(int argc, char *argv[])
         engine.rootContext()->setContextProperty("standardFixedFont", standardFixedFont);
         engine.rootContext()->setContextProperty("imFixer", &imFixer);
         engine.rootContext()->setContextProperty("sysroot", sysroot);
-        engine.rootContext()->setContextProperty("oskReactor", &oskReactor);
         engine.rootContext()->setContextProperty("iosSystem", &iosSystemGlue);
         //engine.rootContext()->setContextProperty("runtime", runtime);
 

@@ -19,12 +19,15 @@ Rectangle {
     property alias codeField: codeField
 
     property bool invalidated : true
-    property bool showAutoCompletor : false
     property bool changed : false
     property bool loading : false
+    property bool showAutoCompletor : false
 
     onShowAutoCompletorChanged: {
-        codeField.startCursorPosition = codeField.cursorPosition
+        if (!showAutoCompletor) {
+            codeField.forceActiveFocus()
+            autoCompletorFrame.compact = true
+        }
     }
 
     Connections {
@@ -32,19 +35,17 @@ Rectangle {
         function onFilesChanged() {
             if (openFiles.files.length === 0) {
                 invalidate()
+                return
             }
+
+            showAutoCompletor = false
+            autoCompletorFrame.compact = true
+            codeField.focus = true
         }
     }
 
     onWidthChanged: {
-        delayedLineNumberRefresh.restart()
-    }
-
-    Timer {
-        id: delayedLineNumberRefresh
-        interval: 200
-        repeat: false
-        onTriggered: lineNumbersHelper.refresh()
+        refreshLineNumbers();
     }
 
     signal saveRequested()
@@ -163,8 +164,8 @@ Rectangle {
 
         highlighter.setCurrentLanguage(lang)
         //highlighter.setVisibleRect(codeView.width, codeView.height);
-        showAutoCompletor = false
         reloadAst()
+        lineNumbersHelper.refresh()
     }
 
     readonly property bool canUseAutocomplete : {
@@ -214,10 +215,9 @@ Rectangle {
             return;
         }
 
+        codeField.startCursorPosition = codeField.cursorPosition
+        codeEditor.saveRequested() // Implicitly calls reloadAst
         showAutoCompletor = !showAutoCompletor
-        if (showAutoCompletor) {
-            codeEditor.saveRequested() // Implicitly calls reloadAst
-        }
     }
 
     function reloadAst() {
@@ -229,13 +229,12 @@ Rectangle {
                 file.name.toLowerCase().endsWith(".h") || file.name.toLowerCase().endsWith(".hpp") ||
                 file.name.toLowerCase().endsWith(".cc") || file.name.toLowerCase().endsWith(".cxx")) {
             autoCompleter.setIncludePaths(projectBuilder.includePaths());
-            autoCompleter.reloadAst(file.path, codeField.currentBlock())
+            autoCompleter.reloadAst(file.path, "", codeField.currentLine, codeField.currentColumn)
         }
     }
 
     function invalidate () {
         invalidated = true
-        showAutoCompletor = false
         text = ""
         changed = false
     }
@@ -254,7 +253,11 @@ Rectangle {
         }
     }
 
-    property var autoCompleter : AutoCompleter { }
+    property var autoCompleter : AutoCompleter {
+        onDeclsChanged: {
+            console.log("Autocompleter decls changed");
+        }
+    }
 
     CppFormatter {
         id: cppFormatter
@@ -263,14 +266,15 @@ Rectangle {
     Connections {
         target: root.palette
         function onChanged() {
-            highlighter.init(codeField.textDocument, (root.palette.base !== Qt.color("#1c1c1e")))
+            highlighter.init(codeField.textDocument,
+                             (root.palette.base !== Qt.color("#1c1c1e")))
         }
     }
 
     function refreshLineNumbers() {
         if (invalidated)
             return;
-        lineNumbersHelper.refresh()
+        lineNumbersHelper.delayedRefresh()
     }
 
     Column {
@@ -465,52 +469,136 @@ Rectangle {
                     id: codeField
                     Layout.fillHeight: true
                     Layout.fillWidth: settings.wrapEditor
+
                     text: ""
                     onEditingFinished: {
                         if (codeEditor.loading)
                             return;
                         codeEditor.changed = true
                     }
+                    focus: true
+                    selectionColor: "dodgerblue"
                     font: fixedFont
-                    focus: !showAutoCompletor
                     wrapMode: settings.wrapEditor ? TextEdit.WrapAnywhere : TextEdit.NoWrap
-                    Component.onCompleted: imFixer.setupImEventFilter(codeField)
+                    Component.onCompleted: {
+                        //uiIntegration.hookUpNativeView(codeField)
+                        imFixer.setupImEventFilter(codeField)
+                    }
+                    cursorDelegate: Component {
+                        Rectangle {
+                            color: codeField.selectionColor
+                            width: 3
+                            height: codeField.font.pixelSize
+                        }
+                    }
+
+                    onImplicitHeightChanged: lineNumbersHelper.refresh()
+
+                    Keys.onUpPressed:
+                        (event) => {
+                            if (showAutoCompletor) {
+                                autoCompletionList.currentIndex = Math.abs(autoCompletionList.currentIndex - 1) % autoCompletionList.model.length
+                                event.accepted = true
+                                return
+                            }
+
+                            event.accepted = false
+                        }
+                    Keys.onDownPressed:
+                        (event) => {
+                            if (showAutoCompletor) {
+                                autoCompletionList.currentIndex = Math.abs(autoCompletionList.currentIndex + 1) % autoCompletionList.model.length
+                                event.accepted = true
+                                return
+                            }
+
+                            event.accepted = false
+                        }
+                    Keys.onReturnPressed:
+                        (event) => {
+                            event.accepted = false
+
+                            if (showAutoCompletor) {
+                                const insertable = autoCompletionList.insertable(
+                                    autoCompletionList.model[autoCompletionList.currentIndex].name,
+                                    autoCompletionList.model[autoCompletionList.currentIndex].kind)
+                                codeField.remove(codeField.startCursorPosition, codeField.cursorPosition)
+                                codeField.insert(codeField.startCursorPosition, insertable)
+                                codeEditor.showAutoCompletor = false
+                                event.accepted = true
+                                return
+                            }
+
+                            if (settings.autoindent) {
+                                // Find the previous newline
+                                let previousNewlinePosition = 0
+                                for (let i = codeField.cursorPosition - 1; i >= 0; i--) {
+                                    if (codeField.text[i] === '\n') {
+                                        previousNewlinePosition = i;
+                                        break;
+                                    }
+                                }
+
+                                if (previousNewlinePosition !== 0) {
+                                    // Find spaces/tabs from there on out until the next character
+                                    let indentation = "";
+                                    for (let j = previousNewlinePosition + 1; j < codeField.text.length; j++) {
+                                        if (codeField.text[j] === ' ' || codeField.text[j] === '\t') {
+                                            indentation += codeField.text[j];
+                                        } else {
+                                            break;
+                                        }
+                                    }
+
+                                    if (indentation !== "") {
+                                        codeField.insert(codeField.cursorPosition, "\n" + indentation)
+                                        event.accepted = true
+                                    }
+                                }
+                            }
+                        }
+
+                    readonly property int currentLine: lineNumbersHelper.currentLine(codeField.cursorPosition) + 1
+                    readonly property int currentColumn: lineNumbersHelper.currentColumn(codeField.cursorPosition) + 1
+
                     property int startCursorPosition : 0
                     onCursorPositionChanged: {
+                        if (cursorPosition < startCursorPosition)
+                            codeEditor.showAutoCompletor = false
+
                         if (!settings.wrapEditor) {
                             if (cursorRectangle.x > scrollView.width ||
                                     cursorRectangle.x < scrollView.contentItem.contentX) {
                                 scrollView.contentItem.contentX = (cursorRectangle.x - paddingSmall)
                             }
                         }
-
-                        if (codeField.cursorPosition < codeField.startCursorPosition)
-                            showAutoCompletor = false
                     }
 
-                    function currentBlock() {
-                        let start = 0
+                    readonly property string currentBlock : {
+                        if (!showAutoCompletor)
+                            return ""
+
+                        if (codeField.startCursorPosition == codeField.cursorPosition)
+                            return ""
+
+                        let start = codeField.startCursorPosition
                         let end = 0
-                        const anchor = codeField.startCursorPosition
-                        console.debug("Centering at " + anchor)
 
-                        for (let needle = anchor; needle > 0; needle--) {
-                            if (codeField.text[needle] === ' ' || codeField.text[needle] === '\r' || codeField.text[needle] === '\n') {
-                                start = needle + 1;
-                                break;
-                            }
-                        }
-                        for (let needle = anchor; needle < codeField.text.length; needle++) {
-                            if (codeField.text[needle] === ' ' || codeField.text[needle] === '\r' || codeField.text[needle] === '\n') {
-                                end = needle - 1;
+                        const matcher = RegExp(/[a-zA-Z_\-0-9]/, 'u')
+                        for (let needle = start; needle <= codeField.cursorPosition; needle++) {
+                            if (matcher.test(codeField.text[needle])) {
+                                end = needle;
+                            } else {
                                 break;
                             }
                         }
 
-                        return codeField.text.substring(start, end)
+                        let ret = codeField.text.substring(start, end)
+                        ret = ret.trim()
+
+                        console.log("currentBlock: " + ret)
+                        return ret;
                     }
-
-                    readonly property string filterString: autoCompletionInput.text
 
                     Shortcut {
                         sequence: "Ctrl+Shift+S"
@@ -550,113 +638,292 @@ Rectangle {
                         }
                     }
 
-                    Rectangle {
+                    MouseArea {
                         anchors.fill: parent
-                        color: root.palette.shadow
-                        opacity: showAutoCompletor ? 0.5 : 0.0
-                        visible: opacity > 0.0
-
-                        Behavior on opacity {
-                            NumberAnimation {
-                                duration: dialogShadow.consoleAnimation
-                                easing.type: Easing.OutCubic
+                        visible: enabled
+                        enabled: showAutoCompletor
+                        onClicked:
+                            (event) => {
+                                codeEditor.showAutoCompletor = false
+                                event.accepted = true
                             }
-                        }
-
-                        readonly property int consoleAnimation: 250
-
-                        // Due to a Qt bug it is possible to crash the IDE by tapping a CodeEditor
-                        // while the console is open and overlaid on top, apparently due to the TextField
-                        // being instantiated in a different thread (how?). Catch any accidental presses
-                        // in a modal way to work around this issue.
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked:
-                                (mouse) => {
-                                    showAutoCompletor = false
-                                    mouse.accepted = true
-                                }
-                        }
                     }
 
                     Rectangle {
                         id: autoCompletorFrame
-                        width: Math.min(autoCompletionList.contentItem.childrenRect.width, 300)
-                        height: Math.min(autoCompletionList.contentItem.childrenRect.height, 300) + autoCompletionInput.height
-                        x: codeField.cursorRectangle.x
-                        y: codeField.cursorRectangle.y
-                        visible: showAutoCompletor
+                        readonly property bool visibility : showAutoCompletor
+                        opacity: visibility ? 1.0 : 0.0
+                        visible: opacity > 0.0
+                        scale: visibility ? 1.0 : 0.8
                         color: root.palette.base
-                        clip: true
-                        border.color: root.palette.text
+                        border.color: root.palette.shadow
                         border.width: 1
-                        radius: root.roundedCornersRadiusSmall
+                        radius: roundedCornersRadiusSmall
+                        clip: true
+
+                        Behavior on width {
+                            NumberAnimation {
+                                duration: 200
+                                easing.type: Easing.OutExpo
+                            }
+                        }
+                        Behavior on height {
+                            NumberAnimation {
+                                duration: 200
+                                easing.type: Easing.OutExpo
+                            }
+                        }
+                        Behavior on x {
+                            NumberAnimation {
+                                duration: autoCompletorFrame.state === "compact" ?
+                                              100 : 200
+                                easing.type: Easing.OutExpo
+                            }
+                        }
+                        Behavior on y {
+                            NumberAnimation {
+                                duration: autoCompletorFrame.state === "compact" ?
+                                              100 : 200
+                                easing.type: Easing.OutExpo
+                            }
+                        }
+                        Behavior on opacity {
+                            NumberAnimation {
+                                duration: 100
+                                easing.type: Easing.OutExpo
+                            }
+                        }
+                        Behavior on scale {
+                            NumberAnimation {
+                                duration: 100
+                                easing.type: Easing.OutExpo
+                            }
+                        }
+
+                        states: [
+                            State {
+                                name: "compact"
+                                PropertyChanges {
+                                    target: autoCompletorFrame
+                                    x: localCoord.x - framePaddingX()
+                                    y: localCoord.y - framePaddingY()
+                                }
+                            },
+                            State {
+                                name: "expanded"
+                                PropertyChanges {
+                                    target: autoCompletorFrame
+                                    x: (parent.width - width) / 2
+                                    y: (parent.height - height) / 2
+                                }
+                            }
+                        ]
+                        transitions: [
+                            Transition {
+                                from: "compact"
+                                to: "expanded"
+                                ParallelAnimation {
+                                    NumberAnimation {
+                                        duration: 100
+                                        easing.type: Easing.OutExpo
+                                    }
+                                }
+                            },
+                            Transition {
+                                from: "expanded"
+                                to: "compact"
+                                ParallelAnimation {
+                                    NumberAnimation {
+                                        duration: 100
+                                        easing.type: Easing.OutExpo
+                                    }
+                                }
+                            }
+                        ]
+
+                        property bool compact : true
+                        state: compact && root.landscapeMode ? "compact" : "expanded"
+
+                        readonly property int maxWidth : state === "compact" ? 400 : mainView.dialogWidth
+                        readonly property int maxHeight : state === "compact" ? 300 : mainView.dialogHeight
+
+                        function framePaddingX() {
+                            return (codeField.cursorRectangle.x + width > codeEditor.width) ?
+                                        width + codeField.font.pixelSize : 0
+                        }
+
+                        function framePaddingY () {
+                            return (codeField.cursorRectangle.y + height > codeEditor.height) ?
+                                        height : -codeField.font.pixelSize
+                        }
+
+                        property var localCoord : codeField.cursorRectangle
+                        width: maxWidth
+                        height: Math.max(autoCompletorButtonArea.height, Math.min(autoCompletorContent.height, maxHeight))
+                        x: localCoord.x - framePaddingX()
+                        y: localCoord.y - framePaddingY()
+
+                        parent: state === "compact" ? codeField : mainContainer
+
+                        Component.onCompleted: {
+                            imFixer.setupImEventFilter(autoCompletionInput)
+                            autoCompletionInputFocusScope.forceActiveFocus()
+                        }
 
                         Column {
-                            anchors.fill: parent
+                            id: autoCompletorContent
+                            width: parent.width
 
-                            TextField {
-                                id: autoCompletionInput
-                                width: autoCompletionList.width
-                                focus: showAutoCompletor
-                                onFocusChanged: {
-                                    if (focus)
+                            FocusScope {
+                                id: autoCompletionInputFocusScope
+                                width: autoCompletionInput.width
+                                height: autoCompletionInput.height
+                                focus: true
+                                TextField {
+                                    id: autoCompletionInput
+                                    width: autoCompletorFrame.width - autoCompletorButtonArea.width
+                                    height: autoCompletorFrame.state === "compact" ? 0 : implicitHeight
+                                    focus: showAutoCompletor && autoCompletorFrame.state !== "compact"
+                                    topInset: 0
+                                    leftInset: 0
+                                    rightInset: 0
+                                    bottomInset: 0
+
+                                    onAccepted: {
+                                        const insertable = autoCompletionList.insertable(
+                                                             autoCompletionList.model[autoCompletionList.currentIndex].name,
+                                                             autoCompletionList.model[autoCompletionList.currentIndex].kind)
+                                        codeField.insert(codeField.startCursorPosition, insertable)
+                                        codeField.cursorPosition = codeField.startCursorPosition + insertable.length
                                         text = ""
-                                }
+                                        codeEditor.showAutoCompletor = false
+                                    }
 
-                                onAccepted: {
-                                    codeField.insert(codeField.startCursorPosition,
-                                                     autoCompletionList.insertable(
-                                                         autoCompletionList.model[autoCompletionList.currentIndex].name,
-                                                         autoCompletionList.model[autoCompletionList.currentIndex].kind))
-                                    showAutoCompletor = false
-                                    text = ""
+                                    Keys.onUpPressed: {
+                                        autoCompletionList.currentIndex =
+                                                Math.abs(autoCompletionList.currentIndex - 1) % autoCompletionList.model.length
+                                    }
+                                    Keys.onDownPressed: {
+                                        autoCompletionList.currentIndex =
+                                                Math.abs(autoCompletionList.currentIndex + 1) % autoCompletionList.model.length
+                                    }
                                 }
                             }
 
-                            ListView {
-                                id: autoCompletionList
-                                model: (codeField.filterString === "") ?
-                                           autoCompleter.decls :
-                                           autoCompleter.filteredDecls(codeField.filterString)
-                                width: Math.min(autoCompletionList.contentItem.childrenRect.width, 300)
-                                height: Math.min(autoCompletionList.contentItem.childrenRect.height, 300)
+                            Label {
+                                text: qsTr("Nothing found")
+                                font.pixelSize: 24
+                                color: root.palette.text
+                                horizontalAlignment: Qt.AlignHCenter
+                                verticalAlignment: Qt.AlignVCenter
+                                width: autoCompletorFrame.width
+                                height: 200
+                                visible: autoCompletionList.model.length === 0
+                            }
 
-                                function iconForKind(kind) {
-                                    if (kind === AutoCompleter.Function)
-                                        return Qt.resolvedUrl("qrc:/assets/function@2x.png");
-                                    else if (kind === AutoCompleter.Variable)
-                                        return Qt.resolvedUrl("qrc:/assets/v.square@2x.png");
-                                    return ""
-                                }
+                            ScrollView {
+                                id: autoCompletionScrollView
+                                width: autoCompletionList.width
+                                height: autoCompletionList.height
+                                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                                ScrollBar.vertical.policy: ScrollBar.AlwaysOff
 
-                                function insertable(name, kind) {
-                                    if (kind === AutoCompleter.Function)
-                                        return name + "(";
-                                    return name;
-                                }
+                                ListView {
+                                    id: autoCompletionList
+                                    model: autoCompletorFrame.state !== "compact" && autoCompletionInput.text !== "" ?
+                                               autoCompleter.filteredDecls(autoCompletionInput.text) :
+                                               autoCompletorFrame.state === "compact" && codeField.currentBlock !== "" ?
+                                                   autoCompleter.filteredDecls(codeField.currentBlock) :
+                                                   autoCompleter.decls
+                                    contentWidth: contentItem.childrenRect.width
+                                    contentHeight: contentItem.childrenRect.height
+                                    width: Math.min(contentWidth, autoCompletorFrame.maxWidth)
+                                    height: Math.min(contentHeight, autoCompletorFrame.maxHeight - autoCompletionInput.height)
+                                    clip: true
 
-                                delegate: TideButton {
-                                    icon.source: autoCompletionList.iconForKind(modelData.kind)
-                                    text: modelData.name
-                                    font.styleName: "Monospace"
-                                    font.bold: true
-                                    font.pixelSize: 24
-                                    color: index === autoCompletionList.currentIndex ? root.palette.button : root.palette.dark
-                                    elide: Text.ElideRight
-                                    onClicked: {
-                                        insertCompletion()
-                                        showAutoCompletor = false
+                                    onModelChanged: {
+                                        console.log("Autocompletion model changed");
                                     }
-                                    function insertCompletion() {
-                                        codeField.insert(codeField.cursorPosition,
-                                                         autoCompletionList.insertable(modelData.name, modelData.kind))
+
+                                    function iconForKind(kind) {
+                                        if (kind === AutoCompleter.Function)
+                                            return Qt.resolvedUrl("qrc:/assets/function@2x.png");
+                                        else if (kind === AutoCompleter.Variable ||
+                                                 kind === AutoCompleter.Parameter)
+                                            return Qt.resolvedUrl("qrc:/assets/v.square@2x.png");
+                                        return ""
                                     }
+
+                                    function insertable(name, kind) {
+                                        if (kind === AutoCompleter.Function)
+                                            return name + "(";
+                                        return name;
+                                    }
+
+                                    delegate: TidePrefixedButton {
+                                        width: autoCompletorFrame.width
+                                        icon.source: autoCompletionList.iconForKind(modelData.kind)
+                                        prefix: modelData.prefix
+                                        text: modelData.name
+                                        detail: modelData.detail !== "" ? qsTr("inside ") + modelData.detail :
+                                                                          qsTr("in this file")
+                                        font.styleName: "Monospace"
+                                        font.bold: true
+                                        font.pixelSize: 20
+                                        color: index === autoCompletionList.currentIndex ? root.palette.button : root.palette.dark
+                                        elide: Text.ElideRight
+                                        onClicked: {
+                                            insertCompletion()
+                                        }
+                                        function insertCompletion() {
+                                            showAutoCompletor = false
+                                            codeField.insert(codeField.cursorPosition,
+                                                             autoCompletionList.insertable(modelData.name, modelData.kind))
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        Row {
+                            id: autoCompletorButtonArea
+                            anchors.top: parent.top
+                            anchors.right: parent.right
+
+                            Button {
+                                icon.source: Qt.resolvedUrl("qrc:/assets/magnifyingglass.circle.fill@2x.png")
+                                icon.width: 24
+                                icon.height: 24
+                                flat: true
+                                background: Rectangle {
+                                    color: root.palette.base
+                                    border.color: root.palette.shadow
+                                    border.width: 1
+                                }
+                                onClicked: {
+                                    autoCompletorFrame.compact = !autoCompletorFrame.compact
+                                    if (autoCompletorFrame.state !== "compact")
+                                        autoCompletionInput.forceActiveFocus()
+                                }
+                            }
+                            Button {
+                                icon.source: Qt.resolvedUrl("qrc:/assets/xmark.circle.fill@2x.png")
+                                icon.width: 24
+                                icon.height: 24
+                                flat: true
+                                background: Rectangle {
+                                    color: root.palette.base
+                                    border.color: root.palette.shadow
+                                    border.width: 1
+                                }
+                                onClicked: {
+                                    codeEditor.showAutoCompletor = false
                                 }
                             }
                         }
                     }
                 }
+
             }
         }
 
@@ -666,7 +933,7 @@ Rectangle {
             height: implicitHeight
 
             Label {
-                text: qsTr("Line %1").arg(lineNumbersHelper.currentLine(codeField.cursorPosition) + 1)
+                text: qsTr("Line %1").arg(codeField.currentLine)
                 font.pixelSize: 12
                 color: root.palette.text
             }
@@ -678,7 +945,7 @@ Rectangle {
             }
 
             Label {
-                text: qsTr("Column %1").arg(lineNumbersHelper.currentColumn(codeField.cursorPosition) + 1)
+                text: qsTr("Column %1").arg(codeField.currentColumn)
                 font.pixelSize: 12
                 color: root.palette.text
             }
@@ -694,6 +961,20 @@ Rectangle {
                 visible: text !== ""
                 font.pixelSize: 12
                 color: root.palette.text
+            }
+        }
+    }
+
+    Rectangle {
+        id: codeFieldCurtain
+        anchors.fill: parent
+        opacity: 0.5
+        color: root.palette.shadow
+        visible: autoCompletorFrame.state !== "compact" && showAutoCompletor
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+                codeEditor.showAutoCompletor = false
             }
         }
     }

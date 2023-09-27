@@ -37,9 +37,6 @@ std::string Formatter::format(std::string buffer, int formatStyle)
         return buffer;
     }
 
-    // Hack: Last character seems to get swallowed
-    char lastCharacter = buffer[buffer.length() - 1];
-
     switch (formatStyle) {
     case LLVM:
         style = format::getLLVMStyle(clang::format::FormatStyle::LK_Cpp);
@@ -73,7 +70,7 @@ std::string Formatter::format(std::string buffer, int formatStyle)
         return buffer;
     }
 
-    return result.get() + lastCharacter;
+    return result.get();
 }
 
 char* formatCode(const char* text, int style) {

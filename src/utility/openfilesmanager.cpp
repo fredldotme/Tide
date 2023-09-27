@@ -37,6 +37,27 @@ void OpenFilesManager::close(const DirectoryListing listing)
         emit filesChanged();
 }
 
+void OpenFilesManager::closeAllBut(const DirectoryListing listing)
+{
+    bool removed = false;
+
+    for (auto it = m_files.begin(); it != m_files.end();) {
+        if (it->path == listing.path) {
+            it++;
+            continue;
+        }
+
+        emit closingFile(listing);
+        it = m_files.erase(it);
+        removed = true;
+    }
+
+    if (removed) {
+        m_files.squeeze();
+        emit filesChanged();
+    }
+}
+
 void OpenFilesManager::closeAllByBookmark(QByteArray bookmark)
 {
     std::vector<DirectoryListing> listings;

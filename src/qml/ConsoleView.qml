@@ -94,6 +94,14 @@ Item {
                     }
 
                     ToolButton {
+                        text: qsTr("Stop")
+                        font.bold: true
+                        visible: wasmRunner.running
+                        onClicked: {
+                            wasmRunner.kill()
+                        }
+                    }
+                    ToolButton {
                         text: qsTr("Close")
                         font.bold: true
                         rightPadding: paddingMedium

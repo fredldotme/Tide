@@ -8,7 +8,9 @@
 LineNumbersHelper::LineNumbersHelper(QObject *parent) :
     QObject(parent), m_lineCount{0}
 {
-
+    m_delayedRefreshTimer.setSingleShot(true);
+    m_delayedRefreshTimer.setInterval(200);
+    QObject::connect(&m_delayedRefreshTimer, &QTimer::timeout, this, &LineNumbersHelper::refresh);
 }
 
 QObject* LineNumbersHelper::document()
@@ -34,15 +36,17 @@ void LineNumbersHelper::setDocument(QObject *p)
 
     this->m_document = pointer;
 
+#if 0
     QObject::connect(this->m_document->textDocument(), &QTextDocument::blockCountChanged,
                      this, [=](int count){
                          Q_UNUSED(count);
-                         refresh();
+                         delayedRefresh();
                      }, Qt::QueuedConnection);
+#endif
     QObject::connect(this->m_document->textDocument(), &QTextDocument::documentLayoutChanged,
-                     this, &LineNumbersHelper::refresh, Qt::QueuedConnection);
+                     this, &LineNumbersHelper::delayedRefresh, Qt::QueuedConnection);
     QObject::connect(this->m_document->textDocument(), &QTextDocument::contentsChanged,
-                     this, &LineNumbersHelper::refresh, Qt::QueuedConnection);
+                     this, &LineNumbersHelper::delayedRefresh, Qt::QueuedConnection);
 
     emit documentChanged();
 }
@@ -54,6 +58,12 @@ void clearLineCount(QVariantList& list)
         auto newInfo = newVar.value<LineNumberInfo*>();
         newInfo->deleteLater();
     }
+}
+
+void LineNumbersHelper::delayedRefresh()
+{
+    m_delayedRefreshTimer.stop();
+    m_delayedRefreshTimer.start();
 }
 
 void LineNumbersHelper::refresh()

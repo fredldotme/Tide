@@ -44,8 +44,18 @@ ApplicationWindow {
     property bool releaseRequested : false
     property bool runRequested : false
     property bool debugRequested : false
+    property bool stopRequested : false
 
     signal fileSaved()
+
+    function showDialog(dialogComponent) {
+        let dialog = dialogComponent.createObject(mainContainer)
+        dialog.done.connect(function() {
+            dialog.destroy()
+        })
+        dialog.open()
+        return dialog
+    }
 
     function saveCurrentFile() {
         if (editor.file == null || editor.invalidated)
@@ -70,6 +80,11 @@ ApplicationWindow {
     function attemptBuild() {
         if (editor.invalidated)
             return;
+
+        if (projectBuilder.projectFile === "")
+            return;
+
+        hud.hudLabel.flashMessage(qsTr("Building project..."))
 
         saveCurrentFile()
         root.compiling = true
@@ -107,6 +122,7 @@ ApplicationWindow {
     }
 
     function stopRunAndDebug() {
+        stopRequested = true
         debugRequested = false
         runRequested = false
         releaseRequested = false
@@ -145,8 +161,6 @@ ApplicationWindow {
     }
 
     onWidthChanged: {
-        editor.refreshLineNumbers()
-
         // Hide the sidebar
         if (width < height && shouldAllowSidebar) {
             showLeftSideBar = false
@@ -163,180 +177,226 @@ ApplicationWindow {
     }
 
     header: Pane {
-        topPadding: padStatusBar ? oskReactor.statusBarHeight : 0
+        id: mainViewHeader
+        topPadding: padStatusBar ? uiIntegration.statusBarHeight : 0
         width: parent.width
         height: topBarHeight
 
-        Column {
-            anchors.fill: parent
-            spacing: paddingSmall * 2
+        RowLayout {
+            id: headerRow
+            spacing: paddingSmall
+            width: parent.width
+            height: parent.height
 
-            RowLayout {
-                spacing: paddingMid
-                width: parent.width
-                height: root.headerItemHeight
+            TideToolButton {
+                id: contextButton
+                enabled: !sysrootManager.installing
+                icon.source: Qt.resolvedUrl("qrc:/assets/ellipsis.circle@2x.png")
+                icon.color: root.palette.button
+                leftPadding: paddingMedium
 
-                TideToolButton {
-                    id: contextButton
-                    enabled: !sysrootManager.installing
-                    icon.source: Qt.resolvedUrl("qrc:/assets/ellipsis.circle@2x.png")
-                    icon.color: root.palette.button
-                    leftPadding: paddingMedium
+                function wiggle() {
+                    if (!settings.wiggleHints)
+                        return
+                    contextButtonWiggleAnimation.restart()
+                }
 
-                    function wiggle() {
-                        if (!settings.wiggleHints)
-                            return
-                        contextButtonWiggleAnimation.restart()
+                SequentialAnimation {
+                    id: contextButtonWiggleAnimation
+
+                    NumberAnimation {
+                        target: contextButton
+                        property: "rotation"
+                        duration: 100
+                        from: 0
+                        to: -45
+                        easing.type: Easing.Linear
                     }
-
-                    SequentialAnimation {
-                        id: contextButtonWiggleAnimation
-
-                        NumberAnimation {
-                            target: contextButton
-                            property: "rotation"
-                            duration: 100
-                            from: 0
-                            to: -45
-                            easing.type: Easing.Linear
-                        }
-                        NumberAnimation {
-                            target: contextButton
-                            property: "rotation"
-                            duration: 200
-                            from: -45
-                            to: 45
-                            easing.type: Easing.Linear
-                        }
-                        NumberAnimation {
-                            target: contextButton
-                            property: "rotation"
-                            duration: 100
-                            from: 45
-                            to: 0
-                            easing.type: Easing.Linear
-                        }
+                    NumberAnimation {
+                        target: contextButton
+                        property: "rotation"
+                        duration: 200
+                        from: -45
+                        to: 45
+                        easing.type: Easing.Linear
                     }
-
-                    TideMenu {
-                        id: contextMenu
-
-                        MenuItem {
-                            id: settingsButton
-                            icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
-                            text: qsTr("Settings")
-
-                            onClicked: {
-                                root.toggleSettingsDialog()
-                            }
-                        }
-
-                        MenuItem {
-                            id: contextFieldSearchButton
-                            text: qsTr("Find && replace")
-                            icon.source: Qt.resolvedUrl("qrc:/assets/magnifyingglass.circle.fill@2x.png")
-                            readonly property bool visibility : !editor.invalidated
-                            enabled: visibility
-                            visible: visibility
-                            height: visible ? implicitHeight : 0
-                            onVisibilityChanged: contextButton.wiggle()
-
-                            onClicked: {
-                                let root = editor.file.path
-                                if (contextDialog.visibility)
-                                    contextDialog.hide()
-                                else
-                                    contextDialog.show(root)
-                            }
-                        }
-
-                        MenuItem {
-                            text: qsTr("Autocomplete")
-                            icon.source: Qt.resolvedUrl("qrc:/assets/keyboard.badge.eye@2x.png")
-                            readonly property bool visibility : editor.canUseAutocomplete
-                            enabled: visibility
-                            visible: visibility
-                            height: visible ? implicitHeight : 0
-                            onVisibilityChanged: contextButton.wiggle()
-
-                            onClicked: {
-                                editor.autocomplete()
-                            }
-                        }
-
-                        MenuItem {
-                            id: formatButton
-                            text: qsTr("Autoformat")
-                            icon.source: Qt.resolvedUrl("qrc:/assets/line.3.horizontal.circle.fill@2x.png")
-                            readonly property bool visibility : editor.canUseAutoformat
-                            enabled: visibility
-                            visible: visibility
-                            height: visible ? implicitHeight : 0
-                            onVisibilityChanged: contextButton.wiggle()
-
-                            onClicked: {
-                                editor.format()
-                            }
-                        }
-
-                        MenuItem {
-                            id: releaseButton
-                            text: qsTr("Release")
-                            icon.source: Qt.resolvedUrl("qrc:/assets/briefcase.circle.fill@2x.png")
-                            readonly property bool visibility : projectBuilder.projectFile !== ""
-                            visible: visibility
-                            enabled: visibility
-                            height: visible ? implicitHeight : 0
-                            onVisibilityChanged: contextButton.wiggle()
-
-                            onClicked: {
-                                releaseRequested = true
-                                root.attemptBuild()
-                            }
-                        }
-
-                        MenuItem {
-                            id: helpButton
-                            icon.source: Qt.resolvedUrl("qrc:/assets/questionmark.circle.fill@2x.png")
-                            text: qsTr("Help")
-
-                            onClicked: {
-                                root.toggleHelpDialog()
-                            }
-                        }
-                    }
-
-                    onClicked: {
-                        if (!contextMenu.visible)
-                            contextMenu.open()
-                        else
-                            contextMenu.close()
+                    NumberAnimation {
+                        target: contextButton
+                        property: "rotation"
+                        duration: 100
+                        from: 45
+                        to: 0
+                        easing.type: Easing.Linear
                     }
                 }
 
-                TideToolButton {
-                    id: sideBarButton
-                    icon.source: Qt.resolvedUrl("qrc:/assets/sidebar.left@2x.png")
-                    icon.color: root.palette.button
-                    visible: shouldAllowSidebar
-                    onClicked: showLeftSideBar = !showLeftSideBar
+                TideMenu {
+                    id: contextMenu
+
+                    MenuItem {
+                        id: settingsButton
+                        icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
+                        text: qsTr("Settings")
+
+                        onClicked: {
+                            root.toggleSettingsDialog()
+                        }
+                    }
+
+                    MenuItem {
+                        id: contextFieldSearchButton
+                        text: qsTr("Find && replace")
+                        icon.source: Qt.resolvedUrl("qrc:/assets/magnifyingglass.circle.fill@2x.png")
+                        readonly property bool visibility : !editor.invalidated
+                        enabled: visibility
+                        visible: visibility
+                        height: visible ? implicitHeight : 0
+                        onVisibilityChanged: contextButton.wiggle()
+
+                        onClicked: {
+                            let root = editor.file.path
+                            if (contextDialog.visibility)
+                                contextDialog.hide()
+                            else
+                                contextDialog.show(root)
+                        }
+                    }
+
+                    MenuItem {
+                        text: qsTr("Autocomplete")
+                        icon.source: Qt.resolvedUrl("qrc:/assets/keyboard.badge.eye@2x.png")
+                        readonly property bool visibility : editor.canUseAutocomplete
+                        enabled: visibility
+                        visible: visibility
+                        height: visible ? implicitHeight : 0
+                        onVisibilityChanged: contextButton.wiggle()
+
+                        onClicked: {
+                            editor.autocomplete()
+                        }
+                    }
+
+                    MenuItem {
+                        id: formatButton
+                        text: qsTr("Autoformat")
+                        icon.source: Qt.resolvedUrl("qrc:/assets/line.3.horizontal.circle.fill@2x.png")
+                        readonly property bool visibility : editor.canUseAutoformat
+                        enabled: visibility
+                        visible: visibility
+                        height: visible ? implicitHeight : 0
+                        onVisibilityChanged: contextButton.wiggle()
+
+                        onClicked: {
+                            editor.format()
+                        }
+                    }
+
+                    MenuItem {
+                        id: releaseButton
+                        text: qsTr("Release")
+                        icon.source: Qt.resolvedUrl("qrc:/assets/briefcase.circle.fill@2x.png")
+                        readonly property bool visibility : projectBuilder.projectFile !== ""
+                        visible: visibility
+                        enabled: visibility
+                        height: visible ? implicitHeight : 0
+                        onVisibilityChanged: contextButton.wiggle()
+
+                        onClicked: {
+                            releaseRequested = true
+                            root.attemptBuild()
+                        }
+                    }
+
+                    MenuItem {
+                        id: helpButton
+                        icon.source: Qt.resolvedUrl("qrc:/assets/questionmark.circle.fill@2x.png")
+                        text: qsTr("Help")
+
+                        onClicked: {
+                            root.toggleHelpDialog()
+                        }
+                    }
                 }
 
-                Label {
-                    Layout.fillWidth: true
-                    Layout.alignment: Qt.AlignHCenter
+                onClicked: {
+                    if (!contextMenu.visible)
+                        contextMenu.open()
+                    else
+                        contextMenu.close()
+                }
+            }
+
+            TideToolButton {
+                id: sideBarButton
+                icon.source: Qt.resolvedUrl("qrc:/assets/sidebar.left@2x.png")
+                icon.color: root.palette.button
+                visible: shouldAllowSidebar
+                onClicked: showLeftSideBar = !showLeftSideBar
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            Row {
+                id: hud
+                property alias hudLabel : hudLabel
+                visible: landscapeMode
+
+                spacing: paddingSmall
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+                BusyIndicator {
+                    id: hudIndicator
+                    visible: wasmRunner.running || projectBuilder.building || dbugger.running
+                    running: wasmRunner.running || projectBuilder.building || dbugger.running
+                }
+                Text {
+                    id: hudLabel
                     color: root.palette.button
-                    text: compiling ?
-                              qsTr("Building project...") :
-                              delayedDebugContinue.running ? qsTr("Heating up for debugging...") :
-                                                             ""
                     elide: Text.ElideRight
                     font.bold: true
-                    horizontalAlignment: Label.AlignHCenter
-                    verticalAlignment: Label.AlignVCenter
-                }
+                    width: 0
 
-                /*
+                    Behavior on width {
+                        NumberAnimation {
+                            duration: 100
+                            easing.type: Easing.OutExpo
+                        }
+                    }
+
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: 100
+                            easing.type: Easing.OutExpo
+                        }
+                    }
+
+                    function flashMessage(msg) {
+                        flashMessageWithDuration(msg, 1500)
+                    }
+
+                    function flashMessageWithDuration(msg, duration) {
+                        hudLabel.text = msg
+                        hudLabel.width = hudLabel.implicitWidth
+                        hudLabelHideTimer.stop()
+                        hudLabelHideTimer.interval = duration
+                        hudLabelHideTimer.start()
+                    }
+
+                    Timer {
+                        id: hudLabelHideTimer
+                        repeat: false
+                        onTriggered: hudLabel.width = 0
+                    }
+                }
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            /*
                 TideToolButton {
                     visible: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
                     enabled: !projectBuilder.building && !wasmRunner.running
@@ -385,141 +445,166 @@ ApplicationWindow {
                 }
                 */
 
-                TideToolButton {
-                    rightPadding: paddingMedium
-                    icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
-                    icon.color: root.palette.button
-                    visible: projectBuilder.projectFile !== ""
+            TideToolButton {
+                rightPadding: paddingMedium
+                icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
+                icon.color: root.palette.button
+                visible: projectBuilder.projectFile !== ""
 
-                    onClicked: debugContextMenu.open()
-                    onPressAndHold: debugContextMenu.open()
+                onClicked: debugContextMenu.open()
+                onPressAndHold: debugContextMenu.open()
 
-                    TideMenu {
-                        id: debugContextMenu
-                        MenuItem {
-                            text: !showDebugArea ?
-                                      qsTr("Show debugger") :
-                                      qsTr("Hide debugger")
-                            onTriggered: {
-                                showDebugArea = !showDebugArea
-                            }
-                        }
-                        MenuItem {
-                            enabled: dbugger.running
-                            text: dbugger.paused ? qsTr("Continue") : qsTr("Interrupt")
-                            onTriggered: {
-                                if (dbugger.paused) {
-                                    dbugger.cont()
-                                    consoleView.show()
-                                } else {
-                                    dbugger.pause()
-                                }
-                            }
+                TideMenu {
+                    id: debugContextMenu
+                    MenuItem {
+                        text: !showDebugArea ?
+                                  qsTr("Show debugger") :
+                                  qsTr("Hide debugger")
+                        onTriggered: {
+                            showDebugArea = !showDebugArea
                         }
                     }
-                }
-
-                TideToolButton {
-                    rightPadding: paddingMedium
-
-                    readonly property bool idle: !projectBuilder.building && !wasmRunner.running && !dbugger.running
-
-                    icon.source: idle ?
-                                     Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
-                                     Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
-                    icon.color: root.palette.button
-                    visible: projectBuilder.projectFile !== ""
-
-                    BusyIndicator {
-                        visible: wasmRunner.running || projectBuilder.building || dbugger.running
-                        running: wasmRunner.running || projectBuilder.building || dbugger.running
-                        anchors.centerIn: parent
-                    }
-
-                    onClicked: {
-                        if (idle) {
-                            buildContextMenu.open()
-                        } else {
-                            root.stopRunAndDebug()
+                    MenuItem {
+                        text: qsTr("Add breakpoint")
+                        onTriggered: {
+                            root.showDialog(breakpointDialogComponent)
                         }
-                    }
-                    onPressAndHold: {
-                        buildContextMenu.open()
-                    }
 
-                    TideMenu {
-                        id: buildContextMenu
-                        MenuItem {
-                            text: qsTr("Clean")
-                            icon.source: Qt.resolvedUrl("qrc:/assets/trash.fill@2x.png")
-                            enabled: !projectBuilder.building && !wasmRunner.running && projectBuilder.projectFile !== ""
-                            onTriggered: {
-                                projectBuilder.clean()
-                            }
-                        }
-                        MenuItem {
-                            text: qsTr("Build")
-                            icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
-                            enabled: !projectBuilder.building && !wasmRunner.running && projectBuilder.projectFile !== ""
-                            onTriggered: {
-                                root.debugRequested = false
-                                root.runRequested = false
-                                root.attemptBuild()
-                            }
-                        }
-                        MenuItem {
-                            property bool isRunning: wasmRunner.running
-                            text: !isRunning ? qsTr("Run") : qsTr("Stop")
-                            icon.source: !isRunning ?
-                                             Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
-                                             Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
-                            enabled: !projectBuilder.building && projectBuilder.projectFile !== ""
-                            onTriggered: {
-                                if (!isRunning) {
-                                    root.debugRequested = false
-                                    root.runRequested = true
-                                    root.attemptBuild()
-                                } else {
-                                    root.stopRunAndDebug()
-                                }
-                            }
-                        }
-                        MenuItem {
-                            property bool visibility: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
-                            enabled: !projectBuilder.building && !dbugger.running && visibility
-                            text: qsTr("Debug")
-                            icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
-
-                            BusyIndicator {
-                                visible: wasmRunner.running
-                                running: wasmRunner.running
+                        Component {
+                            id: breakpointDialogComponent
+                            TideDialog {
+                                title: qsTr("Add a breakpoint");
+                                modal: true
                                 anchors.centerIn: parent
-                            }
+                                standardButtons: Dialog.Ok | Dialog.Cancel
+                                Component.onCompleted: imFixer.setupImEventFilter(breakpointSymbol)
 
-                            onClicked: {
-                                root.debugRequested = true
-                                root.runRequested = false
-                                root.attemptBuild()
+                                signal done()
+
+                                TextField {
+                                    id: breakpointSymbol
+                                    width: parent.width
+                                    placeholderText: qsTr("Symbol or filename:linenumber")
+                                    validator: RegularExpressionValidator {
+                                        regularExpression: /^([a-zA-Z0-9_.-]|[a-zA-Z0-9_.-].[cxx|cpp|c|h]:[0-9])*$/
+                                    }
+                                }
+
+                                onAccepted: {
+                                    dbugger.addBreakpoint(breakpointSymbol.text)
+                                    done()
+                                }
+
+                                onRejected: {
+                                    done()
+                                }
                             }
                         }
+
                     }
-                }
-
-                TideToolButton {
-                    icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
-                    icon.color: root.palette.button
-                    rightPadding: paddingMedium
-                    enabled: !sysrootManager.installing
-
-                    onClicked: {
-                        if (consoleView.visibility)
-                            consoleView.hide()
-                        else
-                            consoleView.show()
+                    MenuItem {
+                        enabled: dbugger.running
+                        text: dbugger.paused ? qsTr("Continue") : qsTr("Interrupt")
+                        onTriggered: {
+                            if (dbugger.paused) {
+                                dbugger.cont()
+                                consoleView.show()
+                            } else {
+                                dbugger.pause()
+                            }
+                        }
                     }
                 }
             }
+
+            TideToolButton {
+                rightPadding: paddingMedium
+
+                readonly property bool idle: !projectBuilder.building && !wasmRunner.running && !dbugger.running
+
+                icon.source: idle ?
+                                 Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
+                                 Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
+                icon.color: root.palette.button
+                visible: projectBuilder.projectFile !== ""
+
+                onClicked: {
+                    if (idle) {
+                        buildContextMenu.open()
+                    } else {
+                        root.stopRunAndDebug()
+                    }
+                }
+                onPressAndHold: {
+                    buildContextMenu.open()
+                }
+
+                TideMenu {
+                    id: buildContextMenu
+                    MenuItem {
+                        text: qsTr("Clean")
+                        icon.source: Qt.resolvedUrl("qrc:/assets/trash.fill@2x.png")
+                        enabled: !projectBuilder.building && !wasmRunner.running && projectBuilder.projectFile !== ""
+                        onTriggered: {
+                            projectBuilder.clean()
+                        }
+                    }
+                    MenuItem {
+                        text: qsTr("Build")
+                        icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
+                        enabled: !projectBuilder.building && !wasmRunner.running && projectBuilder.projectFile !== ""
+                        onTriggered: {
+                            root.debugRequested = false
+                            root.runRequested = false
+                            root.attemptBuild()
+                        }
+                    }
+                    MenuItem {
+                        property bool isRunning: wasmRunner.running
+                        text: !isRunning ? qsTr("Run") : qsTr("Stop")
+                        icon.source: !isRunning ?
+                                         Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
+                                         Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
+                        enabled: !projectBuilder.building && projectBuilder.projectFile !== ""
+                        onTriggered: {
+                            if (!isRunning) {
+                                root.debugRequested = false
+                                root.runRequested = true
+                                root.attemptBuild()
+                            } else {
+                                root.stopRunAndDebug()
+                            }
+                        }
+                    }
+                    MenuItem {
+                        property bool visibility: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
+                        enabled: !projectBuilder.building && !dbugger.running && dbugger.breakpoints.length > 0 && visibility
+                        text: qsTr("Debug")
+                        icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
+                        onClicked: {
+                            root.debugRequested = true
+                            root.runRequested = false
+                            root.attemptBuild()
+                        }
+                    }
+                }
+            }
+
+            TideToolButton {
+                icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
+                icon.color: root.palette.button
+                rightPadding: paddingMedium
+                enabled: !sysrootManager.installing
+
+                onClicked: {
+                    if (consoleView.visibility)
+                        consoleView.hide()
+                    else
+                        consoleView.show()
+                }
+            }
         }
+
     }
 
     ExternalProjectPicker {
@@ -568,6 +653,25 @@ ApplicationWindow {
 
     ProjectBuilder {
         id: projectBuilder
+        onProjectFileChanged: {
+            if (projectFile === "")
+                return
+
+            let target = ""
+            const crumbs = projectFile.split('/');
+            if (crumbs.length > 0) {
+                target = crumbs[crumbs.length - 1]
+            }
+            if (target === "")
+                return;
+
+            hud.hudLabel.flashMessageWithDuration(qsTr("Switched to project %1").arg(target), 3000)
+        }
+
+        onCleaned: {
+            hud.hudLabel.flashMessage(qsTr("Clean finished"))
+        }
+
         onBuildError:
             (str) => {
                 compiling = false
@@ -578,12 +682,14 @@ ApplicationWindow {
                 releaseRequested = false
                 runRequested = false
                 debugRequested = false
-                warningSign.flashWarning(qsTr("Build failed!"))
+                hud.hudLabel.flashMessage(qsTr("Build finished"))
+                warningSign.flashWarning(qsTr("Build failed"))
             }
         onBuildSuccess:
             (debug) => {
                 compiling = false
-                warningSign.flashSuccess(qsTr("Build successful!"))
+                hud.hudLabel.flashMessage(qsTr("Build finished"))
+                warningSign.flashSuccess(qsTr("Build successful"))
 
                 if (debug) {
                     root.attemptDebug()
@@ -606,15 +712,45 @@ ApplicationWindow {
         id: wasmRunner
         system: iosSystem
         onRunningChanged: {
+            let target = qsTr("Project");
+            const crumbs = projectBuilder.projectFile.split('/');
+            if (crumbs.length > 0) {
+                target = crumbs[crumbs.length - 1]
+            }
+
+            if (running) {
+                hud.hudLabel.flashMessage(qsTr("%1 started").arg(target))
+            } else {
+                hud.hudLabel.flashMessage(qsTr("%1 stopped").arg(target))
+            }
+
             if (running && settings.clearConsole)
                 clearConsoleOutput()
+
+            if (!running) {
+                if (!root.stopRequested) {
+                    warningSign.flashSuccess(qsTr("Execution ended"))
+                }
+                root.stopRequested = false
+            }
         }
+
+        onRunEnded:
+            (exitCode) => {
+                if (exitCode === 255) {
+                    hud.hudLabel.flashMessage(qsTr("Terminated!"))
+                    warningSign.flashStop(qsTr("Execution stopped"))
+                }
+            }
 
         onErrorOccured:
             (str) => {
                 consoleView.consoleOutput.append({"content": str, "stdout": false})
                 consoleView.show()
                 consoleView.consoleScrollView.positionViewAtEnd()
+                if (!root.stopRequested) {
+                    warningSign.flashWarning(qsTr("Error occured"))
+                }
             }
     }
 
@@ -623,6 +759,11 @@ ApplicationWindow {
         runner: wasmRunner
         system: iosSystem
         onRunningChanged: {
+            if (running)
+                hud.hudLabel.flashMessage(qsTr("Debugging started"))
+            else
+                hud.hudLabel.flashMessage(qsTr("Debugging stopped"))
+
             showDebugArea = shouldAllowDebugArea;
             if (running) {
                 dbugger.clearBacktrace();
@@ -633,6 +774,7 @@ ApplicationWindow {
         }
         onProcessPaused: {
             dbugger.getBacktraceAndFrameValues()
+            warningSign.flashPause(qsTr("Execution paused"))
         }
         onAttachedToProcess: {
             delayedDebugContinue.start()
@@ -661,6 +803,7 @@ ApplicationWindow {
 
         projectBuilder.commandRunner = iosSystem
         projectBuilder.setSysroot(sysroot);
+        editor.autoCompleter.setSysroot(sysroot);
     }
 
     function cleanObsoleteProjects() {
@@ -694,11 +837,15 @@ ApplicationWindow {
         openEditor(listing)
     }
 
+    PlatformIntegrationDelegate {
+        id: uiIntegration
+    }
+
     // Main container
     Item {
         id: mainContainer
         width: parent.width
-        height: parent.height - (oskReactor.oskVisible ? oskReactor.oskHeight : 0)
+        height: parent.height - (uiIntegration.oskVisible ? uiIntegration.oskHeight : 0)
 
         Behavior on height {
             NumberAnimation {
@@ -708,7 +855,7 @@ ApplicationWindow {
         }
 
         Component.onCompleted: {
-            oskReactor.item = mainContainer
+            uiIntegration.item = mainContainer
         }
 
         ColumnLayout {
@@ -750,11 +897,7 @@ ApplicationWindow {
                     color: root.palette.button
                     text: qsTr("Create")
                     onClicked: {
-                        let createProjectDialog = createProjectDialogComponent.createObject(mainContainer)
-                        createProjectDialog.done.connect(function() {
-                            createProjectDialog.destroy()
-                        })
-                        createProjectDialog.open()
+                        root.showDialog(createProjectDialogComponent)
                     }
                 }
                 TideButton {
@@ -838,13 +981,6 @@ ApplicationWindow {
                     NumberAnimation { duration: 250; easing.type: Easing.OutCubic; }
                 }
 
-                onWidthChanged: {
-                    if (width > 0 && width < sideBarWidth)
-                        return;
-
-                    editor.refreshLineNumbers()
-                }
-
                 Item {
                     x: paddingMedium
                     y: paddingMedium
@@ -908,11 +1044,7 @@ ApplicationWindow {
                                                         icon.color: root.palette.button
                                                         leftPadding: paddingMedium
                                                         onClicked: {
-                                                            let createProjectDialog = createProjectDialogComponent.createObject(mainContainer)
-                                                            createProjectDialog.done.connect(function() {
-                                                                createProjectDialog.destroy()
-                                                            })
-                                                            createProjectDialog.open()
+                                                            root.showDialog(createProjectDialogComponent)
                                                         }
                                                     }
                                                     ToolButton {
@@ -1075,10 +1207,7 @@ ApplicationWindow {
                                                         icon.color: root.palette.button
                                                         leftPadding: paddingMedium
                                                         onClicked: {
-                                                            let newFileDialog = newFileDialogComponent.createObject(mainContainer)
-                                                            newFileDialog.done.connect(function() {
-                                                                newFileDialog.destroy()
-                                                            })
+                                                            let newFileDialog = root.showDialog(newFileDialogComponent)
                                                             newFileDialog.rootPath = directoryListView.project.path
                                                             newFileDialog.open();
                                                         }
@@ -1089,10 +1218,7 @@ ApplicationWindow {
                                                         icon.color: root.palette.button
                                                         leftPadding: paddingSmall
                                                         onClicked: {
-                                                            let newDirectoryDialog = newDirectoryDialogComponent.createObject(mainContainer)
-                                                            newDirectoryDialog.done.connect(function() {
-                                                                newDirectoryDialog.destroy()
-                                                            })
+                                                            let newDirectoryDialog = root.showDialog(newDirectoryDialogComponent)
                                                             newDirectoryDialog.rootPath = directoryListView.project.path
                                                             newDirectoryDialog.open();
                                                         }
@@ -1152,6 +1278,15 @@ ApplicationWindow {
                                                         projectNavigationStack.push(directoryComponent,
                                                                                     { project: modelData })
                                                     } else if (modelData.type === DirectoryListing.File) {
+                                                        if (modelData.name.endsWith(".pro") &&
+                                                                modelData.path !== projectBuilder.projectFile) {
+                                                            if (dbugger.breakpoints.length > 0) {
+                                                                let dialog = root.showDialog(switchProjectDialogComponent)
+                                                                dialog.projectFile = modelData
+                                                                return;
+                                                            }
+                                                        }
+
                                                         openEditor(modelData)
                                                     }
                                                 }
@@ -1334,6 +1469,15 @@ ApplicationWindow {
                                         height: font.pixelSize + detailControl.height + (paddingSmall * 2)
                                         font.pixelSize: 16
                                         onClicked: {
+                                            if (modelData.name.endsWith(".pro") &&
+                                                    modelData.path !== projectBuilder.projectFile) {
+                                                if (dbugger.breakpoints.length > 0) {
+                                                    let dialog = root.showDialog(switchProjectDialogComponent)
+                                                    dialog.projectFile = modelData
+                                                    return;
+                                                }
+                                            }
+
                                             saveCurrentFile()
                                             openEditor(modelData)
                                         }
@@ -1344,11 +1488,44 @@ ApplicationWindow {
                                         }
                                     }
 
+                                    Component {
+                                        id: switchProjectDialogComponent
+                                        TideDialog {
+                                            title: qsTr("You're about to switch projects");
+                                            modal: true
+                                            anchors.centerIn: parent
+                                            standardButtons: Dialog.Ok | Dialog.Cancel
+
+                                            property var projectFile : null
+
+                                            signal done()
+
+                                            Label {
+                                                width: parent.width
+                                                text: qsTr("Switching projects will delete already set breakpoints. Would you like to continue?")
+                                            }
+
+                                            onAccepted: {
+                                                for (let i = dbugger.breakpoints.length - 1; i >= 0; i--) {
+                                                    dbugger.removeBreakpoint(dbugger.breakpoints[i]);
+                                                }
+
+                                                saveCurrentFile()
+                                                openEditor(projectFile)
+                                                done()
+                                            }
+
+                                            onRejected: {
+                                                done()
+                                            }
+                                        }
+                                    }
+
                                     Component {
                                         id: openFilesContextMenuComponent
                                         TideMenu {
                                             id: openFilesContextMenu
-                                            property var selectedFile: null
+                                            property DirectoryListing selectedFile: null
 
                                             MenuItem {
                                                 text: qsTr("Close")
@@ -1358,12 +1535,28 @@ ApplicationWindow {
                                                     if (file.path === projectBuilder.projectFile)
                                                         projectBuilder.unloadProject()
 
+                                                    if (file == editor.file)
+                                                        saveCurrentFile()
+
                                                     openFiles.close(file)
-                                                    openFilesContextMenu.selectedFile = null
                                                     if (openFiles.files.length > 0)
                                                         editor.file = openFiles.files[0]
                                                     else
                                                         editor.invalidate()
+                                                }
+                                            }
+                                            MenuItem {
+                                                text: openFilesContextMenu.selectedFile != null ?
+                                                          qsTr("Close all but '%1'").arg(openFilesContextMenu.selectedFile.name) :
+                                                          ""
+                                                icon.source: Qt.resolvedUrl("qrc:/assets/xmark.shield@2x.png")
+                                                enabled: openFiles.files.length > 1
+                                                onClicked: {
+                                                    let file = openFilesContextMenu.selectedFile
+                                                    console.log("Close all but: " + file.path)
+                                                    saveCurrentFile()
+                                                    editor.file = file
+                                                    openFiles.closeAllBut(file)
                                                 }
                                             }
                                         }
@@ -1730,11 +1923,12 @@ ApplicationWindow {
 
             property bool autocomplete: true
             property bool autoformat: true
+            property bool autoindent: true
             property int formatStyle : CppFormatter.LLVM
             property bool wiggleHints : true
             property bool wrapEditor : true
             property bool clearConsole: true
-            property bool aotOptimizations : false
+            readonly property bool aotOptimizations : false
         }
 
         ConsoleView {
@@ -1748,8 +1942,8 @@ ApplicationWindow {
         ContextView {
             id: contextDialog
             width: !landscapeMode && showDebugArea ?
-                    0 : // Don't overlap debugger area and ConsoleView in portraitMode
-                    mainView.dialogWidth - (debuggerArea.width / 2)
+                       0 : // Don't overlap debugger area and ConsoleView in portraitMode
+                       mainView.dialogWidth - (debuggerArea.width / 2)
             height: mainView.dialogHeight
             onOpenRequested: {
                 openEditorFile(contextDialog.currentPath)
@@ -1875,27 +2069,44 @@ ApplicationWindow {
         Rectangle {
             id: warningSign
             anchors.centerIn: parent
-            color: root.palette.base
+            readonly property color tintColor : Qt.rgba(flashingIcon.icon.color.r,
+                                                        flashingIcon.icon.color.g,
+                                                        flashingIcon.icon.color.b,
+                                                        0.2)
+            color: Qt.tint(root.palette.base, tintColor)
             width: 256
             height: 256
             opacity: 0.0
             visible: opacity > 0.0
-            border.color: root.palette.text
-            border.width: 2
+            border.color: flashingIcon.icon.color
+            border.width: 1
             radius: roundedCornersRadius
             clip: true
 
             readonly property string iconWarning: Qt.resolvedUrl("qrc:/assets/xmark.circle@2x.png")
             readonly property string iconSuccess: Qt.resolvedUrl("qrc:/assets/checkmark.circle@2x.png")
+            readonly property string iconPause: Qt.resolvedUrl("qrc:/assets/pause.circle@2x.png")
+            readonly property string iconStop: Qt.resolvedUrl("qrc:/assets/stop.circle@2x.png")
             property string iconName : ""
+
+            property var warningQueue : []
 
             onOpacityChanged: {
                 if (opacity == 1.0)
                     hideTimer.start()
+                else if (opacity == 0.0) {
+                    if (warningQueue.length > 0) {
+                        let obj = warningQueue.pop()
+                        flashingIcon.icon.source = obj.icon
+                        warningText.text = obj.msg
+                        flashingIcon.icon.color = obj.color
+                        opacity = 1.0
+                    }
+                }
             }
 
             Behavior on opacity {
-                NumberAnimation { duration: 200 }
+                NumberAnimation { duration: 150 }
             }
 
             Timer {
@@ -1904,18 +2115,65 @@ ApplicationWindow {
                 onTriggered: warningSign.opacity = 0.0
             }
 
+            function enqueue(msg, icon, color) {
+                // Avoid enqueuing the same message twice or more times
+                if (warningQueue.length > 0) {
+                    let obj = warningQueue[warningQueue.length - 1]
+                    if (obj.msg === msg &&
+                            obj.icon === icon &&
+                            obj.color === color) {
+                        return;
+                    }
+                }
+                warningQueue.push({ "msg" : msg, "icon" : icon, "color" : color });
+            }
+
             function flashSuccess(text) {
+                // TODO: Check queue whether the appropriate warning has already been shown
+
+                if (opacity > 0.0) {
+                    enqueue(text, iconSuccess, "teal")
+                    return;
+                }
+
                 flashingIcon.icon.source = iconSuccess
                 warningText.text = text
-                warningText.color = "teal"
                 flashingIcon.icon.color = "teal"
                 opacity = 1.0
             }
 
             function flashWarning(text) {
+                if (opacity > 0.0) {
+                    enqueue(text, iconWarning, "darkred")
+                    return;
+                }
+
                 flashingIcon.icon.source = iconWarning
                 warningText.text = text
-                warningText.color = "darkred"
+                flashingIcon.icon.color = "darkred"
+                opacity = 1.0
+            }
+
+            function flashPause(text) {
+                if (opacity > 0.0) {
+                    enqueue(text, iconPause, "orange")
+                    return;
+                }
+
+                flashingIcon.icon.source = iconPause
+                warningText.text = text
+                flashingIcon.icon.color = "orange"
+                opacity = 1.0
+            }
+
+            function flashStop(text) {
+                if (opacity > 0.0) {
+                    enqueue(text, iconStop, "darkred")
+                    return;
+                }
+
+                flashingIcon.icon.source = iconStop
+                warningText.text = text
                 flashingIcon.icon.color = "darkred"
                 opacity = 1.0
             }
@@ -1934,11 +2192,10 @@ ApplicationWindow {
                     anchors.horizontalCenter: parent.horizontalCenter
                     flat: true
                     enabled: false
-                    icon.color: root.palette.text
                 }
                 Text {
                     id: warningText
-                    color: root.palette.text
+                    color: flashingIcon.icon.color
                     font.pixelSize: 20
                     width: parent.width
                     horizontalAlignment: Text.AlignHCenter

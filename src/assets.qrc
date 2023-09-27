@@ -54,5 +54,8 @@
         <file>assets/asterisk.circle@2x.png</file>
         <file>assets/chevron.forward@2x.png</file>
         <file>assets/pause@2x.png</file>
+        <file>assets/pause.circle@2x.png</file>
+        <file>assets/stop.circle@2x.png</file>
+        <file>assets/xmark.shield@2x.png</file>
     </qresource>
 </RCC>

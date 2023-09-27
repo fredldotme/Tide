@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QQuickTextDocument>
+#include <QTimer>
 
 class LineNumberInfo : public QObject
 {
@@ -37,6 +38,7 @@ public:
     explicit LineNumbersHelper(QObject *parent = nullptr);
 
     Q_INVOKABLE bool isCurrentBlock(int blockNumber, int curserPosition);
+    Q_INVOKABLE void delayedRefresh();
     Q_INVOKABLE void refresh();
     Q_INVOKABLE quint64 currentLine(int cursorPosition);
     Q_INVOKABLE quint64 currentColumn(int cursorPosition);
@@ -48,6 +50,7 @@ private:
     int height(int lineNumber);
     QVariantList lineCount();
 
+    QTimer m_delayedRefreshTimer;
     QVariantList m_lineCount;
     QQuickTextDocument* m_document = nullptr;
 

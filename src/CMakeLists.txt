@@ -140,6 +140,8 @@ qt_add_executable(${PROJECT_NAME}
 
     # Assets
     assets.qrc
+
+    qml/TidePrefixedButton.qml
 )
 
 qt_add_qml_module(${PROJECT_NAME}
@@ -162,6 +164,7 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/TideInteractiveDialog.qml
     qml/HelpPage.qml
     qml/DebuggerListEntry.qml
+    qml/TidePrefixedButton.qml
 
     NO_LINT
 )
@@ -411,6 +414,7 @@ target_link_libraries(${PROJECT_NAME}-platform
     PRIVATE
     Qt6::Core
     Qt6::Gui
+    Qt6::GuiPrivate
     Qt6::Sql
     Qt6::Quick
     ${NOSYSTEM}

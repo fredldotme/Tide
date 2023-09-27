@@ -26,14 +26,17 @@ public:
         Class,
         Enum,
         Field,
-        Constant
+        Constant,
+        Parameter
     };
     Q_ENUM(CompletionKind)
 
     struct CompletionHint {
         Q_GADGET
     public:
+        QString prefix;
         QString name;
+        QString detail;
         CompletionKind kind;
         CXCursor cursor; // Compared to in the second pass as the semantic parent
     };
@@ -41,14 +44,21 @@ public:
     explicit AutoCompleter(QObject *parent = nullptr);
     QStringList& referenceHints();
     const QStringList referenceHintsConst();
-    QList<CompletionHint>& currentAnchorDecls();
-    const QList<CompletionHint> currentAnchorDeclsConst();
-    void foundKind(CompletionKind kind, const QString name);
+    void foundKind(CompletionKind kind, const QString prefix, const QString name, const QString detail);
+    void addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang);
 
     ClangWrapper* clang;
+    CXCursor rootCursor;
+    CXCursor deepestParent;
+    int line;
+    int column;
+    bool foundLine;
+    QList<CXCursor> anchorTrail;
+    QList<QList<CXCursor>> anchorTrails;
 
 public slots:
-    void reloadAst(const QString path, const QString hint);
+    void reloadAst(const QString path, const QString hint, const int line, const int column);
+    void setSysroot(const QString sysroot);
     void setIncludePaths(const QStringList paths);
     QVariantList filteredDecls(const QString str);
 
@@ -59,6 +69,7 @@ private:
     QString m_path;
     QThread m_thread;
     QVariantList m_decls;
+    QString m_sysroot;
     QStringList m_includePaths;
     QStringList m_referenceHints;
     QList<CompletionHint> m_anchorDecls;

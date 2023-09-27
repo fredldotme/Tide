@@ -46,6 +46,7 @@ signals:
     void buildingChanged();
     void buildSuccess(bool debug, bool aot);
     void buildError(QString str);
+    void cleaned();
 };
 
 #endif // QMAKEBUILDER_H

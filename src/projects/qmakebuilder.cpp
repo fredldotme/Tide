@@ -55,18 +55,21 @@ void QMakeBuilder::clean()
     if (buildDirPath.isEmpty()) {
         const auto err = "Project's TARGET is not set.";
         qWarning() << err;
+        emit cleaned();
         return;
     }
 
     QDir buildDir(buildDirPath);
 
     if (!buildDir.exists()) {
+        emit cleaned();
         return;
     }
 
     if (!buildDir.removeRecursively()) {
         qWarning() << "Failed to clean build directory" << buildDirPath;
     }
+    emit cleaned();
 }
 
 void QMakeBuilder::build(const bool debug, const bool aot)
@@ -318,7 +321,7 @@ QStringList QMakeBuilder::includePaths()
         for (const auto& include : includes.values) {
             qDebug() << "Include path:" << include;
             QString resolvedInclude = resolveDefaultVariables(include, sourceDirPath, buildDirPath);
-            ret << QStringLiteral("\"%1\"").arg(resolvedInclude);
+            ret << resolvedInclude;
         }
     }
 

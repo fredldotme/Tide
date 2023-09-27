@@ -1,7 +1,11 @@
 #include "iosintegrationdelegate.h"
 
 #include <QDebug>
+#include <QGuiApplication>
+#include <QtGui/qpa/qplatformnativeinterface.h>
 #include <QRect>
+#include <QQuickWindow>
+#include <QWindow>
 
 #import "UIKit/UIKit.h"
 #import "UserNotifications/UserNotifications.h"
@@ -13,7 +17,6 @@
 @end
 
 @implementation TideIosKeyboardReactor
-
 - (id) initWithDelegate:(IosIntegrationDelegate*)delegate {
     self = [super init];
     self->_qtDelegate = delegate;
@@ -39,7 +42,37 @@
 
     self->_qtDelegate->setOskVisible(false);
 }
+@end
 
+@interface TideChildViewController : UIViewController <UIPointerInteractionDelegate>
+- (UIPointerStyle *)pointerInteraction:(UIPointerInteraction *)interaction styleForRegion:(UIPointerRegion *)region  API_AVAILABLE(ios(13.4));
+@end
+
+@implementation TideChildViewController
+- (UIPointerStyle *)pointerInteraction:(UIPointerInteraction *)interaction styleForRegion:(UIPointerRegion *)region {
+    UIPointerStyle *pointerStyle = nil;
+    qDebug() << Q_FUNC_INFO;
+
+    UIView *interactionView = interaction.view;
+    if (interactionView) {
+        //UITargetedPreview *targetPreview = [[UITargetedPreview alloc] initWithView:interactionView];
+        //UIPointerEffect *hoverEffect = [UIPointerHoverEffect effectWithPreview:targetPreview];
+        pointerStyle = [UIPointerStyle styleWithShape:[UIPointerShape shapeWithRoundedRect:(region.rect)] constrainedAxes:(UIAxisVertical)];
+    }
+    return pointerStyle;
+}
+@end
+
+@interface TideUIPointerInteraction : UIPointerInteraction
+@end
+
+@implementation TideUIPointerInteraction
+@end
+
+@interface TideItemUIViewProxy : UIView
+@end
+
+@implementation TideItemUIViewProxy
 @end
 
 IosIntegrationDelegate::IosIntegrationDelegate(QObject *parent)
@@ -53,6 +86,7 @@ IosIntegrationDelegate::IosIntegrationDelegate(QObject *parent)
                                              selector:@selector (keyboardDidHide:)
                                                  name: UIKeyboardDidHideNotification object: nil];
     int statusBarHeight = (int)[UIApplication sharedApplication].statusBarFrame.size.height;
+
     m_statusBarHeight = statusBarHeight;
 }
 
@@ -78,3 +112,76 @@ void IosIntegrationDelegate::setOskVisible(const bool val)
     emit oskVisibleChanged();
 }
 
+void IosIntegrationDelegate::setItem(QQuickItem* item)
+{
+    if (this->m_item == item)
+        return;
+
+    this->m_item = item;
+    emit itemChanged();
+}
+
+
+void IosIntegrationDelegate::hookUpNativeView(QQuickItem* item)
+{
+    QWindow *window = static_cast<QWindow*>(item->window());
+    UIView *view = static_cast<UIView*>(QGuiApplication::platformNativeInterface()->nativeResourceForWindow("uiview", window));
+    if (!view)
+        return;
+
+    CGRect rect = CGRect();
+    rect.origin.x = item->x();
+    rect.origin.y = item->y();
+    rect.size.width = item->width();
+    rect.size.height = item->height();
+
+    TideItemUIViewProxy* proxy = [[TideItemUIViewProxy alloc] initWithFrame:(rect)];
+    if (!proxy)
+        return;
+
+    TideUIPointerInteraction* interaction = [[TideUIPointerInteraction alloc] init];
+    proxy.userInteractionEnabled = TRUE;
+    proxy.hidden = TRUE;
+    [proxy addInteraction:interaction];
+
+    QObject::connect(item, &QQuickItem::widthChanged, this, [=]() {
+        CGRect rect = CGRect();
+        rect.origin.x = item->x();
+        rect.origin.y = item->y();
+        rect.size.width = item->width();
+        rect.size.height = item->height();
+        [proxy setFrame:rect];
+    });
+    QObject::connect(item, &QQuickItem::heightChanged, this, [=]() {
+        CGRect rect = CGRect();
+        rect.origin.x = item->x();
+        rect.origin.y = item->y();
+        rect.size.width = item->width();
+        rect.size.height = item->height();
+        [proxy setFrame:rect];
+    });
+    QObject::connect(item, &QQuickItem::xChanged, this, [=]() {
+        CGRect rect = CGRect();
+        rect.origin.x = item->x();
+        rect.origin.y = item->y();
+        rect.size.width = item->width();
+        rect.size.height = item->height();
+        [proxy setFrame:rect];
+    });
+    QObject::connect(item, &QQuickItem::yChanged, this, [=]() {
+        CGRect rect = CGRect();
+        rect.origin.x = item->x();
+        rect.origin.y = item->y();
+        rect.size.width = item->width();
+        rect.size.height = item->height();
+        [proxy setFrame:rect];
+    });
+
+    qDebug() << "Adding proxy UIView for item" << item;
+    [view addSubview:proxy];
+}
+
+QQuickItem* IosIntegrationDelegate::item()
+{
+    return this->m_item;
+}

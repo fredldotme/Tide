@@ -77,6 +77,14 @@ TideDialog {
                     }
                 }
                 Switch {
+                    id: autoindentSwitch
+                    text: qsTr("Automatically indent new lines")
+                    checked: settings.autoindent
+                    onCheckedChanged: {
+                        settings.autoindent = checked
+                    }
+                }
+                Switch {
                     text: qsTr("Wrap code editor")
                     checked: settings.wrapEditor
                     onCheckedChanged: {
@@ -90,14 +98,14 @@ TideDialog {
                         settings.wiggleHints = checked
                     }
                 }
-                Switch {
+                /*Switch {
                     id: aotSwitch
                     text: qsTr("AOT optimizations")
                     checked: settings.aotOptimizations
                     onCheckedChanged: {
                         settings.aotOptimizations = checked
                     }
-                }
+                }*/
                 Switch {
                     id: autocompleteSwitch
                     text: qsTr("Autocomplete (Shift+⌘+S)")

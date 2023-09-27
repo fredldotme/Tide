@@ -1,6 +1,9 @@
 #include "autocompleter.h"
 
 #include <QDebug>
+#include <QDir>
+#include <QStandardPaths>
+#include <QTimer>
 
 AutoCompleter::AutoCompleter(QObject *parent)
     : QObject{parent}, clang{nullptr}
@@ -18,16 +21,6 @@ const QStringList AutoCompleter::referenceHintsConst()
     return this->m_referenceHints;
 }
 
-QList<AutoCompleter::CompletionHint>& AutoCompleter::currentAnchorDecls()
-{
-    return this->m_anchorDecls;
-}
-
-const QList<AutoCompleter::CompletionHint> AutoCompleter::currentAnchorDeclsConst()
-{
-    return this->m_anchorDecls;
-}
-
 QStringList AutoCompleter::createHints(const QString& hint)
 {
     QStringList ret;
@@ -38,20 +31,20 @@ QStringList AutoCompleter::createHints(const QString& hint)
     for(auto it = hint.constBegin(); it != hint.constEnd(); it++) {
         if (*it == QChar('-')) {
             if ((it+1) != hint.constEnd() && *(it+1) == QChar('>')) {
-                ret << subhint;
+                ret << subhint.toLower();
                 subhint.clear();
                 ++it;
                 continue;
             }
         } else if (*it == QChar(':')) {
             if ((it+1) != hint.constEnd() && *(it+1) == QChar(':')) {
-                ret << subhint;
+                ret << subhint.toLower();
                 subhint.clear();
                 ++it;
                 continue;
             }
         } else if (*it == QChar('.')) {
-            ret << subhint;
+            ret << subhint.toLower();
             subhint.clear();
             continue;
         }
@@ -61,7 +54,7 @@ QStringList AutoCompleter::createHints(const QString& hint)
     }
 
     if (!subhint.isEmpty()) {
-        ret << subhint;
+        ret << subhint.toLower();
     }
 
     qDebug() << "Hints:" << ret;
@@ -87,6 +80,8 @@ inline static AutoCompleter::CompletionKind getAutoCompleterKind(const CXCursorK
         return AutoCompleter::CompletionKind::Function;
     case CXCursor_VarDecl:
         return AutoCompleter::CompletionKind::Variable;
+    case CXCursor_ParmDecl:
+        return AutoCompleter::CompletionKind::Parameter;
     default:
         return AutoCompleter::CompletionKind::Unspecified;
     }
@@ -99,106 +94,124 @@ void AutoCompleter::run()
 
     CXIndex index = this->clang->createIndex(0, 0);
 
-    std::vector<const char*> args;
-    for (const QString& path : this->m_includePaths) {
-        args.push_back("-I");
-        args.push_back(path.toUtf8().data());
+    QByteArrayList tmpArgs = {
+        QStringLiteral("--sysroot=%1").arg(this->m_sysroot).toUtf8()
+    };
+
+    for (const auto& tmpArg : m_includePaths) {
+        tmpArgs << QStringLiteral("-I%1").arg(tmpArg).toUtf8();
     }
+
+    std::vector<const char*> args = { "-x", "c++", "-I." };
+    for (const auto& path : tmpArgs) {
+        args.push_back(path.data());
+    }
+
     CXTranslationUnit unit = this->clang->createTranslationUnitFromSourceFile(index, m_path.toUtf8().data(), args.size(), args.data(), 0, nullptr);
 
     m_decls.clear();
 
-    // This one prefers low memory usage over fast processing.
     if (unit) {
-        CXCursor rootCursor = this->clang->getTranslationUnitCursor(unit);
+        this->rootCursor = this->clang->getTranslationUnitCursor(unit);
+        this->deepestParent = this->clang->getNullCursor();
 
-        // Get all declarations
-        if (this->referenceHints().length() > 0) {
-            this->clang->visitChildren(rootCursor, [](CXCursor c, CXCursor, CXClientData client_data)
-                {
-                    AutoCompleter* thiz = reinterpret_cast<AutoCompleter*>(client_data);
-
-                    if (thiz->clang->isCursorDefinition(c))
-                        return CXChildVisit_Recurse;
-
-                    CXCursorKind kind = thiz->clang->getCursorKind(c);
-                    CompletionKind completionKind = getAutoCompleterKind(kind);
-
-                    {
-                        CXString spelling = thiz->clang->getCursorSpelling(c);
-                        const QString name = QString::fromUtf8(thiz->clang->getCString(spelling));
-
-                        // Add in case there's a match in the query
-                        if (thiz->referenceHints().contains(name)) {
-                            auto& anchors = thiz->currentAnchorDecls();
-                            anchors.append({name, completionKind, c});
-                        }
-
-                        thiz->clang->disposeString(spelling);
-                    }
-
-                    return CXChildVisit_Recurse;
-                }, this);
-        }
-
-        // Then resolve definitions
         this->clang->visitChildren(rootCursor, [](CXCursor c, CXCursor parent, CXClientData client_data)
             {
                 AutoCompleter* thiz = reinterpret_cast<AutoCompleter*>(client_data);
+                CXSourceRange cursorRange = thiz->clang->getCursorExtent(c);
+                auto ret = CXChildVisit_Recurse;
 
-                if (!thiz->clang->isCursorDefinition(c))
-                    return CXChildVisit_Recurse;
+                CXFile file;
+                unsigned start_line, start_column, start_offset;
+                unsigned end_line, end_column, end_offset;
 
-                CXCursorKind parentKind = thiz->clang->getCursorKind(parent);
-                CXCursor currentSemanticParent = thiz->clang->getCursorSemanticParent(c);
-                CXCursorKind kind = thiz->clang->getCursorKind(c);
-                CompletionKind parentCompletionKind = getAutoCompleterKind(parentKind);
+                thiz->clang->getExpansionLocation(thiz->clang->getRangeStart(cursorRange), &file, &start_line, &start_column, &start_offset);
+                thiz->clang->getExpansionLocation(thiz->clang->getRangeEnd(cursorRange), &file, &end_line, &end_column, &end_offset);
 
-                if (thiz->currentAnchorDecls().length() > 0) {
-                    // Check whether we skimmed over its declaration
-                    for (const auto& skimmedDecl : thiz->currentAnchorDecls()) {
-                        if (!thiz->clang->equalCursors(currentSemanticParent, skimmedDecl.cursor)) {
-                            continue;
-                        }
-
-                        CompletionKind completionKind = getAutoCompleterKind(kind);
-                        CXString spelling = thiz->clang->getCursorSpelling(c);
-                        const QString name = QString::fromUtf8(thiz->clang->getCString(spelling));
-                        qDebug() << "Found skimmed kind:" << name;
-                        thiz->foundKind(completionKind, name);
-                        thiz->clang->disposeString(spelling);
+                // Recurse through the tree until we find the current line, store the tailAnchor and break.
+                if (thiz->clang->Cursor_isNull(thiz->deepestParent)) {
+                    if (thiz->line >= start_line && thiz->line <= end_line) {
+                        thiz->deepestParent = c;
                     }
-                } else {
-                    // Add any definition in case of an empty query
-                    CompletionKind completionKind = getAutoCompleterKind(kind);
-                    CXString spelling = thiz->clang->getCursorSpelling(c);
-                    const QString name = QString::fromUtf8(thiz->clang->getCString(spelling));
-                    qDebug() << "Found kind:" << name;
-                    thiz->foundKind(completionKind, name);
-                    thiz->clang->disposeString(spelling);
                 }
 
-                return CXChildVisit_Recurse;
+                if (!thiz->clang->Cursor_isNull(thiz->deepestParent)) {
+                    ret = CXChildVisit_Continue;
+                }
+
+                CXCursor lexicalParent = thiz->clang->getCursorLexicalParent(c);
+                thiz->addDecl(c, lexicalParent, thiz->clang);
+
+                return ret;
             }, this);
+
+        this->anchorTrail.clear();
+        this->deepestParent = this->clang->getNullCursor();
+        this->rootCursor = this->clang->getNullCursor();
+        this->clang->disposeTranslationUnit(unit);
     }
 
-    currentAnchorDecls().clear();
-    emit declsChanged();
-
-    this->clang->disposeTranslationUnit(unit);
     this->clang->disposeIndex(index);
     this->clang = nullptr;
+
+    emit declsChanged();
 }
 
-void AutoCompleter::reloadAst(const QString path, const QString hint)
+void AutoCompleter::addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang)
 {
-    qDebug() << Q_FUNC_INFO << "with hint" << hint;
+    CXCursorKind kind = clang->getCursorKind(c);
+    CXCursorKind parentKind = clang->getCursorKind(parent);
 
+    CXType cursorType = clang->getCursorType(c);
+    CXString typeSpelling = clang->getTypeSpelling(cursorType);
+    const QString prefix = QString::fromUtf8(clang->getCString(typeSpelling));
+    clang->disposeString(typeSpelling);
+
+    QString detail;
+    if (!clang->equalCursors(parent, this->rootCursor)) {
+        CXString relationSpelling = clang->getCursorSpelling(parent);
+        detail = QString::fromUtf8(clang->getCString(relationSpelling));
+        clang->disposeString(relationSpelling);
+    }
+
+    CXString spelling = clang->getCursorSpelling(c);
+    const QString name = QString::fromUtf8(clang->getCString(spelling));
+    clang->disposeString(spelling);
+
+    CompletionKind completionKind = getAutoCompleterKind(kind);
+
+    if (referenceHints().length() != 0) {
+        bool hintedResults = false;
+        for (const auto& hint : referenceHints()) {
+            if (!prefix.toLower().contains(hint) &&
+                !name.toLower().contains(hint) &&
+                !detail.toLower().contains(hint))
+                continue;
+            hintedResults = true;
+        }
+
+        if (!hintedResults)
+            return;
+    }
+
+    qDebug() << "Found kind:" << prefix << name << detail;
+    foundKind(completionKind, prefix, name, detail);
+}
+
+void AutoCompleter::reloadAst(const QString path, const QString hint, const int line, const int column)
+{
     this->m_path = path;
-    this->m_referenceHints = createHints(hint);
-    //this->m_thread.terminate();
-    //this->m_thread.start();
+    this->m_referenceHints = createHints(hint.toLower());
+    this->line = line;
+    this->column = column;
+    this->foundLine = true;
+
     run();
+}
+
+void AutoCompleter::setSysroot(const QString sysroot)
+{
+    this->m_sysroot = sysroot;
 }
 
 void AutoCompleter::setIncludePaths(const QStringList paths)
@@ -212,18 +225,41 @@ QVariantList AutoCompleter::filteredDecls(const QString str)
     QVariantList ret;
     for (const auto& decl : m_decls) {
         const auto declMap = decl.toMap();
+        const auto declPrefix = declMap.value("prefix").toString();
         const auto declName = declMap.value("name").toString();
-        if (declName.contains(str)) {
-            ret << declMap;
+        const auto declKind = declMap.value("kind").value<AutoCompleter::CompletionKind>();
+        if (declName == str) {
+            ret.push_front(decl);
+        } else if (declPrefix.toLower().contains(str.toLower()) ||
+                   declName.toLower().contains(str.toLower())) {
+            ret.push_back(decl);
         }
     }
     return ret;
 }
 
-void AutoCompleter::foundKind(CompletionKind kind, const QString name)
+void AutoCompleter::foundKind(CompletionKind kind, const QString prefix, const QString name, const QString detail)
 {
+    if (name.isEmpty())
+        return;
+
     QVariantMap decl;
+    decl.insert("prefix", prefix);
     decl.insert("name", name);
+    decl.insert("detail", detail);
     decl.insert("kind", kind);
-    m_decls << decl;
+
+    for (const auto& decl : m_decls) {
+        const auto declMap = decl.toMap();
+        if (declMap.value("prefix").toString() == prefix &&
+            declMap.value("name").toString() == name) {
+            return;
+        }
+    }
+
+    if (kind != AutoCompleter::CompletionKind::Unspecified) {
+        m_decls.push_front(decl);
+    } else {
+        m_decls.push_back(decl);
+    }
 }
