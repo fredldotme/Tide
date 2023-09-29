@@ -10,8 +10,9 @@ Welcome to Tide, your new favorite IDE for touch devices!
 Tide IDE is a WebAssembly development environment for all kinds of form factors, but mainly for touch-enabled computing devices. It features:
 
 - A simple yet functional Qt/QML-based user interface
-- Integrated compiler toolchain with recent C & C++ support
+- Integrated compiler toolchain with recent C & C++ support 
 - Debugger with breakpoints & single-stepping
+- Various libraries included
 - Autocomplete with search
 - Autoformat
 - Console with stdout/stderr filtering
