@@ -1,7 +1,8 @@
 # Tide - The touch-friendly IDE
 
-Welcome to Tide, your new most-favorite IDE for touch devices!
+Welcome to Tide, your new favorite IDE for touch devices!
 
+![Preview](PREVIEW.png)
 
 ## Under the hood
 
