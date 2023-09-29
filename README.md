@@ -14,8 +14,11 @@ Tide IDE is a WebAssembly development environment for all kinds of form factors,
 - Debugger with breakpoints & single-stepping
 - Autocomplete with search
 - Autoformat
+- Console with stdout/stderr filtering
 - Import projects from external applications
+- Project-wide Search and Replace
 - Release your WebAssembly apps to the world
+- Integrated Rubber Duck Debugging
 
 
 ## Under the hood
