@@ -2,13 +2,13 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Effects
 
-Menu {
-    id: menuRoot
+ComboBox {
+    id: comboBox
     background: MultiEffect {
         implicitWidth: 200
-        implicitHeight: menuRoot.contentItem.implicitHeight
-        source: menuRoot.contentItem
-        paddingRect: Qt.rect(0, 0, menuRoot.width, menuRoot.height)
+        implicitHeight: comboBox.contentItem.implicitHeight
+        source: comboBox.contentItem
+        paddingRect: Qt.rect(0, 0, comboBox.width, comboBox.height)
         shadowBlur: 0.5
         shadowEnabled: true
     }
@@ -20,11 +20,11 @@ Menu {
         clip: true
         ListView {
             id: menuItemListView
-            model: menuRoot.contentModel
+            model: comboBox.contentModel
             interactive: Window.window
-                         ? contentHeight + menuRoot.topPadding + menuRoot.bottomPadding > Window.window.height
+                         ? contentHeight + comboBox.topPadding + comboBox.bottomPadding > Window.window.height
                          : false
-            currentIndex: menuRoot.currentIndex
+            currentIndex: comboBox.currentIndex
             width: parent.width
             height: contentHeight
 

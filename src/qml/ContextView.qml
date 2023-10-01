@@ -1,27 +1,26 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
 import Tide
 
-Rectangle {
+Item {
     id: contextDialog
-    radius: roundedCornersRadius
     x: ((parent.width - width - debuggerArea.width) / 2)
     y: visibility ? ((parent.height - height) / 2) : parent.height
     opacity: visibility ? 1.0 : 0.0
     visible: opacity > 0.0
-    clip: true
-    color: root.palette.base
 
     readonly property bool paneHeight : mainPane.height
 
     property bool visibility : false
     property string currentPath : ""
 
+    readonly property bool modal : true
+
     signal openRequested()
 
     function show(path) {
-        dialogShadow.opacity = 0.3
         visibility = true
         currentPath = path
         contextFieldSearchText.forceActiveFocus()
@@ -30,7 +29,6 @@ Rectangle {
     }
 
     function hide() {
-        dialogShadow.opacity = 0.0
         visibility = false
     }
 
@@ -53,22 +51,29 @@ Rectangle {
         }
     }
 
-    Column {
+    Rectangle {
         id: mainPane
-        anchors.fill: parent
-        spacing: paddingMedium
-        leftPadding: paddingMedium
-        rightPadding: paddingMedium
+        width: parent.width
+        height: parent.height
+        radius: roundedCornersRadius
+        color: root.palette.window
+        clip: true
 
         Column {
-            anchors.fill: parent
-            anchors.leftMargin: paddingSmall
+            width: parent.width
+            height: parent.height
             spacing: paddingMedium
+
             ScrollView {
                 id: toolBar
                 width: parent.width
-                GridLayout {
-                    width: parent.width
+                height: root.headerBarHeight
+
+                Grid {
+                    x: paddingMedium
+                    width: parent.width - paddingSmall
+                    height: parent.height
+
                     TideToolButton {
                         text: qsTr("Close")
                         onClicked: {
@@ -76,6 +81,8 @@ Rectangle {
                         }
                         font.bold: true
                         rightPadding: paddingMedium
+                        height: parent.height
+                        width: implicitWidth
                     }
 
                     TextField {
@@ -85,18 +92,22 @@ Rectangle {
                         onTextChanged: {
                             contextResults.model = searchAndReplace.suggestions(text,currentPath)
                         }
-                        Layout.preferredWidth: 192
+                        height: parent.height
+                        width: 192
                     }
                     TextField {
                         id: contextFieldReplaceText
                         leftPadding: paddingMedium * 2
                         placeholderText: qsTr("Replace with:")
-                        Layout.preferredWidth: 192
+                        height: parent.height
+                        width: 192
                     }
 
                     TideToolButton {
                         text: qsTr("Replace all")
                         enabled: contextFieldSearchText.text.length > 0
+                        height: parent.height
+                        width: implicitWidth
                         onClicked: {
                             let paths = []
                             for (let i = 0; i < contextResults.model.length; i++) {
@@ -170,6 +181,14 @@ Rectangle {
                 }
             }
         }
+    }
+
+    MultiEffect {
+        source: mainPane
+        anchors.fill: mainPane
+        paddingRect: Qt.rect(0, 0, mainPane.width, mainPane.height)
+        shadowBlur: 1.0
+        shadowEnabled: true
     }
 }
 

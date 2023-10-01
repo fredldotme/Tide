@@ -1,29 +1,30 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
 
 Item {
     id: consoleView
     x: ((parent.width - width - debuggerArea.width) / 2)
     y: visibility ? ((parent.height - height) / 2) : parent.height
-    opacity: visibility ? 1.0 : 0.0
-    visible: true
-    clip: true
+    opacity: visibility ? opacityOverride : 0.0
+    visible: opacity > 0.0
 
     property alias consoleOutput : consoleOutput
     property alias consoleScrollView : consoleScrollView
 
     property bool hideStdOut: false
     property bool visibility : false
+    property real opacityOverride : 1.0
+
+    readonly property bool modal : true
 
     function show() {
         visibility = true;
-        dialogShadow.opacity = 0.3
         hideStdOut = false
     }
 
     function hide() {
-        dialogShadow.opacity = 0.0
         visibility = false
     }
 
@@ -53,19 +54,23 @@ Item {
     Rectangle {
         id: consoleRect
         anchors.fill: parent
-        color: root.palette.base
+        color: root.palette.window
         radius: roundedCornersRadius
+        clip: true
 
         Column {
+            id: consoleRectColumn
             anchors.fill: parent
             clip: true
 
-            ToolBar {
+            Item {
                 id: consoleToolBar
                 width: parent.width
+                height: root.headerBarHeight
+
                 RowLayout {
                     anchors.fill: parent
-                    ToolButton {
+                    TideToolButton {
                         icon.source: Qt.resolvedUrl("qrc:/assets/xmark.circle@2x.png")
                         icon.color: root.palette.button
                         leftPadding: paddingMedium
@@ -73,7 +78,7 @@ Item {
                             clearConsoleOutput()
                         }
                     }
-                    ToolButton {
+                    TideToolButton {
                         icon.source: !consoleView.hideStdOut ?
                                          Qt.resolvedUrl("qrc:/assets/line.3.horizontal.decrease.circle@2x.png")
                                        : Qt.resolvedUrl("qrc:/assets/line.3.horizontal.decrease.circle.fill@2x.png")
@@ -102,7 +107,7 @@ Item {
                         }
                     }
                     ToolButton {
-                        text: qsTr("Close")
+                        text: qsTr("Hide")
                         font.bold: true
                         rightPadding: paddingMedium
                         onClicked: {
@@ -176,6 +181,14 @@ Item {
                 }
             }
         }
+    }
+
+    MultiEffect {
+        source: consoleRect
+        anchors.fill: consoleRect
+        paddingRect: Qt.rect(0, 0, consoleRect.width, consoleRect.height)
+        shadowBlur: 1.0
+        shadowEnabled: true
     }
 }
 
