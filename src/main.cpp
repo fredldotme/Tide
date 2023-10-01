@@ -1,4 +1,4 @@
-#include <QGuiApplication>
+#include <QApplication>
 #include <QFontDatabase>
 #include <QFont>
 #include <QQmlApplicationEngine>
@@ -51,7 +51,8 @@ int main(int argc, char *argv[])
     //qputenv("LLVM_DISABLE_CRASH_REPORT", "1");
     //qputenv("NOSYSTEM_DEBUG", "1");
 
-    QGuiApplication app(argc, argv);
+    QApplication app(argc, argv);
+    app.setAutoSipEnabled(true);
     app.setOrganizationDomain("fredl.me");
     app.setApplicationName("Tide");
 

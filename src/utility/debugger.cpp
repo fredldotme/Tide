@@ -15,7 +15,7 @@
 static const auto stackFrameRegex = QRegularExpression("^(.*) (.*) = (.*)");
 static const auto filterCallStackRegex = QRegularExpression("^(   |  \\*) frame #(\\d): ((.*)\\`(.*) at (.*)|(.*))");
 static const auto filterStackFrameRegex = QRegularExpression("^\\((.*)\\) ([^=]*) = (.*)");
-static const auto filterStackFrameInstructions = QRegularExpression("^(->|  )  (.*): (.*) (.*)");
+static const auto filterStackFrameInstructions = QRegularExpression("^(->  )(.*): (.*) (.*)");
 static const auto filterFileStrRegex = QRegularExpression("^(.*):(\\d*):(\\d*)");
 
 Debugger::Debugger(QObject *parent)
@@ -109,6 +109,7 @@ void Debugger::read(FILE* io)
                     if (output.startsWith("Process") && output.endsWith("resuming")) {
                         m_processPaused = false;
                         emit processPausedChanged();
+                        emit processContinued();
                         continue;
                     }
 
@@ -118,8 +119,13 @@ void Debugger::read(FILE* io)
                         // Go on until the end is reached
                         if (output != QStringLiteral("}"))
                             continue;
-                    } else if (stackFrameRegex.match(output).hasMatch() ||
-                               filterStackFrameInstructions.match(output).hasMatch()) {
+                    }
+                    // Go on until the end is reached
+                    else if (output == QStringLiteral("}")) {
+                        // Fall through to multi-value insertion
+                    } else if (!filterCallStackRegex.match(output).hasMatch() && (
+                                   stackFrameRegex.match(output).hasMatch() ||
+                                   filterStackFrameInstructions.match(output).hasMatch())) {
                         varmap = filterStackFrame(output);
 
                         // If this is a complex structure we need to continue at the next line
@@ -131,9 +137,19 @@ void Debugger::read(FILE* io)
                     } else if (filterCallStackRegex.match(output).hasMatch()) {
                         varmap = filterCallStack(output);
                         QMutexLocker locker(&m_backtraceMutex);
-                        if (!varmap.isEmpty())
-                            m_backtrace.append(varmap);
-                        emit backtraceChanged();
+                        if (!varmap.isEmpty()) {
+                            bool hasIndex = false;
+                            for (const auto& btentry : m_backtrace) {
+                                if (varmap.value("frameIndex").toString() == btentry.toMap().value("frameIndex").toString()) {
+                                    hasIndex = true;
+                                    break;
+                                }
+                            }
+                            if (!hasIndex) {
+                                m_backtrace.append(varmap);
+                                emit backtraceChanged();
+                            }
+                        }
 
                         // Continue here to leave the bottom for multi-line values
                         continue;
@@ -142,9 +158,11 @@ void Debugger::read(FILE* io)
                     // Insert from here for multi-line value support
                     {
                         QMutexLocker locker(&m_valuesMutex);
-                        if (!varmap.isEmpty())
+                        if (!varmap.isEmpty() && !varmap.value("type").toString().trimmed().isEmpty() &&
+                            !m_values.contains(varmap)) {
                             m_values.append(varmap);
-                        emit valuesChanged();
+                            emit valuesChanged();
+                        }
 
                         multiLineValues = false;
                         varmap.clear();
@@ -201,13 +219,21 @@ QVariantMap Debugger::filterStackFrame(const QString output)
     qDebug() << Q_FUNC_INFO << regexMatch << "or" << regex2Match << "for input" << output;
 
     if (regexMatch.hasMatch()) {
+        const auto type = regexMatch.captured(1);
+        if (type.trimmed().isEmpty())
+            return ret;
+
         ret.insert("partial", false);
-        ret.insert("type", regexMatch.captured(1));
+        ret.insert("type", type);
         ret.insert("name", regexMatch.captured(2));
         ret.insert("value", regexMatch.captured(3));
     } else if (regex2Match.hasMatch()) {
+        const auto type = regex2Match.captured(2);
+        if (type.trimmed().isEmpty())
+            return ret;
+
         ret.insert("partial", false);
-        ret.insert("type", regex2Match.captured(2));
+        ret.insert("type", type);
         ret.insert("name", regex2Match.captured(3));
         ret.insert("value", regex2Match.captured(4));
     }
@@ -349,7 +375,7 @@ void Debugger::connectToRemote(const int port)
     auto debugCommand =
         QStringLiteral("process detach\n") +
         QStringLiteral("br del\ny\n") +
-        QStringLiteral("settings set auto-one-line-summaries true\n") +
+        QStringLiteral("settings set auto-one-line-summaries false\n") +
         QStringLiteral("platform select remote-linux\n") +
         QStringLiteral("process connect -p wasm connect://127.0.0.1:%1\n").arg(port);
 
@@ -415,12 +441,14 @@ void Debugger::killDebugger()
 
     m_running = false;
     emit runningChanged();
+    m_processPaused = false;
+    emit processPausedChanged();
 }
 
 void Debugger::getBacktrace()
 {
     clearBacktrace();
-    writeToStdIn("bt\n");
+    writeToStdIn("bt all\n");
 }
 
 void Debugger::clearBacktrace()
@@ -449,5 +477,5 @@ void Debugger::getBacktraceAndFrameValues()
 {
     clearBacktrace();
     clearFrameValues();
-    writeToStdIn("bt\nframe variable\n");
+    writeToStdIn("bt all\nframe variable\n");
 }

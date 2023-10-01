@@ -97,6 +97,7 @@ signals:
     void systemChanged();
     void runningChanged();
     void processPaused();
+    void processContinued();
     void processPausedChanged();
     void breakpointsChanged();
     void valuesChanged();
