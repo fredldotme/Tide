@@ -57,5 +57,12 @@
         <file>assets/pause.circle@2x.png</file>
         <file>assets/stop.circle@2x.png</file>
         <file>assets/xmark.shield@2x.png</file>
+        <file>assets/RubberDuck.png</file>
+        <file>assets/doc.plaintext@2x.png</file>
+        <file>assets/scissors@2x.png</file>
+        <file>assets/shippingbox@2x.png</file>
+        <file>assets/sidebar.squares.right@2x.png</file>
+        <file>assets/plus.circle.fill@2x.png</file>
+        <file>assets/play.circle@2x.png</file>
     </qresource>
 </RCC>
