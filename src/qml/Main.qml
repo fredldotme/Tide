@@ -69,7 +69,7 @@ ApplicationWindow {
         dialog.done.connect(function() {
             dialog.destroy()
         })
-        dialog.z = paddedOverlayArea.maxZ()
+        dialog.z = paddedOverlayArea.dialogZ
         dialog.open()
         return dialog
     }
@@ -1801,10 +1801,11 @@ ApplicationWindow {
             readonly property int searchAndReplaceZ : z + 1
             readonly property int consoleZ : z + 2
             readonly property int debuggerZ : z + 3
-            readonly property int settingsZ : z + 4
-            readonly property int helpZ : z + 5
-            readonly property int warningZ : z + 6
-            readonly property int contextMenuZ : z + 7
+            readonly property int dialogZ : z + 4
+            readonly property int settingsZ : z + 5
+            readonly property int helpZ : z + 6
+            readonly property int warningZ : z + 7
+            readonly property int contextMenuZ : z + 8
 
             function maxZ() {
                 let topmostZ = z;
@@ -1957,7 +1958,7 @@ ApplicationWindow {
 
                                 TideMenu {
                                     id: breakpointContextMenu
-                                    z: parent.z + 1
+                                    z: paddedOverlayArea.contextMenuZ
                                     MenuItem {
                                         text: qsTr("Delete breakpoint")
                                         onClicked: {
@@ -2128,7 +2129,7 @@ ApplicationWindow {
                                     width: valueOrInstruction.width
                                     x: (valueOrInstruction.width - width) / 2
                                     y: ((valueOrInstruction.height) / 2) - height
-                                    z: parent.z + 1
+                                    z: paddedOverlayArea.contextMenuZ
                                 }
                             }
                         }
