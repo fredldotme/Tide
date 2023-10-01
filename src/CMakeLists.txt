@@ -64,7 +64,7 @@ if(IOS)
 endif()
 
 # Qt6
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Qml Quick Sql QuickControls2)
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Sql QuickControls2 QuickEffectsPrivate)
 
 include_directories(${PROJECT_NAME}
     # QMake parser
@@ -140,8 +140,6 @@ qt_add_executable(${PROJECT_NAME}
 
     # Assets
     assets.qrc
-
-    qml/TidePrefixedButton.qml
 )
 
 qt_add_qml_module(${PROJECT_NAME}
@@ -165,6 +163,9 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/HelpPage.qml
     qml/DebuggerListEntry.qml
     qml/TidePrefixedButton.qml
+    qml/SettingsCategoryButton.qml
+    qml/TideComboBox.qml
+    qml/TideHeaderButton.qml
 
     NO_LINT
 )
@@ -215,8 +216,8 @@ if(IOS)
         platform/ios/iosintegrationdelegate.mm
         platform/ios/externalprojectpicker.mm
         platform/ios/iossystemglue.mm
-        platform/ios/imeventfixer.cpp
-        platform/ios/imfixerinstaller.cpp
+        platform/ios/imeventfixer.mm
+        platform/ios/imfixerinstaller.mm
         platform/ios/clangcompiler.cpp
     )
 
@@ -428,6 +429,7 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Sql
+    Qt6::Widgets
     ${LLVM}
     ${LLVM_AS}
     ${NOSYSTEM}
