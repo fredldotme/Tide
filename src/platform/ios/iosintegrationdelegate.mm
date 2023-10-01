@@ -13,6 +13,9 @@
 @interface TideIosKeyboardReactor : NSObject
 @property IosIntegrationDelegate* qtDelegate;
 - (id)initWithDelegate:(IosIntegrationDelegate*)delegate;
+- (void)keyboardWillShow:(NSNotification*)notification;
+- (void)keyboardDidChangeFrame:(NSNotification*)notification;
+- (void)keyboardWillHide:(NSNotification*)notification;
 - (void)keyboardDidHide:(NSNotification*)notification;
 @end
 
@@ -21,6 +24,15 @@
     self = [super init];
     self->_qtDelegate = delegate;
     return self;
+}
+
+- (void)keyboardWillShow:(NSNotification*)notification {
+    qDebug() << "WILL SHOW!";
+
+    CGRect keyboardFrame = [[notification userInfo][UIKeyboardFrameEndUserInfoKey] CGRectValue];
+
+    self->_qtDelegate->setOskRect(keyboardFrame.size.width, 0);
+    self->_qtDelegate->setOskVisible(true);
 }
 
 - (void)keyboardDidChangeFrame:(NSNotification*)notification {
@@ -33,6 +45,13 @@
     self->_qtDelegate->setOskRect(keyboardFrame.size.width, keyboardFrame.size.height);
 }
 
+- (void)keyboardWillHide:(NSNotification*)notification {
+    qDebug() << "WILL HIDE!";
+    CGRect keyboardFrame = [[notification userInfo][UIKeyboardFrameEndUserInfoKey] CGRectValue];
+
+    qDebug() << keyboardFrame.origin.x << keyboardFrame.origin.y;
+    qDebug() << keyboardFrame.size.width << keyboardFrame.size.height;
+}
 - (void)keyboardDidHide:(NSNotification*)notification {
     qDebug() << "DID HIDE!";
     CGRect keyboardFrame = [[notification userInfo][UIKeyboardFrameEndUserInfoKey] CGRectValue];
@@ -75,16 +94,46 @@
 @implementation TideItemUIViewProxy
 @end
 
+@interface TideAppDelegate : UIResponder <UIApplicationDelegate>
++ (TideAppDelegate*) sharedAppDelegate;
+@end
+
+@implementation TideAppDelegate
+static TideAppDelegate* sharedAppDelegate = nil;
++(TideAppDelegate *) sharedAppDelegate {
+    static TideAppDelegate *shared = nil;
+    if (!shared)
+        shared = [[TideAppDelegate alloc] init];
+    return shared;
+}
+-(BOOL)canBecomeFirstResponder {
+    return YES;
+}
+@end
+
 IosIntegrationDelegate::IosIntegrationDelegate(QObject *parent)
     : QObject{parent}, m_oskVisible{false}, m_oskHeight{0}, m_item{nullptr}
 {
+    static bool initialized = false;
+    if (!initialized) {
+        [[UIApplication sharedApplication] setDelegate:[TideAppDelegate sharedAppDelegate]];
+        [[TideAppDelegate sharedAppDelegate] becomeFirstResponder];
+        initialized = true;
+    }
+
     TideIosKeyboardReactor* reactor = [[TideIosKeyboardReactor alloc] initWithDelegate:this];
+    [[NSNotificationCenter defaultCenter] addObserver:reactor
+                                             selector:@selector (keyboardWillShow:)
+                                                 name: UIKeyboardWillShowNotification object: nil];
     [[NSNotificationCenter defaultCenter] addObserver:reactor
                                              selector:@selector (keyboardDidChangeFrame:)
                                                  name: UIKeyboardDidChangeFrameNotification object: nil];
     [[NSNotificationCenter defaultCenter] addObserver:reactor
                                              selector:@selector (keyboardDidHide:)
                                                  name: UIKeyboardDidHideNotification object: nil];
+    [[NSNotificationCenter defaultCenter] addObserver:reactor
+                                             selector:@selector (keyboardWillHide:)
+                                                 name: UIKeyboardWillHideNotification object: nil];
     int statusBarHeight = (int)[UIApplication sharedApplication].statusBarFrame.size.height;
 
     m_statusBarHeight = statusBarHeight;
