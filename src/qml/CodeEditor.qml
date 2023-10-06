@@ -21,6 +21,16 @@ Item {
     property bool loading : false
     property bool showAutoCompletor : false
 
+    function scrollToLine(line) {
+        let contentY = 0
+        for (let currentLine = 1; currentLine < Math.min(line, lineNumbersHelper.lineCount.length); currentLine++) {
+            let modelData = lineNumbersHelper.lineCount[currentLine]
+            contentY += modelData.height
+        }
+        scrollView.ScrollBar.vertical.position =
+                Math.min(contentY / scrollView.contentHeight, 1.0 - scrollView.ScrollBar.vertical.size)
+    }
+
     onShowAutoCompletorChanged: {
         if (!showAutoCompletor) {
             codeField.forceActiveFocus()
@@ -222,15 +232,16 @@ Item {
     }
 
     function reloadAst() {
-        // libclang and clang++ trip over each other regularly.
-        if (projectBuilder.building)
-            return;
+        // Old State: libclang and clang++ trip over each other regularly.
+        // New State: iOS enablement in LLVM has ManagedStatic as thread-local, should not happen as much anymore
+        //if (projectBuilder.building)
+        //    return;
 
         if (file.name.toLowerCase().endsWith(".cpp") || file.name.toLowerCase().endsWith(".c") ||
                 file.name.toLowerCase().endsWith(".h") || file.name.toLowerCase().endsWith(".hpp") ||
                 file.name.toLowerCase().endsWith(".cc") || file.name.toLowerCase().endsWith(".cxx")) {
             autoCompleter.setIncludePaths(projectBuilder.includePaths());
-            autoCompleter.reloadAst(file.path, "", codeField.currentLine, codeField.currentColumn)
+            autoCompleter.reloadAst([file.path], "", codeField.currentLine, codeField.currentColumn)
         }
     }
 
@@ -411,6 +422,33 @@ Item {
                     size: scrollView.height / codeView.height
                 }
 
+                Rectangle {
+                    width: codeView.width
+                    color: "orange"
+                    visible: dbugger.currentLineOfExecution !== ""
+                    height: lineNumbersHelper.lineCount[pos()] !== undefined ?
+                        lineNumbersHelper.lineCount[pos()].height : 0
+                    x: codeView.x
+                    y: contentY()
+                    opacity: 0.3
+
+                    function pos() {
+                        let line = dbugger.currentLineOfExecution.split(':')
+                        if (line.length == 0)
+                            return 0
+                        return parseInt(line[line.length - 1]) - 1
+                    }
+
+                    function contentY() {
+                        let contentY = 0
+                        for (let currentLine = 0; currentLine < Math.min(pos(), lineNumbersHelper.lineCount.length); currentLine++) {
+                            let modelData = lineNumbersHelper.lineCount[currentLine]
+                            contentY += modelData.height
+                        }
+                        return contentY
+                    }
+                }
+
                 RowLayout {
                     id: codeView
                     anchors.fill: parent
@@ -438,12 +476,21 @@ Item {
                                     }
                                 }
 
-                                color: isCurrentLine ? root.palette.button :
-                                                       root.palette.text
+                                color: isCurrentLine ?
+                                           root.palette.button :
+                                           root.palette.text
 
                                 background: Rectangle {
                                     radius: height / 2
+                                    readonly property bool visiblity : lineLabel.isBreakpoint
+                                    opacity: visibility ? 1.0 : 0.0
+                                    visible: opacity > 0.0
                                     color: lineLabel.isBreakpoint ? "red" : "transparent"
+                                    Behavior on opacity {
+                                        NumberAnimation {
+                                            duration: 150
+                                        }
+                                    }
                                 }
 
                                 height: modelData.height
@@ -493,6 +540,7 @@ Item {
                             //uiIntegration.hookUpNativeView(codeField)
                             imFixer.setupImEventFilter(codeField)
                         }
+                        background: Item { }
                         cursorDelegate: Component {
                             Rectangle {
                                 id: cursor
@@ -646,44 +694,6 @@ Item {
 
                             console.log("currentBlock: " + ret)
                             return ret;
-                        }
-
-                        Shortcut {
-                            sequence: "Ctrl+Shift+S"
-                            onActivated: codeEditor.autocomplete()
-                        }
-
-                        Shortcut {
-                            sequence: "Ctrl+B"
-                            onActivated: {
-                                codeEditor.saveRequested()
-                                codeEditor.buildRequested()
-                            }
-                        }
-
-                        Shortcut {
-                            sequence: "Ctrl+R"
-                            onActivated: {
-                                codeEditor.saveRequested()
-                                codeEditor.runRequested()
-                            }
-                        }
-
-                        Shortcut {
-                            sequence: "Ctrl+S"
-                            onActivated: codeEditor.saveRequested()
-                        }
-
-                        Shortcut {
-                            sequence: "Ctrl+F"
-                            onActivated: codeEditor.findRequested()
-                        }
-
-                        Shortcut {
-                            sequence: "Ctrl+Shift+F"
-                            onActivated: {
-                                codeEditor.format()
-                            }
                         }
 
                         MouseArea {
@@ -913,8 +923,8 @@ Item {
                                             icon.source: autoCompletionList.iconForKind(modelData.kind)
                                             prefix: modelData.prefix
                                             text: modelData.name
-                                            detail: modelData.detail !== "" ? qsTr("inside ") + modelData.detail :
-                                                                              qsTr("in this file")
+                                            detail: modelData.detail !== "" ? qsTr("inside %1").arg(modelData.detail) :
+                                                                              qsTr("in %1").arg(file.name)
                                             font.styleName: "Monospace"
                                             font.bold: true
                                             font.pixelSize: 20
