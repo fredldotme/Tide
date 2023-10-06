@@ -13,7 +13,6 @@ OLD_PWD=$(pwd)
 
 function cmake_iossystem_build {
     echo "Custom args: $1"
-    LIBNAME="$2"
 
     if [ -d build ]; then
         rm -rf build
@@ -25,7 +24,8 @@ function cmake_iossystem_build {
         -DCMAKE_OSX_SYSROOT=${IOS_SDKROOT} \
         -DCMAKE_C_COMPILER=$(xcrun --sdk iphoneos -f clang) \
         -DCMAKE_CXX_COMPILER=$(xcrun --sdk iphoneos -f clang++) \
-        ..
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        $1 ..
     ninja
 
     cd ..
@@ -74,6 +74,18 @@ cp -a $OLD_PWD/3rdparty/llvm/build-iphoneos/lib/libclang.dylib ./$LIBNAME
 install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/libLLVM.framework/libLLVM" ./$LIBNAME
 install_name_tool -id "@rpath/libclang.framework/libclang" ./$LIBNAME
 plutil -convert binary1 Info.plist
+cd $OLD_PWD
+
+
+# CMake
+cd 3rdparty/CMake
+cmake_iossystem_build "-DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/no_system/build-iphoneos/Debug-iphoneos"
+tar cvf $OLD_PWD/tmp/cmake.tar Modules
+cd $OLD_PWD
+
+# Ninja
+cd 3rdparty/ninja
+cmake_iossystem_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DNINJA_BUILD_BINARY=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/no_system/build-iphoneos/Debug-iphoneos"
 cd $OLD_PWD
 
 # wasi-libc
@@ -189,18 +201,6 @@ cd $OLD_PWD
 # Rust
 #cd 3rdparty/rust
 #./bootstrap.sh
-#cd $OLD_PWD
-
-# CMake
-#cd 3rdparty/CMake
-#LIBNAME="cmake"
-#cmake_iossystem_build "-DBUILD_TESTING=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/no_system/build-iphoneos/Debug-iphoneos" "$LIBNAME"
-#cd $OLD_PWD
-
-# Ninja
-#cd 3rdparty/ninja
-#LIBNAME="ninja"
-#cmake_iossystem_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/no_system/build-iphoneos/Debug-iphoneos" "$LIBNAME"
 #cd $OLD_PWD
 
 cd tmp
