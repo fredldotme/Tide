@@ -11,16 +11,6 @@ AutoCompleter::AutoCompleter(QObject *parent)
     QObject::connect(&m_thread, &QThread::started, this, &AutoCompleter::run, Qt::DirectConnection);
 }
 
-QStringList& AutoCompleter::referenceHints()
-{
-    return this->m_referenceHints;
-}
-
-const QStringList AutoCompleter::referenceHintsConst()
-{
-    return this->m_referenceHints;
-}
-
 QStringList AutoCompleter::createHints(const QString& hint)
 {
     QStringList ret;
@@ -92,68 +82,70 @@ void AutoCompleter::run()
     ClangWrapper clang;
     this->clang = &clang;
 
-    CXIndex index = this->clang->createIndex(0, 0);
-
-    QByteArrayList tmpArgs = {
-        QStringLiteral("--sysroot=%1").arg(this->m_sysroot).toUtf8()
-    };
-
-    for (const auto& tmpArg : m_includePaths) {
-        tmpArgs << QStringLiteral("-I%1").arg(tmpArg).toUtf8();
-    }
-
-    std::vector<const char*> args = { "-x", "c++", "-I." };
-    for (const auto& path : tmpArgs) {
-        args.push_back(path.data());
-    }
-
-    CXTranslationUnit unit = this->clang->createTranslationUnitFromSourceFile(index, m_path.toUtf8().data(), args.size(), args.data(), 0, nullptr);
-
     m_decls.clear();
 
-    if (unit) {
-        this->rootCursor = this->clang->getTranslationUnitCursor(unit);
-        this->deepestParent = this->clang->getNullCursor();
+    for (const auto& sourceFile : this->sourceFiles) {
+        CXIndex index = this->clang->createIndex(0, 0);
 
-        this->clang->visitChildren(rootCursor, [](CXCursor c, CXCursor parent, CXClientData client_data)
-            {
-                AutoCompleter* thiz = reinterpret_cast<AutoCompleter*>(client_data);
-                CXSourceRange cursorRange = thiz->clang->getCursorExtent(c);
-                auto ret = CXChildVisit_Recurse;
+        QByteArrayList tmpArgs = {
+            QStringLiteral("--sysroot=%1").arg(this->m_sysroot).toUtf8()
+        };
 
-                CXFile file;
-                unsigned start_line, start_column, start_offset;
-                unsigned end_line, end_column, end_offset;
+        for (const auto& tmpArg : m_includePaths) {
+            tmpArgs << QStringLiteral("-I%1").arg(tmpArg).toUtf8();
+        }
 
-                thiz->clang->getExpansionLocation(thiz->clang->getRangeStart(cursorRange), &file, &start_line, &start_column, &start_offset);
-                thiz->clang->getExpansionLocation(thiz->clang->getRangeEnd(cursorRange), &file, &end_line, &end_column, &end_offset);
+        std::vector<const char*> args = { "-x", "c++", "-I." };
+        for (const auto& path : tmpArgs) {
+            args.push_back(path.data());
+        }
 
-                // Recurse through the tree until we find the current line, store the tailAnchor and break.
-                if (thiz->clang->Cursor_isNull(thiz->deepestParent)) {
-                    if (thiz->line >= start_line && thiz->line <= end_line) {
-                        thiz->deepestParent = c;
+        CXTranslationUnit unit = this->clang->createTranslationUnitFromSourceFile(index, sourceFile.toUtf8().data(), args.size(), args.data(), 0, nullptr);
+
+        if (unit) {
+            this->rootCursor = this->clang->getTranslationUnitCursor(unit);
+            this->deepestParent = this->clang->getNullCursor();
+
+            this->clang->visitChildren(rootCursor, [](CXCursor c, CXCursor parent, CXClientData client_data)
+                {
+                    AutoCompleter* thiz = reinterpret_cast<AutoCompleter*>(client_data);
+                    CXSourceRange cursorRange = thiz->clang->getCursorExtent(c);
+                    auto ret = CXChildVisit_Recurse;
+
+                    CXFile file;
+                    unsigned start_line, start_column, start_offset;
+                    unsigned end_line, end_column, end_offset;
+
+                    thiz->clang->getExpansionLocation(thiz->clang->getRangeStart(cursorRange), &file, &start_line, &start_column, &start_offset);
+                    thiz->clang->getExpansionLocation(thiz->clang->getRangeEnd(cursorRange), &file, &end_line, &end_column, &end_offset);
+
+                    // Recurse through the tree until we find the current line, store the tailAnchor and break.
+                    if (thiz->clang->Cursor_isNull(thiz->deepestParent)) {
+                        if (thiz->line >= start_line && thiz->line <= end_line) {
+                            thiz->deepestParent = c;
+                        }
                     }
-                }
 
-                if (!thiz->clang->Cursor_isNull(thiz->deepestParent)) {
-                    ret = CXChildVisit_Continue;
-                }
+                    if (!thiz->clang->Cursor_isNull(thiz->deepestParent)) {
+                        ret = CXChildVisit_Continue;
+                    }
 
-                CXCursor lexicalParent = thiz->clang->getCursorLexicalParent(c);
-                thiz->addDecl(c, lexicalParent, thiz->clang);
+                    CXCursor lexicalParent = thiz->clang->getCursorLexicalParent(c);
+                    thiz->addDecl(c, lexicalParent, thiz->clang);
 
-                return ret;
-            }, this);
+                    return ret;
+                }, this);
 
-        this->anchorTrail.clear();
-        this->deepestParent = this->clang->getNullCursor();
-        this->rootCursor = this->clang->getNullCursor();
-        this->clang->disposeTranslationUnit(unit);
+            this->anchorTrail.clear();
+            this->deepestParent = this->clang->getNullCursor();
+            this->rootCursor = this->clang->getNullCursor();
+            this->clang->disposeTranslationUnit(unit);
+        }
+
+        this->clang->disposeIndex(index);
     }
 
-    this->clang->disposeIndex(index);
     this->clang = nullptr;
-
     emit declsChanged();
 }
 
@@ -180,9 +172,9 @@ void AutoCompleter::addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang)
 
     CompletionKind completionKind = getAutoCompleterKind(kind);
 
-    if (referenceHints().length() != 0) {
+    if (this->referenceHints.length() != 0) {
         bool hintedResults = false;
-        for (const auto& hint : referenceHints()) {
+        for (const auto& hint : this->referenceHints) {
             if (!prefix.toLower().contains(hint) &&
                 !name.toLower().contains(hint) &&
                 !detail.toLower().contains(hint))
@@ -198,10 +190,10 @@ void AutoCompleter::addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang)
     foundKind(completionKind, prefix, name, detail);
 }
 
-void AutoCompleter::reloadAst(const QString path, const QString hint, const int line, const int column)
+void AutoCompleter::reloadAst(const QStringList paths, const QString hint, const int line, const int column)
 {
-    this->m_path = path;
-    this->m_referenceHints = createHints(hint.toLower());
+    this->sourceFiles = paths;
+    this->referenceHints = createHints(hint.toLower());
     this->line = line;
     this->column = column;
     this->foundLine = true;

@@ -42,8 +42,6 @@ public:
     };
 
     explicit AutoCompleter(QObject *parent = nullptr);
-    QStringList& referenceHints();
-    const QStringList referenceHintsConst();
     void foundKind(CompletionKind kind, const QString prefix, const QString name, const QString detail);
     void addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang);
 
@@ -53,11 +51,13 @@ public:
     int line;
     int column;
     bool foundLine;
+    QStringList sourceFiles;
     QList<CXCursor> anchorTrail;
     QList<QList<CXCursor>> anchorTrails;
+    QStringList referenceHints;
 
 public slots:
-    void reloadAst(const QString path, const QString hint, const int line, const int column);
+    void reloadAst(const QStringList path, const QString hint, const int line, const int column);
     void setSysroot(const QString sysroot);
     void setIncludePaths(const QStringList paths);
     QVariantList filteredDecls(const QString str);
@@ -66,12 +66,10 @@ private:
     void run();
     QStringList createHints(const QString& hint);
 
-    QString m_path;
     QThread m_thread;
     QVariantList m_decls;
     QString m_sysroot;
     QStringList m_includePaths;
-    QStringList m_referenceHints;
     QList<CompletionHint> m_anchorDecls;
 
 signals:
