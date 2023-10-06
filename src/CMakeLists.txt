@@ -8,7 +8,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(PROJECT_NAME tide)
 endif()
 
-project(${PROJECT_NAME} VERSION 1.4.1 LANGUAGES C CXX)
+project(${PROJECT_NAME} VERSION 1.4.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
@@ -53,12 +53,13 @@ endfunction()
 # Sysroot files
 set(WASI_LIBS ${WASI_DIR}/lib)
 set(WASI_HEADERS ${WASI_DIR}/include)
-set(LLVM_HEADERS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib/clang/14.0.0/include)
+set(LLVM_HEADERS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib/clang/17/include)
 set(CLANGRT ${CLANGRT_DIR}/lib/wasi)
 
 if(IOS)
     resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
+    resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
     set (WAMR_COMPILER ${WAMR_DIR}/wamr-compiler/main.c)
     set (IWAMR ${WAMR_DIR}/product-mini/platforms/darwin/main.c)
 endif()
@@ -137,6 +138,7 @@ qt_add_executable(${PROJECT_NAME}
     # Ship the sysroot
     ${THE_SYSROOT}
     ${BOOST_TAR}
+    ${CMAKE_MODULES}
 
     # Assets
     assets.qrc
@@ -166,6 +168,7 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/SettingsCategoryButton.qml
     qml/TideComboBox.qml
     qml/TideHeaderButton.qml
+    qml/AutocompletorFrame.qml
 
     NO_LINT
 )
@@ -302,8 +305,22 @@ if(IOS)
     find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # CMake and Ninja
-    #find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
-    #find_library(NINJAFW REQUIRED NAMES ninja PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${CMAKE_PATH} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMAKELIB REQUIRED NAMES CMakeLib PATHS ${CMAKE_PATH} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMSYSFW REQUIRED NAMES cmsys PATHS ${CMAKE_PATH}/kwsys CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMLIBUV REQUIRED NAMES cmlibuv PATHS ${CMAKE_UTIL_PATH}/cmlibuv CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMEXPAT REQUIRED NAMES cmexpat PATHS ${CMAKE_UTIL_PATH}/cmexpat CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMZLIB REQUIRED NAMES cmzlib PATHS ${CMAKE_UTIL_PATH}/cmzlib CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMLIBLZMA REQUIRED NAMES cmliblzma PATHS ${CMAKE_UTIL_PATH}/cmliblzma CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMJSONCPP REQUIRED NAMES cmjsoncpp PATHS ${CMAKE_UTIL_PATH}/cmjsoncpp CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMSTD REQUIRED NAMES cmstd PATHS ${CMAKE_UTIL_PATH}/std CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMLIBRHASH REQUIRED NAMES cmlibrhash PATHS ${CMAKE_UTIL_PATH}/cmlibrhash CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMBZIP2 REQUIRED NAMES cmbzip2 PATHS ${CMAKE_UTIL_PATH}/cmbzip2 CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMCURL REQUIRED NAMES cmcurl PATHS ${CMAKE_UTIL_PATH}/cmcurl/lib CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMLIBARCHIVE REQUIRED NAMES cmlibarchive PATHS ${CMAKE_UTIL_PATH}/cmlibarchive/libarchive CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMNGHTTP2 REQUIRED NAMES cmnghttp2 PATHS ${CMAKE_UTIL_PATH}/cmnghttp2 CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(CMZSTD REQUIRED NAMES cmzstd PATHS ${CMAKE_UTIL_PATH}/cmzstd CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(NINJAFW REQUIRED NAMES ninjaexe PATHS ${NINJA_PATH} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # Debugger's lldb requires some trickery
     #set_source_files_properties(${LLDB}
@@ -419,6 +436,22 @@ target_link_libraries(${PROJECT_NAME}-platform
     Qt6::Sql
     Qt6::Quick
     ${NOSYSTEM}
+    ${CMAKEFW}
+    ${CMAKELIB}
+    ${CMSYSFW}
+    ${CMLIBUV}
+    ${CMEXPAT}
+    ${CMZLIB}
+    ${CMLIBLZMA}
+    ${CMJSONCPP}
+    ${CMSTD}
+    ${CMLIBRHASH}
+    ${CMLIBARCHIVE}
+    ${CMZSTD}
+    ${CMBZIP2}
+    ${CMNGHTTP2}
+    ${CMCURL}
+    ${NINJAFW}
 )
 
 target_link_libraries(${PROJECT_NAME}
@@ -453,8 +486,6 @@ if(IOS)
         ${NOSYSTEM}
         ${LLVM}
         ${LIBCLANG_CPP}
-        #${CMAKEFW}
-        #${NINJAFW}
         ${PROJECT_NAME}-Formatter
     )
 

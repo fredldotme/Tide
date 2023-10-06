@@ -11,5 +11,10 @@ set(QMAKEPARSER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libqmakeparser)
 set(MICROTAR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/microtar)
 # set(SDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/SDL)
 
+# CMake & Ninja
+set(CMAKE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/CMake/build/Source)
+set(CMAKE_UTIL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/CMake/build/Utilities)
+set(NINJA_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja/build)
+
 # When it's time: add_subdirectory(${SDL_DIR})
 add_subdirectory(src)
