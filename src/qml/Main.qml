@@ -33,8 +33,8 @@ ApplicationWindow {
     readonly property int sideBarWidth: landscapeMode ? Math.min(sideBarExpandedDefault, width) : width
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
                                                 openFiles.files.length > 0)
-    readonly property bool shouldAllowDebugArea: (dbugger.running && wasmRunner.running) ||
-                                                 dbugger.breakpoints.length > 0
+    readonly property bool shouldAllowDebugArea: (((dbugger.running || dbugger.paused) && wasmRunner.running) ||
+                                                  (dbugger.breakpoints.length > 0)) && projectBuilder.projectFile !== ""
     readonly property bool padStatusBar : true
     readonly property int headerBarHeight : 48
     readonly property int headerItemHeight : 28
@@ -185,11 +185,61 @@ ApplicationWindow {
             showLeftSideBar = true
         }
 
+        reevaluateDebuggerVisibility();
+    }
+
+    function reevaluateDebuggerVisibility() {
         // Hide the debug area on small screens
-        if (width < height || shouldAllowDebugArea) {
+        if (width >= height && shouldAllowDebugArea) {
+            showDebugArea = true;
+        } else if (width < height) {
             showDebugArea = false;
-        } else {
+        } else {
             showDebugArea = shouldAllowDebugArea;
+        }
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+S"
+        enabled: !editor.invalidated
+        onActivated: editor.autocomplete()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+B"
+        enabled: !editor.invalidated
+        onActivated: {
+            editor.saveRequested()
+            editor.buildRequested()
+        }
+    }
+
+    Shortcut {
+        sequence: "Ctrl+R"
+        enabled: !editor.invalidated
+        onActivated: {
+            editor.saveRequested()
+            editor.runRequested()
+        }
+    }
+
+    Shortcut {
+        sequence: "Ctrl+S"
+        enabled: !editor.invalidated
+        onActivated: editor.saveRequested()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+F"
+        enabled: !editor.invalidated
+        onActivated: editor.findRequested()
+    }
+
+    Shortcut {
+        sequence: "Ctrl+Shift+F"
+        enabled: !editor.invalidated
+        onActivated: {
+            editor.format()
         }
     }
 
@@ -381,6 +431,7 @@ ApplicationWindow {
             Row {
                 id: hud
                 property alias hudLabel : hudLabel
+                property alias prefixLabel : prefixLabel
                 Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
                 width: implicitWidth
                 height: implicitHeight
@@ -392,6 +443,51 @@ ApplicationWindow {
                     visible: wasmRunner.running || projectBuilder.building || dbugger.running
                     running: wasmRunner.running || projectBuilder.building || dbugger.running
                 }
+
+                Text {
+                    id: prefixLabel
+                    color: headerItemColor
+                    elide: Text.ElideRight
+                    font.bold: true
+                    width: implicitWidth
+                    height: implicitHeight
+
+                    readonly property string project : {
+                        let target = "";
+                        const crumbs = projectBuilder.projectFile.split('/');
+                        if (crumbs.length > 0) {
+                            target = crumbs[crumbs.length - 1]
+                        }
+                        return target
+                    }
+
+                    text: {
+                        if (project.length > 0) {
+                            if (dbugger.running)
+                                return qsTr("Debugging: %1").arg(project)
+                            else if (projectBuilder.building)
+                                return qsTr("Building: %1").arg(project)
+                            else
+                                return qsTr("Active: %1").arg(project)
+                        }
+                        return ""
+                    }
+                }
+
+                Text {
+                    color: headerItemColor
+                    font.bold: true
+                    width: implicitWidth
+                    height: implicitHeight
+                    text: "|"
+                    property bool visibility: hudLabel.width > 0
+                    visible: opacity > 0.0
+                    opacity: visibility ? 1.0 : 0.0
+                    Behavior on opacity {
+                        NumberAnimation { duration: 150 }
+                    }
+                }
+
                 Text {
                     id: hudLabel
                     color: headerItemColor
@@ -519,26 +615,53 @@ ApplicationWindow {
                         Component {
                             id: breakpointDialogComponent
                             TideDialog {
-                                title: qsTr("Add a breakpoint");
-                                modal: true
-                                anchors.centerIn: parent
+                                id: breakpointDialog
+                                title: qsTr("Add a breakpoint")
                                 standardButtons: Dialog.Ok | Dialog.Cancel
-                                Component.onCompleted: imFixer.setupImEventFilter(breakpointSymbol)
+                                anchors.centerIn: parent
+                                width: mainView.dialogWidth
+                                height: mainView.dialogHeight
+                                Component.onCompleted: {
+                                    imFixer.setupImEventFilter(breakpointSymbol)
+                                    breakpointAutocompletor.reload()
+                                }
 
                                 signal done()
 
-                                TextField {
-                                    id: breakpointSymbol
+                                Column {
+                                    id: breakpointDialogColumn
                                     width: parent.width
-                                    placeholderText: qsTr("Symbol or filename:linenumber")
-                                    focus: true
-                                    validator: RegularExpressionValidator {
-                                        regularExpression: /^([a-zA-Z0-9_.-]|[a-zA-Z0-9_.-].[cxx|cpp|c|h]:[0-9])*$/
+                                    height: parent.height
+                                    spacing: paddingSmall
+
+                                    TextField {
+                                        id: breakpointSymbol
+                                        width: parent.width
+                                        height: implicitHeight
+                                        placeholderText: qsTr("Symbol or filename:linenumber")
+                                        focus: true
+                                        validator: RegularExpressionValidator {
+                                            regularExpression: /^([a-zA-Z0-9_.-]|[a-zA-Z0-9_.-].[cxx|cpp|c|h]:[0-9])*$/
+                                        }
+                                        onAccepted: breakpointDialog.accept()
+                                    }
+
+                                    AutocompletorFrame {
+                                        id: breakpointAutocompletor
+                                        width: breakpointSymbol.width
+                                        height: breakpointDialog.height - breakpointSymbol.height - breakpointDialogColumn.spacing
+                                        input: breakpointSymbol
+                                        projectBuilder: root.projectBuilder
+                                        fileHint: editor.file
                                     }
                                 }
 
                                 onAccepted: {
-                                    dbugger.addBreakpoint(breakpointSymbol.text)
+                                    const inputText = breakpointAutocompletor.list.model.length !== 0 ?
+                                                        breakpointAutocompletor.list.model[breakpointAutocompletor.list.currentIndex].name :
+                                                        breakpointSymbol.text
+                                    if (inputText !== "")
+                                        dbugger.addBreakpoint(inputText)
                                     done()
                                 }
 
@@ -706,21 +829,13 @@ ApplicationWindow {
             }
     }
 
-    ProjectBuilder {
+    property var projectBuilder : ProjectBuilder {
         id: projectBuilder
         onProjectFileChanged: {
             if (projectFile === "")
                 return
 
-            let target = ""
-            const crumbs = projectFile.split('/');
-            if (crumbs.length > 0) {
-                target = crumbs[crumbs.length - 1]
-            }
-            if (target === "")
-                return;
-
-            hud.hudLabel.flashMessageWithDuration(qsTr("Switched to project %1").arg(target), 3000)
+            hud.hudLabel.flashMessageWithDuration(qsTr("Switched project"), 3000)
         }
 
         onCleaned: {
@@ -767,16 +882,10 @@ ApplicationWindow {
         id: wasmRunner
         system: iosSystem
         onRunningChanged: {
-            let target = qsTr("Project");
-            const crumbs = projectBuilder.projectFile.split('/');
-            if (crumbs.length > 0) {
-                target = crumbs[crumbs.length - 1]
-            }
-
             if (running) {
-                hud.hudLabel.flashMessage(qsTr("%1 started").arg(target))
+                hud.hudLabel.flashMessage(qsTr("Started"))
             } else {
-                hud.hudLabel.flashMessage(qsTr("%1 stopped").arg(target))
+                hud.hudLabel.flashMessage(qsTr("Stopped"))
             }
 
             if (running && settings.clearConsole)
@@ -815,6 +924,11 @@ ApplicationWindow {
         system: iosSystem
 
         readonly property bool heatingUp : delayedDebugContinue.running
+        readonly property bool initialized : {
+            dbugger.breakpoints.length;
+            reevaluateDebuggerVisibility()
+            return true
+        }
 
         onRunningChanged: {
             if (running)
@@ -830,15 +944,21 @@ ApplicationWindow {
             if (running && settings.clearConsole)
                 clearConsoleOutput()
         }
+        onHintPauseMessage: {
+            warningSign.flashPause(qsTr("Breakpoint reached"))
+        }
+
         onProcessPaused: {
-            dbugger.getBacktraceAndFrameValues()
-            warningSign.flashPause(qsTr("Execution paused"))
-            if (!heatingUp)
+            dbugger.getBacktraceAndFrameValues();
+            if (!heatingUp) {
                 hud.hudLabel.flashMessageWithDuration(qsTr("Debugging paused"), Number.MAX_VALUE)
+            }
         }
         onProcessContinued: {
             hud.hudLabel.flashMessage(qsTr("Program continued"))
         }
+
+        readonly property bool hasCurrentLineOfExecution : dbugger.currentLineOfExecution.startsWith(editor.file.path + ":")
 
         onAttachedToProcess: {
             delayedDebugContinue.start()
@@ -889,7 +1009,7 @@ ApplicationWindow {
         editor.file = modelData
 
         // Also load project in case it's a project
-        if (modelData.path.endsWith(".pro") /* || modelData.path.endsWith("CMakeLists.txt")*/)
+        if (modelData.path.endsWith(".pro") /*|| modelData.name === "CMakeLists.txt"*/)
             projectBuilder.loadProject(modelData.path)
 
         if (root.width < root.height)
@@ -1298,7 +1418,7 @@ ApplicationWindow {
                                                     id: fileListingButton
                                                     readonly property bool isBackButton : (modelData.name === "..")
                                                     readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
-                                                    readonly property bool isProject : (modelData.name.endsWith(".pro") /* || modelData.name.endsWith("CMakeLists.txt") */)
+                                                    readonly property bool isProject : (modelData.name.endsWith(".pro") /*|| modelData.name === "CMakeLists.txt"*/)
 
                                                     textColor: root.palette.button
                                                     icon.color: root.palette.button
@@ -1549,7 +1669,7 @@ ApplicationWindow {
 
                                     clip: true
                                     delegate: OpenFileListingButton {
-                                        readonly property bool isProject : modelData.name.endsWith(".pro") // || modelData.name.endsWith("CMakeLists.txt")
+                                        readonly property bool isProject : modelData.name.endsWith(".pro") //|| modelData.name == "CMakeLists.txt"
                                         readonly property bool isActiveProject: modelData.path === projectBuilder.projectFile
                                         radius: roundedCornersRadiusSmall
 
@@ -1703,6 +1823,7 @@ ApplicationWindow {
                 CodeEditor {
                     id: editor
                     anchors.fill: parent
+                    parent: editorContainer
                     anchors {
                         rightMargin: showDebugArea ? paddingSmall : paddingMedium
                         leftMargin: showLeftSideBar ? paddingSmall : paddingMedium
@@ -1723,7 +1844,6 @@ ApplicationWindow {
                         root.runRequested = true
                         attemptBuild();
                     }
-
                     onInvalidatedChanged: {
                         if (invalidated) {
                             projectBuilder.projectFile = ""
@@ -1755,6 +1875,19 @@ ApplicationWindow {
             }
 
             opacity: {
+                // Bindings for reevaluation
+                paddedOverlayArea.children.length;
+                consoleView.visible;
+                overlayLandingPad.visible;
+
+                console.log("Reevaluating dialog shadow opacity: " + overlayLandingPad.visible + " " + consoleView.visible)
+
+                if (overlayLandingPad.visible)
+                    return 1.0
+
+                if (consoleView.visible)
+                    return 1.0
+
                 for (let i = 0; i < paddedOverlayArea.children.length; i++) {
                     if (paddedOverlayArea.children[i].visible) {
                         if (paddedOverlayArea.children[i].modal !== undefined &&
@@ -1793,8 +1926,8 @@ ApplicationWindow {
         Item {
             id: paddedOverlayArea
             width: parent.width
-            y: headerItemHeight + uiIntegration.statusBarHeight
-            height: parent.height - (uiIntegration.oskVisible ? uiIntegration.oskHeight : 0) - y
+            y: uiIntegration.statusBarHeight
+            height: parent.height - (uiIntegration.oskVisible ? uiIntegration.oskHeight : 0) - headerItemHeight
             parent: Overlay.overlay
             z: dialogShadow.z + 1
 
@@ -1806,27 +1939,70 @@ ApplicationWindow {
             readonly property int helpZ : z + 6
             readonly property int warningZ : z + 7
             readonly property int contextMenuZ : z + 8
+            readonly property int flashThroughZ : z + 9
 
-            function maxZ() {
-                let topmostZ = z;
-                for (let i = 0; i < paddedOverlayArea.children.length; i++) {
-                    if (paddedOverlayArea.children[i].visible &&
-                            paddedOverlayArea.children[i].z > topmostZ) {
-                        topmostZ = paddedOverlayArea.children[i].z
+            Row {
+                id: overlayLandingPad
+                x: paddedOverlayArea.x + paddingLarge
+                y: paddedOverlayArea.y + headerBarHeight
+                z: paddedOverlayArea.z
+                width: paddedOverlayArea.width - debuggerArea.width - (paddingLarge * 2)
+                height: paddedOverlayArea.height - headerBarHeight - (paddingLarge * 2)
+                spacing: paddingMedium
+                visible: root.landscapeMode && !dbugger.heatingUp && dbugger.running && consoleView.visible && dbugger.currentLineOfExecution !== ""
+                readonly property bool modal : visible
+
+                Item {
+                    id: consoleViewLandingPad
+                    width: (parent.width / 2) - (paddingMedium / 2)
+                    height: parent.height
+                }
+
+                CodeEditor {
+                    id: overlayEditor
+                    width: (parent.width / 2) - (paddingMedium / 2)
+                    height: parent.height
+                    y: consoleView.y
+                    codeField.readOnly: true
+                    opacity: consoleView.visibility && dbugger.paused && !dbugger.heatingUp ? 1.0 : 0.0
+                    file: {
+                        dbugger.currentLineOfExecution;
+                        return dbugger.getFileForActiveLine()
+                    }
+                    fileIo: fileIo
+                    projectPicker: projectPicker
+                    projectBuilder: projectBuilder
+                    openFiles: openFiles
+                    dbugger: dbugger
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: dialogShadow.consoleAnimation
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+                    Connections {
+                        target: dbugger
+                        function onCurrentLineOfExecutionChanged() {
+                            let line = dbugger.currentLineOfExecution.split(':')
+                            if (line.length == 0)
+                                return
+                            overlayEditor.scrollToLine(line[line.length - 1])
+                        }
                     }
                 }
-                return topmostZ
             }
         }
 
         ConsoleView {
             id: consoleView
-            width: !landscapeMode && showDebugArea ?
-                       0 : // Don't overlap debugger area and ConsoleView in portraitMode
-                       mainView.dialogWidth - (debuggerArea.width / 2)
-            height: mainView.dialogHeight - paddedOverlayArea.y
+            width: parent == consoleViewLandingPad ?
+                       parent.width:
+                       !landscapeMode && showDebugArea ?
+                           0 : // Don't overlap debugger area and ConsoleView in portraitMode
+                           mainView.dialogWidth - (debuggerArea.width / 2)
+            height: parent == consoleViewLandingPad ? parent.height : mainView.dialogHeight - parent.y
             opacityOverride: 1.0
-            parent: paddedOverlayArea
+            parent: overlayLandingPad.visible ? consoleViewLandingPad : paddedOverlayArea
             z: paddedOverlayArea.consoleZ
         }
 
@@ -1850,10 +2026,10 @@ ApplicationWindow {
             width: showDebugArea ? (sideBarWidth - paddingMedium) : 0
             height: mainContainer.height - (paddingMedium * 2) // TODO: Commonalize
             anchors.top: parent.top
-            anchors.topMargin: uiIntegration.statusBarHeight + headerBarHeight
+            anchors.topMargin: headerBarHeight
             anchors.right: parent.right
             anchors.rightMargin: paddingSmall
-            parent: Overlay.overlay
+            parent: paddedOverlayArea
 
             x: parent.width - width
             y: parent.y
@@ -1937,6 +2113,7 @@ ApplicationWindow {
                                     }
                                 }
                             }
+
                             delegate: TideButton {
                                 icon.source: Qt.resolvedUrl("qrc:/assets/circle.fill@2x.png")
                                 icon.color: "red"
@@ -2357,6 +2534,8 @@ ApplicationWindow {
             border.width: 1
             radius: roundedCornersRadiusMedium
             color: Qt.tint(root.palette.base, tintColor)
+            parent: paddedOverlayArea
+            z: paddedOverlayArea.warningZ
             readonly property color tintColor : Qt.rgba(flashingIcon.icon.color.r,
                                                         flashingIcon.icon.color.g,
                                                         flashingIcon.icon.color.b,
