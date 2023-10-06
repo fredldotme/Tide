@@ -16,7 +16,7 @@ static const auto stackFrameRegex = QRegularExpression("^(.*) (.*) = (.*)");
 static const auto filterCallStackRegex = QRegularExpression("^(   |  \\*) frame #(\\d): ((.*)\\`(.*) at (.*)|(.*))");
 static const auto filterStackFrameRegex = QRegularExpression("^\\((.*)\\) ([^=]*) = (.*)");
 static const auto filterStackFrameInstructions = QRegularExpression("^(->  )(.*): (.*) (.*)");
-static const auto filterFileStrRegex = QRegularExpression("^(.*):(\\d*):(\\d*)");
+static const auto filterFileStrRegex = QRegularExpression("^(.*):(\\d*)");
 
 Debugger::Debugger(QObject *parent)
     : QObject{parent}, m_spawned{false}, m_running{false}, m_runner{nullptr}, m_system{nullptr}, m_forceQuit{false}
@@ -113,6 +113,11 @@ void Debugger::read(FILE* io)
                         continue;
                     }
 
+                    if (output.contains("stop reason = breakpoint")) {
+                        emit hintPauseMessage();
+                        continue;
+                    }
+
                     if (multiLineValues) {
                         appendToValue(output.trimmed(), varmap);
 
@@ -192,20 +197,30 @@ QVariantMap Debugger::filterCallStack(const QString output)
     if (regexMatch.hasMatch()) {
         const auto fileStr = regexMatch.captured(6);
         const auto fileStrMatch = filterFileStrRegex.match(fileStr);
-        const auto file = fileStrMatch.captured(1);
+        const auto path = fileStrMatch.captured(1);
         const auto line = fileStrMatch.captured(2);
         const auto column = fileStrMatch.captured(3);
         const auto index = regexMatch.captured(2);
         const auto value = regexMatch.lastCapturedIndex() == 7 ?
                                regexMatch.captured(7) : regexMatch.captured(5);
+        const auto pathCrumbs = path.split('/', Qt::SkipEmptyParts);
+        const auto file = pathCrumbs.length() > 0 ? pathCrumbs.last() : "";
+        const bool currentFrame = output.startsWith("  *");
 
         ret.insert("partial", false);
+        ret.insert("path", path);
         ret.insert("file", file);
         ret.insert("line", line);
         ret.insert("column", column);
-        ret.insert("currentFrame", output.startsWith("  *"));
+        ret.insert("currentFrame", currentFrame);
         ret.insert("frameIndex", index);
         ret.insert("value", value);
+
+        if (currentFrame) {
+            m_currentFile = path;
+            m_currentLineOfExecution = fileStr;
+            emit currentLineOfExecutionChanged();
+        }
     }
 
     return ret;
@@ -386,6 +401,7 @@ void Debugger::connectToRemote(const int port)
     static bool inited = false;
     if (!inited) {
         debugCommand += QStringLiteral("target stop-hook add --one-liner \"frame variable\"\n");
+        debugCommand += QStringLiteral("settings set frame-format frame #${frame.index}: ${frame.pc}{ ${module.file.basename}{\\`${function.name}}}{ at ${line.file.fullpath}:${line.number}}\\n\n");
         inited = true;
     }
 
@@ -416,6 +432,10 @@ void Debugger::pause()
 
 void Debugger::cont()
 {
+    m_currentFile = "";
+    m_currentLineOfExecution = "";
+    emit currentLineOfExecutionChanged();
+
     writeToStdIn("process continue\n");
 }
 
@@ -435,8 +455,11 @@ void Debugger::killDebugger()
     if (!m_spawned)
         return;
 
+    m_currentFile = "";
+    m_currentLineOfExecution = "";
+    emit currentLineOfExecutionChanged();
     clearBacktrace();
-    clearFrameValues();
+    clearFrameValues();    
     quitDebugger();
 
     m_running = false;
@@ -478,4 +501,9 @@ void Debugger::getBacktraceAndFrameValues()
     clearBacktrace();
     clearFrameValues();
     writeToStdIn("bt all\nframe variable\n");
+}
+
+DirectoryListing Debugger::getFileForActiveLine()
+{
+    return DirectoryListing(DirectoryListing::File, m_currentFile);
 }

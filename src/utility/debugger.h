@@ -11,6 +11,7 @@
 
 #include "utility/wasmrunner.h"
 #include "platform/systemglue.h"
+#include "common/directorylisting.h"
 
 class Debugger : public QObject
 {
@@ -23,6 +24,7 @@ class Debugger : public QObject
     Q_PROPERTY(QStringList breakpoints MEMBER m_breakpoints NOTIFY breakpointsChanged)
     Q_PROPERTY(QVariantList backtrace MEMBER m_backtrace NOTIFY backtraceChanged)
     Q_PROPERTY(QVariantList values MEMBER m_values NOTIFY valuesChanged)
+    Q_PROPERTY(QString currentLineOfExecution MEMBER m_currentLineOfExecution NOTIFY currentLineOfExecutionChanged)
 
 public:
     explicit Debugger(QObject *parent = nullptr);
@@ -52,6 +54,8 @@ public slots:
 
     void quitDebugger();
     void killDebugger();
+
+    DirectoryListing getFileForActiveLine();
 
 private:
     void spawnDebugger();
@@ -91,18 +95,22 @@ private:
 
     QMutex m_valuesMutex;
     QVariantList m_values;
+    QString m_currentFile;
+    QString m_currentLineOfExecution;
 
 signals:
     void runnerChanged();
     void systemChanged();
     void runningChanged();
     void processPaused();
+    void hintPauseMessage();
     void processContinued();
     void processPausedChanged();
     void breakpointsChanged();
     void valuesChanged();
     void backtraceChanged();
     void attachedToProcess();
+    void currentLineOfExecutionChanged();
 };
 
 #endif // DEBUGGER_H
