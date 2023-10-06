@@ -7,6 +7,8 @@ TideDialog {
     y: ((parent.height - height) / 2)
     clip: true
 
+    signal done()
+
     readonly property bool paneHeight : implicitHeight
 
     function show() {
@@ -15,6 +17,7 @@ TideDialog {
 
     function hide() {
         close()
+        done()
     }
 
     Behavior on y {
