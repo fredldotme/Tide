@@ -5,8 +5,12 @@ import QtQuick.Effects
 
 Item {
     id: consoleView
-    x: ((parent.width - width - debuggerArea.width) / 2)
-    y: visibility ? ((parent.height - height) / 2) : parent.height
+
+    readonly property int debuggerPaddingX : consoleView.parent != consoleViewLandingPad ? debuggerArea.width : 0
+    readonly property int headerPaddingY : consoleView.parent != consoleViewLandingPad && !root.landscapeMode ? root.headerItemHeight : 0
+
+    x: ((parent.width - width - debuggerPaddingX) / 2)
+    y: visibility ? ((parent.height - height) / 2) + headerPaddingY : parent.height
     opacity: visibility ? opacityOverride : 0.0
     visible: opacity > 0.0
 
@@ -54,7 +58,7 @@ Item {
     Rectangle {
         id: consoleRect
         anchors.fill: parent
-        color: root.palette.window
+        color: root.palette.base
         radius: roundedCornersRadius
         clip: true
 

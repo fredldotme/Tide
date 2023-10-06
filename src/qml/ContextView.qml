@@ -32,6 +32,11 @@ Item {
         visibility = false
     }
 
+    Component.onCompleted: {
+        imFixer.setupImEventFilter(contextFieldSearchText)
+        imFixer.setupImEventFilter(contextFieldReplaceText)
+    }
+
     Behavior on y {
         NumberAnimation {
             duration: dialogShadow.consoleAnimation
@@ -56,7 +61,7 @@ Item {
         width: parent.width
         height: parent.height
         radius: roundedCornersRadius
-        color: root.palette.window
+        color: root.palette.base
         clip: true
 
         Column {
