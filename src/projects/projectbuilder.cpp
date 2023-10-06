@@ -68,7 +68,6 @@ bool ProjectBuilder::loadProject(const QString path)
     }
 
     const auto ret = m_activeBuilder->loadProject(path);
-
     if (!ret) {
         qWarning() << "Couldn't load project" << path;
         return false;
@@ -76,6 +75,7 @@ bool ProjectBuilder::loadProject(const QString path)
 
     m_projectFile = path;
     emit projectFileChanged();
+    emit sourceFilesChanged();
 
     return ret;
 }
@@ -151,6 +151,16 @@ QString ProjectBuilder::projectBuildRoot()
     }
 
     return m_activeBuilder->projectBuildRoot();
+}
+
+QStringList ProjectBuilder::sourceFiles()
+{
+    if (!m_activeBuilder) {
+        qWarning() << "No active builder!";
+        return QStringList();
+    }
+
+    return m_activeBuilder->sourceFiles();
 }
 
 bool ProjectBuilder::building()

@@ -17,6 +17,7 @@ public:
     virtual QString buildRoot() = 0;
     virtual QString sourceRoot() = 0;
     virtual QString projectBuildRoot() = 0;
+    virtual QStringList sourceFiles() = 0;
     virtual bool building() = 0;
 };
 

@@ -16,6 +16,7 @@ class ProjectBuilder : public QObject
 
     Q_PROPERTY(SystemGlue* commandRunner MEMBER m_iosSystem NOTIFY commandRunnerChanged)
     Q_PROPERTY(QString projectFile MEMBER m_projectFile NOTIFY projectFileChanged)
+    Q_PROPERTY(QStringList sourceFiles READ sourceFiles NOTIFY sourceFilesChanged)
     Q_PROPERTY(bool building READ building NOTIFY buildingChanged)
 
 public:
@@ -39,6 +40,7 @@ public slots:
 
 private:
     QString projectBuildRoot();
+    QStringList sourceFiles();
 
     SystemGlue* m_iosSystem;
     QString m_sysroot;
@@ -55,6 +57,7 @@ signals:
     void buildSuccess(bool debug, bool aot);
     void buildError(QString str);
     void cleaned();
+    void sourceFilesChanged();
 };
 
 #endif // PROJECTBUILDER_H

@@ -33,6 +33,7 @@ public slots:
     QString buildRoot() override;
     QString sourceRoot() override;
     QString projectBuildRoot() override;
+    QStringList sourceFiles() override;
     bool building() override;
 
 private:

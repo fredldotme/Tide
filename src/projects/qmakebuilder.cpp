@@ -364,6 +364,42 @@ QString QMakeBuilder::projectBuildRoot()
     return ret + target.values.front();
 }
 
+QStringList QMakeBuilder::sourceFiles()
+{
+    QStringList ret;
+
+    const auto buildDirPath = projectBuildRoot();
+    if (buildDirPath.isEmpty()) {
+        const auto err = "Project's TARGET is not set.";
+        emit buildError(err);
+        return QStringList();
+    }
+
+    QDir buildDir(buildDirPath);
+    if (!buildDir.exists()) {
+        buildDir.mkpath(buildDirPath);
+    }
+
+    QMakeParser projectParser;
+    projectParser.setProjectFile(m_projectFile);
+
+    const auto sourceDirPath = QFileInfo(m_projectFile).absolutePath();
+    const auto variables = projectParser.getVariables();
+
+    if (variables.find("SOURCES") == variables.end()) {
+        const auto err = "No SOURCES found in project file.";
+        qWarning() << err;
+        return QStringList();
+    }
+
+    const auto sources = variables.at("SOURCES");
+    for (const auto& source : sources.values) {
+        QString sourceFile = resolveDefaultVariables(source, sourceDirPath, buildDirPath);
+        ret << sourceFile;
+    }
+    return ret;
+}
+
 bool QMakeBuilder::building()
 {
     return m_building;
