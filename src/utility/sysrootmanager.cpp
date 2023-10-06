@@ -91,7 +91,7 @@ void SysrootManager::runInThread()
     m_installing = true;
     emit installingChanged();
 
-    const int stages = 5;
+    const int stages = 7;
     int stage = 0;
 
     // Clear old temporaries
@@ -114,6 +114,13 @@ void SysrootManager::runInThread()
     {
         const auto archive = qApp->applicationDirPath() + "/boost.tar";
         unpackTar(archive, temporaries + QStringLiteral("/Sysroot/include"));
+        setProgress((qreal)stage++ / (qreal)stages);
+    }
+
+    // CMake
+    {
+        const auto archive = qApp->applicationDirPath() + "/cmake.tar";
+        unpackTar(archive, temporaries + QStringLiteral("/CMake"));
         setProgress((qreal)stage++ / (qreal)stages);
     }
 
@@ -171,6 +178,37 @@ void SysrootManager::runInThread()
             qDebug() << targetDir.removeRecursively();
 
         qDebug() << "Moving bundled sysroot";
+        QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
+
+        while (it.hasNext()) {
+            const QString sourcePath = it.next();
+            const QString relativePath = sourcePath.mid(source.length());
+            const QString targetPath = target + relativePath;
+            const QString targetDir = QFileInfo(targetPath).absolutePath();
+
+            QDir dir(targetDir);
+            if (!dir.exists()) {
+                dir.mkpath(targetDir);
+            }
+
+            qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
+            QFile::rename(sourcePath, targetPath);
+        }
+        setProgress((qreal)stage++ / (qreal)stages);
+    }
+
+    // CMake parts
+    {
+        const QString source = temporaries + "/CMake";
+        const QString target = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                               QStringLiteral("/Library/CMake");
+
+        qDebug() << "Clearing old CMake area";
+        QDir targetDir(target);
+        if (targetDir.exists())
+            qDebug() << targetDir.removeRecursively();
+
+        qDebug() << "Moving bundled CMake contents";
         QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
 
         while (it.hasNext()) {
