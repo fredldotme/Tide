@@ -45,6 +45,7 @@ class WasmRunner : public QObject
 
     Q_PROPERTY(bool running MEMBER m_running NOTIFY runningChanged CONSTANT)
     Q_PROPERTY(SystemGlue* system MEMBER m_system NOTIFY systemChanged)
+    Q_PROPERTY(bool forceDebugInterpreter MEMBER m_forceDebugInterpreter NOTIFY forceDebugInterpreterChanged)
 
 public:
     explicit WasmRunner(QObject *parent = nullptr);
@@ -74,6 +75,7 @@ private:
     SystemGlue* m_system;
     Debugger* m_debugger;
     bool m_running;
+    bool m_forceDebugInterpreter;
     TideWasmRunnerHost* m_runnerHost;
 
 signals:
@@ -83,6 +85,7 @@ signals:
     void runEnded(int exitCode);
     void debugSessionStarted(int port);
     void systemChanged();
+    void forceDebugInterpreterChanged();
 };
 
 #endif // WASMRUNNER_H

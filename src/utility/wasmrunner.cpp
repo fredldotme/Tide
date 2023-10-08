@@ -68,6 +68,8 @@ void* runInThread(void* userdata)
     }
 
     qDebug() << "Start function" << shared.lib->start;
+    shared.runner->signalStart();
+
     if (shared.lib->start) {
         qDebug() << "Executing using runtime " << shared.runtime;
         shared.lib->start(shared.runtime,
@@ -79,6 +81,8 @@ void* runInThread(void* userdata)
                           dup(fileno(shared.stdio.stderr)),
                           shared.debug);
     }
+
+    shared.runner->signalEnd();
     return nullptr;
 }
 
@@ -147,7 +151,13 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
     sharedData.debugger = m_debugger;
     sharedData.runner = this;
 
-    const auto runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunner.framework/Tide-Wasmrunner").arg(qApp->applicationDirPath()).toStdString();
+    std::string runnerPath;
+    if (m_forceDebugInterpreter || debug) {
+        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunner.framework/Tide-Wasmrunner").arg(qApp->applicationDirPath()).toStdString();
+    } else {
+        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(qApp->applicationDirPath()).toStdString();
+    }
+
     sharedData.lib = wamr_runtime_load(runnerPath.c_str());
     std::cout << "Loaded Wasmrunner " << sharedData.lib->handle << " from " << runnerPath << std::endl;
 
@@ -158,6 +168,7 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
         sharedData.runtime = nullptr;
     }
 
+    signalStart();
     pthread_create(&m_runThread, nullptr, runInThread, &sharedData);
 }
 
@@ -169,7 +180,7 @@ void WasmRunner::kill()
         sharedData.debug = false;
     }
 
-    stop(true);
+    stop(false);
 }
 
 void WasmRunner::stop(bool silent)

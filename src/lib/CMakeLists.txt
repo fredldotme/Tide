@@ -1,2 +1,3 @@
 add_subdirectory(formatter)
 add_subdirectory(wasmrunner)
+add_subdirectory(wasmrunnerfast)
