@@ -434,6 +434,7 @@ if(IOS)
         ${LIBCLANG_CPP}
         ${PROJECT_NAME}-Formatter
         ${PROJECT_NAME}-Wasmrunner
+        ${PROJECT_NAME}-Wasmrunnerfast
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY OFF)
