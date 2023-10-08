@@ -241,7 +241,7 @@ Item {
                 file.name.toLowerCase().endsWith(".h") || file.name.toLowerCase().endsWith(".hpp") ||
                 file.name.toLowerCase().endsWith(".cc") || file.name.toLowerCase().endsWith(".cxx")) {
             autoCompleter.setIncludePaths(projectBuilder.includePaths());
-            autoCompleter.reloadAst([file.path], "", AutoCompleter.Unspecified, codeField.currentLine, codeField.currentColumn)
+            autoCompleter.reloadAst([file.path], "", AutoCompleter.Unspecified, /*codeField.currentLine*/ 0, /*codeField.currentColumn*/ 0)
         }
     }
 
