@@ -1,0 +1,16 @@
+commands:
+    - command: clang
+      framework: clang
+      entrypoint: clang_hook
+    - command: clang++
+      framework: clang
+      entrypoint: clang_hook
+    - command: lld
+      framework: lld
+      entrypoint: lld_hook
+    - command: wasm-ld
+      framework: lld
+      entrypoint: lld_hook
+    - command: lldb
+      framework: lldb
+      entrypoint: lldb_hook

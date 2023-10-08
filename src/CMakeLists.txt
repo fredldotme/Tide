@@ -8,7 +8,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(PROJECT_NAME tide)
 endif()
 
-project(${PROJECT_NAME} VERSION 1.4.0 LANGUAGES C CXX)
+project(${PROJECT_NAME} VERSION 1.5.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
@@ -20,16 +20,18 @@ set(QT_NO_PACKAGE_VERSION_CHECK ON)
 if(CMAKE_BUILD_TYPE MATCHES "")
     set(CMAKE_BUILD_TYPE "Release")
 endif()
-message("Build type: ${CMAKE_BUILD_TYPE}")
+message("Tide build type: ${CMAKE_BUILD_TYPE}")
 
 # Artifacts from LLVM build
 if(IOS OR CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
     if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
         set(LLVM_BUILD_DIR "build-iphonesimulator")
         set(LLVM_MODE "Release-iphonesimulator")
+        set(OS "iphonesimulator")
     else()
         set(LLVM_BUILD_DIR "build-iphoneos")
         set(LLVM_MODE "Release-iphoneos")
+        set(OS "iphoneos")
     endif()
 endif()
 
@@ -55,13 +57,13 @@ set(WASI_LIBS ${WASI_DIR}/lib)
 set(WASI_HEADERS ${WASI_DIR}/include)
 set(LLVM_HEADERS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib/clang/17/include)
 set(CLANGRT ${CLANGRT_DIR}/lib/wasi)
+set(TIDE_SRC_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(IOS)
     resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
     resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
-    set (WAMR_COMPILER ${WAMR_DIR}/wamr-compiler/main.c)
-    set (IWAMR ${WAMR_DIR}/product-mini/platforms/darwin/main.c)
+    resource(COMMANDSYAML ${CMAKE_CURRENT_SOURCE_DIR} Resources commands.yaml)
 endif()
 
 # Qt6
@@ -98,10 +100,10 @@ qt_add_executable(${PROJECT_NAME}
     utility/console.cpp
     utility/openfilesmanager.cpp
     utility/sysrootmanager.cpp
-    utility/wasmrunner.cpp
     utility/linuxruntimemanager.cpp
     utility/searchandreplace.cpp
     utility/debugger.cpp
+    utility/wasmrunner.cpp
     projects/bookmarkdb.cpp
     projects/projectbuilder.cpp
     projects/projectcreator.cpp
@@ -126,12 +128,6 @@ qt_add_executable(${PROJECT_NAME}
     ${QMAKEPARSER_DIR}/lib/src/qmakeparser.cpp
     ${QMAKEPARSER_DIR}/lib/src/qmakereader.cpp
 
-    # IWASM
-    ${IWAMR}
-
-    # AOT compiler
-    ${WAMR_COMPILER}
-
     # tar implementation
     ${MICROTAR_DIR}/src/microtar.c
 
@@ -139,6 +135,7 @@ qt_add_executable(${PROJECT_NAME}
     ${THE_SYSROOT}
     ${BOOST_TAR}
     ${CMAKE_MODULES}
+    ${COMMANDSYAML}
 
     # Assets
     assets.qrc
@@ -175,6 +172,7 @@ qt_add_qml_module(${PROJECT_NAME}
 
 # Build toolchain itself
 set(LLVM_FRAMEWORKS ${LLVM_DIR}/${LLVM_BUILD_DIR}/build/${LLVM_MODE})
+set(LLVM_TOOLS ${LLVM_DIR}/ios/${LLVM_BUILD_DIR}/Debug-${OS})
 set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
 set(LLVM_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/include)
 set(LLVM_CLANG_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/tools/clang/include)
@@ -184,33 +182,6 @@ set(NOSYSTEM_FRAMEWORK ${LLVM_DIR}/no_system/${LLVM_BUILD_DIR}/Debug-iphoneos)
 add_subdirectory(lib)
 
 if(IOS)
-    set (WAMR_BUILD_PLATFORM "darwin")
-    if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
-        set (WAMR_BUILD_TARGET "X86_64")
-    else()
-        set (WAMR_BUILD_TARGET "AARCH64")
-    endif()
-    set (WAMR_BUILD_INTERP 1)
-    set (WAMR_BUILD_AOT 1)
-    set (WAMR_BUILD_LIBC_BUILTIN 0)
-    set (WAMR_BUILD_LIBC_WASI 1)
-    set (WAMR_BUILD_LIB_WASI_THREADS 1)
-    set (WAMR_BUILD_SHARED_MEMORY 1)
-    set (WAMR_BUILD_TAIL_CALL 1)
-    set (WAMR_BUILD_LIBC_UVWASI 0)
-    set (WAMR_BUILD_SIMD 0)
-    set (WAMR_DISABLE_HW_BOUND_CHECK 1)
-    set (WAMR_BUILD_DEBUG_AOT 0)
-    set (WAMR_BUILD_THREAD_MGR 1)
-    set (WAMR_BUILD_MINI_LOADER 0)
-    set (WAMR_BUILD_DEBUG_INTERP 1)
-    set (WAMR_BUILD_REF_TYPES 1)
-    set (WAMR_BUILD_MULTI_MODULE 1)
-    set (WAMR_BUILD_EXCE_HANDLING 0)
-    set (WAMR_BUILD_WAMR_COMPILER 1)
-    set (WAMR_ROOT_DIR ${WAMR_DIR})
-    add_definitions(-DWASM_UINT32_IS_ATOMIC=1 -DIWASM_AS_LIBRARY -DWASM_ENABLE_WAMR_COMPILER=1)
-
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
 
@@ -296,6 +267,10 @@ if(IOS)
     find_library(NOSYSTEM REQUIRED NAMES nosystem PATHS ${NOSYSTEM_FRAMEWORK} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
 
+    find_library(CLANGFW REQUIRED NAMES clang PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LLDFW REQUIRED NAMES lld PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LLDBFW REQUIRED NAMES lldb PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
+
     find_library(COMPRESSION compression)
     find_library(XML2 xml2)
     find_library(FOUNDATION_LIBRARY Foundation)
@@ -337,13 +312,6 @@ if(IOS)
     # ANGLE for consumption by WebAssembly apps
     set(ANGLE_A "${CLANGRT_DIR}/angle-metal/arm64/libangle.a")
     set(ANGLE_HEADERS "${CLANGRT_DIR}/angle-metal/include")
-
-    # Clang built-in
-    file(GLOB CLANG_AS ${LLVM_LIBS}/libclang*.a)
-    list(FILTER CLANG_AS EXCLUDE REGEX ".*libclang_rt.*.a$")
-
-    # lld & lldb built-in
-    file(GLOB LLD_LLDB_AS ${LLVM_LIBS}/liblld*.a)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -390,28 +358,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
         platform/posix/clangcompiler.cpp
     )
 endif()
-
-# WAMR + AOT
-include(${WAMR_DIR}/core/shared/utils/shared_utils.cmake)
-include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
-include(${WAMR_DIR}/core/shared/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
-include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
-include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
-
-add_library(vmlib
-    ${WAMR_RUNTIME_LIB_SOURCE}
-    ${PLATFORM_SHARED_SOURCE}
-    ${MEM_ALLOC_SHARED_SOURCE}
-    ${UTILS_SHARED_SOURCE}
-    ${UNCOMMON_SHARED_SOURCE}
-    ${THREAD_MGR_SOURCE}
-    ${LIBC_BUILTIN_SOURCE}
-    ${LIBC_WASI_SOURCE}
-    ${LIB_PTHREAD_SOURCE}
-    ${LIB_WASI_THREADS_SOURCE}
-    ${IWASM_COMMON_SOURCE}
-    ${IWASM_INTERP_SOURCE}
-    ${IWASM_AOT_SOURCE})
 
 include_directories(${PROJECT_NAME}
     # Wasm3 runtime
@@ -464,11 +410,8 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Sql
     Qt6::Widgets
     ${LLVM}
-    ${LLVM_AS}
     ${NOSYSTEM}
     ${LIBCLANG_CPP}
-    ${CLANG_AS}
-    ${LLD_LLDB_AS}
     ${COMPRESSION}
     ${XML2}
     ${FOUNDATION_LIBRARY}
@@ -485,8 +428,12 @@ if(IOS)
         PROPERTY XCODE_EMBED_FRAMEWORKS
         ${NOSYSTEM}
         ${LLVM}
+        ${CLANGFW}
+        ${LLDFW}
+        ${LLDBFW}
         ${LIBCLANG_CPP}
         ${PROJECT_NAME}-Formatter
+        ${PROJECT_NAME}-Wasmrunner
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY OFF)

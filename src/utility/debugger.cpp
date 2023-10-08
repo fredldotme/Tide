@@ -26,6 +26,9 @@ Debugger::Debugger(QObject *parent)
     QObject::connect(&m_readThreadErr, &QThread::started, this, &Debugger::readError, Qt::DirectConnection);
     QObject::connect(&m_debuggerThread, &QThread::started, this, &Debugger::runDebugSession, Qt::DirectConnection);
 
+    QObject::connect(this, &Debugger::breakpointsChanged, this, &Debugger::waitingpointsChanged);
+    QObject::connect(this, &Debugger::watchpointsChanged, this, &Debugger::waitingpointsChanged);
+
     spawnDebugger();
 }
 
@@ -298,6 +301,21 @@ void Debugger::addBreakpoint(const QString& breakpoint)
     }
 }
 
+void Debugger::addWatchpoint(const QString& watchpoint)
+{
+    if (m_watchpoints.contains(watchpoint)) {
+        return;
+    }
+
+    m_watchpoints.push_back(watchpoint);
+    emit watchpointsChanged();
+
+    if (m_spawned) {
+        const auto input = QByteArrayLiteral("watch set var -w write ") + watchpoint.toUtf8() + QByteArrayLiteral("\n");
+        writeToStdIn(input);
+    }
+}
+
 void Debugger::removeBreakpoint(const QString& breakpoint)
 {
     if (!m_breakpoints.contains(breakpoint)) {
@@ -316,9 +334,50 @@ void Debugger::removeBreakpoint(const QString& breakpoint)
     }
 }
 
+void Debugger::removeWatchpoint(const QString& watchpoint)
+{
+    if (!m_watchpoints.contains(watchpoint)) {
+        return;
+    }
+
+    m_watchpoints.removeAll(watchpoint);
+    emit watchpointsChanged();
+
+    if (m_spawned) {
+        writeToStdIn("wa del\ny\n");
+        for (const auto& valid_watchpoint : m_watchpoints) {
+            const auto input = QByteArrayLiteral("watch set var -w write ") + valid_watchpoint.toUtf8() + QByteArrayLiteral("\n");
+            writeToStdIn(input);
+        }
+    }
+}
+
 bool Debugger::hasBreakpoint(const QString& breakpoint)
 {
     return m_breakpoints.contains(breakpoint);
+}
+
+bool Debugger::hasWatchpoint(const QString& watchpoint)
+{
+    return m_watchpoints.contains(watchpoint);
+}
+
+QVariantList Debugger::waitingpoints()
+{
+    QVariantList ret;
+    for (const auto& breakpoint : m_breakpoints) {
+        QVariantMap entry;
+        entry.insert("value", breakpoint);
+        entry.insert("type", "break");
+        ret << entry;
+    }
+    for (const auto& watchpoint : m_watchpoints) {
+        QVariantMap entry;
+        entry.insert("value", watchpoint);
+        entry.insert("type", "watch");
+        ret << entry;
+    }
+    return ret;
 }
 
 void Debugger::runDebugSession()
@@ -389,13 +448,22 @@ void Debugger::connectToRemote(const int port)
 
     auto debugCommand =
         QStringLiteral("process detach\n") +
+        QStringLiteral("wa del\ny\n") +
         QStringLiteral("br del\ny\n") +
         QStringLiteral("settings set auto-one-line-summaries false\n") +
         QStringLiteral("platform select remote-linux\n") +
         QStringLiteral("process connect -p wasm connect://127.0.0.1:%1\n").arg(port);
 
-    for (const auto& breakpoint : m_breakpoints) {
-        debugCommand += QStringLiteral("b %1\n").arg(breakpoint);
+    if (m_breakpoints.length() == 0) {
+        debugCommand += QStringLiteral("b main\n");
+    } else {
+        for (const auto& breakpoint : m_breakpoints) {
+            debugCommand += QStringLiteral("b %1\n").arg(breakpoint);
+        }
+    }
+
+    for (const auto& watchpoint : m_watchpoints) {
+        debugCommand += QStringLiteral("watch set var -w write %1\n").arg(watchpoint);
     }
 
     static bool inited = false;

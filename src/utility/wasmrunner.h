@@ -3,17 +3,17 @@
 
 #include <QObject>
 #include <pthread.h>
+#include <string>
 
 #include <wasm_c_api.h>
 #include <wasm_export.h>
 
+#include "common/wasmrunnerinterface.h"
 #include "stdiospec.h"
 #include "platform/systemglue.h"
 
 class Debugger;
 class WasmRunner;
-
-#define USE_EMBEDDED_WAMR 1
 
 struct WasmRunnerSharedData {
     QString binary;
@@ -21,16 +21,22 @@ struct WasmRunnerSharedData {
     int main_result;
     StdioSpec stdio;
     bool debug;
-#if USE_EMBEDDED_WAMR
-    wasm_module_t module = nullptr;
-    wasm_module_inst_t module_inst = nullptr;
-    wasm_exec_env_t exec_env = nullptr;
-    bool killing;
-    bool killed;
-#endif
+    std::shared_ptr<wamr_runtime> lib;
+    WasmRuntime runtime = nullptr;
     WasmRunner* runner = nullptr;
     SystemGlue* system = nullptr;
     Debugger* debugger = nullptr;
+    bool killing = false;
+};
+
+class TideWasmRunnerHost : public WasmRunnerHost
+{
+public:
+    TideWasmRunnerHost(WasmRunner* runner) : runner(runner) {}
+    virtual void reportError(const std::string& err) override;
+    virtual void reportExit(const int code) override;
+    virtual void reportDebugPort(const uint32_t debugPort) override;
+    WasmRunner* runner;
 };
 
 class WasmRunner : public QObject
@@ -41,18 +47,14 @@ class WasmRunner : public QObject
     Q_PROPERTY(SystemGlue* system MEMBER m_system NOTIFY systemChanged)
 
 public:
-#if USE_EMBEDDED_WAMR
-    static void init();
-    static void deinit();
-#endif
-
     explicit WasmRunner(QObject *parent = nullptr);
     ~WasmRunner();
 
     void signalStart();
     void signalEnd();
-
     bool running();
+
+    WasmRunnerSharedData sharedData;
 
 public slots:
     void run(const QString binary, const QStringList args);
@@ -65,13 +67,14 @@ public slots:
 
 private:
     void start(const QString binary, const QStringList args, const bool debug);
+    void stop(bool silent);
 
     StdioSpec m_spec;
-    WasmRunnerSharedData sharedData;
     pthread_t m_runThread;
     SystemGlue* m_system;
     Debugger* m_debugger;
     bool m_running;
+    TideWasmRunnerHost* m_runnerHost;
 
 signals:
     void printfReceived(QString str);

@@ -241,7 +241,7 @@ Item {
                 file.name.toLowerCase().endsWith(".h") || file.name.toLowerCase().endsWith(".hpp") ||
                 file.name.toLowerCase().endsWith(".cc") || file.name.toLowerCase().endsWith(".cxx")) {
             autoCompleter.setIncludePaths(projectBuilder.includePaths());
-            autoCompleter.reloadAst([file.path], "", codeField.currentLine, codeField.currentColumn)
+            autoCompleter.reloadAst([file.path], "", AutoCompleter.Unspecified, codeField.currentLine, codeField.currentColumn)
         }
     }
 
@@ -549,6 +549,7 @@ Item {
                                 height: codeField.font.pixelSize
                                 visible: true
                                 Timer {
+                                    id: cursorBlinkTimer
                                     repeat: true
                                     running: settings.blinkingCursor
                                     interval: 500
@@ -593,7 +594,7 @@ Item {
                         Keys.onUpPressed:
                             (event) => {
                                 if (showAutoCompletor) {
-                                    autoCompletionList.currentIndex = Math.abs(autoCompletionList.currentIndex - 1) % autoCompletionList.model.length
+                                    autoCompletionList.currentIndex = Math.max(autoCompletionList.currentIndex - 1, 0)
                                     event.accepted = true
                                     return
                                 }
@@ -603,7 +604,7 @@ Item {
                         Keys.onDownPressed:
                             (event) => {
                                 if (showAutoCompletor) {
-                                    autoCompletionList.currentIndex = Math.abs(autoCompletionList.currentIndex + 1) % autoCompletionList.model.length
+                                    autoCompletionList.currentIndex = Math.min(autoCompletionList.currentIndex + 1, autoCompletionList.model.length - 1)
                                     event.accepted = true
                                     return
                                 }

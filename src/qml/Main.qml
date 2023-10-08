@@ -33,8 +33,8 @@ ApplicationWindow {
     readonly property int sideBarWidth: landscapeMode ? Math.min(sideBarExpandedDefault, width) : width
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
                                                 openFiles.files.length > 0)
-    readonly property bool shouldAllowDebugArea: (((dbugger.running || dbugger.paused) && wasmRunner.running) ||
-                                                  (dbugger.breakpoints.length > 0)) && projectBuilder.projectFile !== ""
+    readonly property bool shouldAllowDebugArea: ((dbugger.running || dbugger.paused) ||
+                                                  (dbugger.waitingpoints.length > 0)) && projectBuilder.projectFile !== ""
     readonly property bool padStatusBar : true
     readonly property int headerBarHeight : 48
     readonly property int headerItemHeight : 28
@@ -95,6 +95,9 @@ ApplicationWindow {
     }
 
     function attemptBuild() {
+        if (projectBuilder.building)
+            return;
+
         if (editor.invalidated)
             return;
 
@@ -110,6 +113,9 @@ ApplicationWindow {
     }
 
     function attemptRun() {
+        if (wasmRunner.running)
+            return;
+
         if (editor.invalidated)
             return;
 
@@ -124,6 +130,9 @@ ApplicationWindow {
     }
 
     function attemptDebug() {
+        if (dbugger.running)
+            return;
+
         if (editor.invalidated)
             return;
 
@@ -288,32 +297,59 @@ ApplicationWindow {
                     contextButtonWiggleAnimation.restart()
                 }
 
-                SequentialAnimation {
+                ParallelAnimation {
                     id: contextButtonWiggleAnimation
-
-                    NumberAnimation {
-                        target: contextButton
-                        property: "rotation"
-                        duration: 100
-                        from: 0
-                        to: -45
-                        easing.type: Easing.Linear
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: contextButton
+                            property: "rotation"
+                            duration: 50
+                            from: 0
+                            to: -45
+                            easing.type: Easing.Linear
+                        }
+                        NumberAnimation {
+                            target: contextButton
+                            property: "rotation"
+                            duration: 100
+                            from: -45
+                            to: 45
+                            easing.type: Easing.Linear
+                        }
+                        NumberAnimation {
+                            target: contextButton
+                            property: "rotation"
+                            duration: 50
+                            from: 45
+                            to: 0
+                            easing.type: Easing.Linear
+                        }
                     }
-                    NumberAnimation {
-                        target: contextButton
-                        property: "rotation"
-                        duration: 200
-                        from: -45
-                        to: 45
-                        easing.type: Easing.Linear
-                    }
-                    NumberAnimation {
-                        target: contextButton
-                        property: "rotation"
-                        duration: 100
-                        from: 45
-                        to: 0
-                        easing.type: Easing.Linear
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: contextButton
+                            property: "x"
+                            duration: 50
+                            from: 0
+                            to: -10
+                            easing.type: Easing.Linear
+                        }
+                        NumberAnimation {
+                            target: contextButton
+                            property: "x"
+                            duration: 100
+                            from: -10
+                            to: 10
+                            easing.type: Easing.Linear
+                        }
+                        NumberAnimation {
+                            target: contextButton
+                            property: "x"
+                            duration: 50
+                            from: 10
+                            to: 0
+                            easing.type: Easing.Linear
+                        }
                     }
                 }
 
@@ -644,6 +680,18 @@ ApplicationWindow {
                                             regularExpression: /^([a-zA-Z0-9_.-]|[a-zA-Z0-9_.-].[cxx|cpp|c|h]:[0-9])*$/
                                         }
                                         onAccepted: breakpointDialog.accept()
+
+                                        Keys.onUpPressed:
+                                            (event) => {
+                                                breakpointAutocompletor.list.currentIndex = Math.max(breakpointAutocompletor.list.currentIndex - 1, 0)
+                                                event.accepted = true
+                                            }
+                                        Keys.onDownPressed:
+                                            (event) => {
+                                                breakpointAutocompletor.list.currentIndex =
+                                                Math.min(breakpointAutocompletor.list.currentIndex + 1, breakpointAutocompletor.list.model.length - 1)
+                                                event.accepted = true
+                                            }
                                     }
 
                                     AutocompletorFrame {
@@ -657,11 +705,27 @@ ApplicationWindow {
                                 }
 
                                 onAccepted: {
-                                    const inputText = breakpointAutocompletor.list.model.length !== 0 ?
-                                                        breakpointAutocompletor.list.model[breakpointAutocompletor.list.currentIndex].name :
-                                                        breakpointSymbol.text
-                                    if (inputText !== "")
-                                        dbugger.addBreakpoint(inputText)
+                                    let type = "break"
+                                    let canonicalName = breakpointSymbol.text
+                                    if (breakpointAutocompletor.list.model.length > 0) {
+                                        let suggestion = breakpointAutocompletor.list.model[breakpointAutocompletor.list.currentIndex]
+                                        if (suggestion.kind !== AutoCompleter.Function) {
+                                            type = "watch"
+                                        }
+
+                                        canonicalName = suggestion.name
+                                        if (suggestion.detail !== "") {
+                                            canonicalName = suggestion.detail + "::" + suggestion.name
+                                        }
+                                    }
+
+                                    if (canonicalName !== "") {
+                                        if (type === "break")
+                                            dbugger.addBreakpoint(canonicalName)
+                                        /*else if (type === "watch") {
+                                            dbugger.addWatchpoint(inputText)
+                                        }*/
+                                    }
                                     done()
                                 }
 
@@ -756,7 +820,7 @@ ApplicationWindow {
                     }
                     MenuItem {
                         property bool visibility: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
-                        enabled: !projectBuilder.building && !dbugger.running && dbugger.breakpoints.length > 0 && visibility
+                        enabled: !projectBuilder.building && !dbugger.running && visibility
                         text: qsTr("Debug")
                         icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
                         onClicked: {
@@ -925,7 +989,7 @@ ApplicationWindow {
 
         readonly property bool heatingUp : delayedDebugContinue.running
         readonly property bool initialized : {
-            dbugger.breakpoints.length;
+            dbugger.waitingpoints.length;
             reevaluateDebuggerVisibility()
             return true
         }
@@ -1467,7 +1531,7 @@ ApplicationWindow {
                                                         } else if (modelData.type === DirectoryListing.File) {
                                                             if (modelData.name.endsWith(".pro") &&
                                                                     modelData.path !== projectBuilder.projectFile) {
-                                                                if (dbugger.breakpoints.length > 0) {
+                                                                if (dbugger.waitingpoints.length > 0) {
                                                                     let dialog = root.showDialog(switchProjectDialogComponent)
                                                                     dialog.projectFile = modelData
                                                                     return;
@@ -1640,8 +1704,11 @@ ApplicationWindow {
                                                             console.log("Closing: " + i)
                                                             openFiles.close(openFiles.files[i])
                                                         }
-                                                        for (let i = dbugger.breakpoints.length - 1; i >= 0; i--) {
-                                                            dbugger.removeBreakpoint(dbugger.breakpoints[i])
+                                                        for (let i = dbugger.waitingpoints.length - 1; i >= 0; i--) {
+                                                            if (dbugger.waitingpoints[i].type === "break")
+                                                                dbugger.removeBreakpoint(dbugger.waitingpoints[i].value)
+                                                            else if (dbugger.waitingpoints[i].type === "watch")
+                                                                dbugger.removeWatchpoint(dbugger.waitingpoints[i].value)
                                                         }
                                                         showDebugArea = false
                                                     }
@@ -1708,7 +1775,7 @@ ApplicationWindow {
                                         onClicked: {
                                             if (modelData.name.endsWith(".pro") &&
                                                     modelData.path !== projectBuilder.projectFile) {
-                                                if (dbugger.breakpoints.length > 0) {
+                                                if (dbugger.waitingpoints.length > 0) {
                                                     let dialog = root.showDialog(switchProjectDialogComponent)
                                                     dialog.projectFile = modelData
                                                     return;
@@ -1743,8 +1810,11 @@ ApplicationWindow {
                                             }
 
                                             onAccepted: {
-                                                for (let i = dbugger.breakpoints.length - 1; i >= 0; i--) {
-                                                    dbugger.removeBreakpoint(dbugger.breakpoints[i]);
+                                                for (let i = dbugger.waitingpoints.length - 1; i >= 0; i--) {
+                                                    if (dbugger.waitingpoints[i].type === "break")
+                                                        dbugger.removeBreakpoint(dbugger.waitingpoints[i].value)
+                                                    else if (dbugger.waitingpoints[i].type === "watch")
+                                                        dbugger.removeWatchpoint(dbugger.waitingpoints[i].value)
                                                 }
 
                                                 saveCurrentFile()
@@ -2066,11 +2136,28 @@ ApplicationWindow {
                         color: root.palette.base
                         clip: true
 
+                        Label {
+                            anchors.fill: parent
+                            anchors.margins: paddingSmall
+                            text: qsTr("No breakpoints set")
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                            readonly property bool visibility: dbugger.waitingpoints.length === 0
+                            visible: opacity > 0.0
+                            opacity: visibility ? 1.0 : 0.0
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: 100
+                                }
+                            }
+                        }
+
                         ListView {
                             anchors.fill: parent
                             anchors.margins: paddingSmall
                             clip: true
-                            model: dbugger.breakpoints
+                            model: dbugger.waitingpoints
                             header: Item {
                                 width: projectNavigationStack.width
                                 height: root.headerBarHeight
@@ -2080,7 +2167,7 @@ ApplicationWindow {
                                     spacing: paddingSmall * 2
                                     ToolButton {
                                         Layout.alignment: Qt.AlignLeft
-                                        Layout.leftMargin: paddingMedium
+                                        Layout.leftMargin: paddingSmall
                                         icon.source: "" // Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
                                         icon.width: 24
                                         icon.height: 24
@@ -2091,7 +2178,7 @@ ApplicationWindow {
                                     }
                                     ToolButton {
                                         Layout.alignment: Qt.AlignLeft
-                                        Layout.leftMargin: paddingMedium
+                                        Layout.leftMargin: paddingSmall
                                         icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
                                         icon.width: 24
                                         icon.height: 24
@@ -2102,7 +2189,7 @@ ApplicationWindow {
                                     }
                                     ToolButton {
                                         Layout.alignment: Qt.AlignLeft
-                                        Layout.rightMargin: paddingMedium
+                                        Layout.leftMargin: paddingSmall
                                         icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
                                         icon.width: 24
                                         icon.height: 24
@@ -2116,7 +2203,7 @@ ApplicationWindow {
 
                             delegate: TideButton {
                                 icon.source: Qt.resolvedUrl("qrc:/assets/circle.fill@2x.png")
-                                icon.color: "red"
+                                icon.color: modelData.type === "break" ? "red" : "purple"
                                 text: getBreakpointText()
                                 width: parent.width
                                 height: headerItemHeight
@@ -2125,11 +2212,11 @@ ApplicationWindow {
                                 onClicked: breakpointContextMenu.open()
 
                                 function getBreakpointText() {
-                                    if (modelData.includes("/")) {
-                                        const parts = modelData.split("/")
+                                    if (modelData.value.includes("/")) {
+                                        const parts = modelData.value.split("/")
                                         return parts[parts.length - 1]
                                     } else {
-                                        return modelData
+                                        return modelData.value
                                     }
                                 }
 
@@ -2137,9 +2224,15 @@ ApplicationWindow {
                                     id: breakpointContextMenu
                                     z: paddedOverlayArea.contextMenuZ
                                     MenuItem {
-                                        text: qsTr("Delete breakpoint")
+                                        text: modelData.type === "break" ?
+                                                  qsTr("Delete breakpoint") :
+                                                  modelData.type === "watch" ?
+                                                      qsTr("Delete watchpoint") : ""
                                         onClicked: {
-                                            dbugger.removeBreakpoint(modelData)
+                                            if (modelData.type === "break")
+                                                dbugger.removeBreakpoint(modelData.value)
+                                            else if (modelData.type === "watch")
+                                                dbugger.removeWatchpoint(modelData.value)
                                         }
                                     }
                                 }
@@ -2175,6 +2268,23 @@ ApplicationWindow {
                         anchors.fill: parent
                         radius: roundedCornersRadiusMedium
                         color: root.palette.base
+
+                        Label {
+                            anchors.fill: parent
+                            anchors.margins: paddingSmall
+                            text: qsTr("No frames available")
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                            readonly property bool visibility: backtracesListView.model.length === 0
+                            visible: opacity > 0.0
+                            opacity: visibility ? 1.0 : 0.0
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: 100
+                                }
+                            }
+                        }
 
                         ListView {
                             id: backtracesListView
@@ -2249,6 +2359,23 @@ ApplicationWindow {
                         anchors.fill: parent
                         color: root.palette.base
                         radius: roundedCornersRadiusMedium
+
+                        Label {
+                            anchors.fill: parent
+                            anchors.margins: paddingSmall
+                            text: qsTr("No values available")
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                            readonly property bool visibility: frameValuesListView.model.length === 0
+                            visible: opacity > 0.0
+                            opacity: visibility ? 1.0 : 0.0
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: 100
+                                }
+                            }
+                        }
 
                         ListView {
                             id: frameValuesListView

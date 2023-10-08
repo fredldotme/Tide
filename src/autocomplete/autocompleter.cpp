@@ -190,13 +190,14 @@ void AutoCompleter::addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang)
     foundKind(completionKind, prefix, name, detail);
 }
 
-void AutoCompleter::reloadAst(const QStringList paths, const QString hint, const int line, const int column)
+void AutoCompleter::reloadAst(const QStringList paths, const QString hint, const CompletionKind filter, const int line, const int column)
 {
     this->sourceFiles = paths;
     this->referenceHints = createHints(hint.toLower());
     this->line = line;
     this->column = column;
     this->foundLine = true;
+    this->typeFilter = filter;
 
     run();
 }
@@ -234,6 +235,12 @@ void AutoCompleter::foundKind(CompletionKind kind, const QString prefix, const Q
 {
     if (name.isEmpty())
         return;
+
+    if (this->typeFilter != CompletionKind::Unspecified) {
+        if (kind == CompletionKind::Unspecified || !(this->typeFilter & kind)) {
+            return;
+        }
+    }
 
     QVariantMap decl;
     decl.insert("prefix", prefix);

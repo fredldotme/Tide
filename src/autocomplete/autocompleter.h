@@ -55,9 +55,10 @@ public:
     QList<CXCursor> anchorTrail;
     QList<QList<CXCursor>> anchorTrails;
     QStringList referenceHints;
+    CompletionKind typeFilter;
 
 public slots:
-    void reloadAst(const QStringList path, const QString hint, const int line, const int column);
+    void reloadAst(const QStringList path, const QString hint, const CompletionKind filter, const int line, const int column);
     void setSysroot(const QString sysroot);
     void setIncludePaths(const QStringList paths);
     QVariantList filteredDecls(const QString str);

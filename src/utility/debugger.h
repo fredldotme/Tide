@@ -22,6 +22,8 @@ class Debugger : public QObject
     Q_PROPERTY(bool running MEMBER m_running NOTIFY runningChanged);
     Q_PROPERTY(bool paused MEMBER m_processPaused NOTIFY processPausedChanged);
     Q_PROPERTY(QStringList breakpoints MEMBER m_breakpoints NOTIFY breakpointsChanged)
+    Q_PROPERTY(QStringList watchpoints MEMBER m_watchpoints NOTIFY watchpointsChanged)
+    Q_PROPERTY(QVariantList waitingpoints READ waitingpoints NOTIFY waitingpointsChanged)
     Q_PROPERTY(QVariantList backtrace MEMBER m_backtrace NOTIFY backtraceChanged)
     Q_PROPERTY(QVariantList values MEMBER m_values NOTIFY valuesChanged)
     Q_PROPERTY(QString currentLineOfExecution MEMBER m_currentLineOfExecution NOTIFY currentLineOfExecutionChanged)
@@ -36,8 +38,12 @@ public slots:
     void debug(const QString binary, const QStringList args);
     void runDebugSession();
     void addBreakpoint(const QString& breakpoint);
+    void addWatchpoint(const QString& watchpoint);
     void removeBreakpoint(const QString& breakpoint);
+    void removeWatchpoint(const QString& breakpoint);
     bool hasBreakpoint(const QString& breakpoint);
+    bool hasWatchpoint(const QString& watchpoint);
+    QVariantList waitingpoints();
 
     void stepIn();
     void stepOut();
@@ -89,6 +95,7 @@ private:
     QThread m_readThreadErr;
 
     QStringList m_breakpoints;
+    QStringList m_watchpoints;
     
     QMutex m_backtraceMutex;
     QVariantList m_backtrace;
@@ -107,6 +114,8 @@ signals:
     void processContinued();
     void processPausedChanged();
     void breakpointsChanged();
+    void watchpointsChanged();
+    void waitingpointsChanged();
     void valuesChanged();
     void backtraceChanged();
     void attachedToProcess();

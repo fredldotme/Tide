@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 #endif
     //qputenv("LIBCLANG_DISABLE_CRASH_RECOVERY", "1");
     //qputenv("LLVM_DISABLE_CRASH_REPORT", "1");
-    //qputenv("NOSYSTEM_DEBUG", "1");
+    qputenv("NOSYSTEM_DEBUG", "1");
 
     QApplication app(argc, argv);
     app.setAutoSipEnabled(true);

@@ -13,9 +13,11 @@ Item {
     property var input: null
     property DirectoryListing fileHint : null
     property ProjectBuilder projectBuilder : null
+    property int typeFilter : AutoCompleter.Unspecified
 
     AutoCompleter {
         id: autoCompleter
+
         onDeclsChanged: {
             console.log("'Add Breakpoint' decls changed");
         }
@@ -37,7 +39,7 @@ Item {
         //    return;
 
         autoCompleter.setIncludePaths(projectBuilder.includePaths());
-        autoCompleter.reloadAst(projectBuilder.sourceFiles, "", 0, 0)
+        autoCompleter.reloadAst(projectBuilder.sourceFiles, "", AutoCompleter.Function, 0, 0)
     }
 
     Item {
