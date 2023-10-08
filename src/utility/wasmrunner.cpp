@@ -93,6 +93,11 @@ void TideWasmRunnerHost::reportError(const std::string& err)
 
 void TideWasmRunnerHost::reportExit(const int code)
 {
+    runner->sharedData.killing = true;
+    if (runner->sharedData.debug && runner->sharedData.debugger) {
+        runner->sharedData.debugger->killDebugger();
+        runner->sharedData.debug = false;
+    }
     emit runner->runEnded(code);
 }
 
@@ -189,8 +194,9 @@ void WasmRunner::stop(bool silent)
         if (sharedData.lib->stop) {
             sharedData.lib->stop(sharedData.runtime);
         }
-
-        sharedData.lib->destroy(sharedData.runtime);
+        if (sharedData.lib->destroy) {
+            sharedData.lib->destroy(sharedData.runtime);
+        }
         sharedData.runtime = nullptr;
     }
 
