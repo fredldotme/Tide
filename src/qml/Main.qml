@@ -945,6 +945,7 @@ ApplicationWindow {
     WasmRunner {
         id: wasmRunner
         system: iosSystem
+        forceDebugInterpreter: settings.fallbackInterpreter
         onRunningChanged: {
             if (running) {
                 hud.hudLabel.flashMessage(qsTr("Started"))
@@ -2524,6 +2525,7 @@ ApplicationWindow {
             property bool wrapEditor : true
             property bool clearConsole: true
             property bool rubberDuck : false
+            property bool fallbackInterpreter : false
             readonly property bool aotOptimizations : false
         }
 

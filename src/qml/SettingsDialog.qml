@@ -346,6 +346,14 @@ TideDialog {
                     }
                 }*/
                         Switch {
+                            id: fallbackInterpreterSwitch
+                            text: qsTr("Force debug interpeter during regular runs")
+                            checked: settings.fallbackInterpreter
+                            onCheckedChanged: {
+                                settings.fallbackInterpreter = checked
+                            }
+                        }
+                        Switch {
                             id: clearConsoleSwitch
                             text: qsTr("Clear console output on each run")
                             checked: settings.clearConsole
