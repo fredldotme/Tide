@@ -9,7 +9,7 @@
 #include <QTimer>
 #include <QVariantMap>
 
-#include "utility/wasmrunner.h"
+#include "utility/runners/wasmrunner.h"
 #include "platform/systemglue.h"
 #include "common/directorylisting.h"
 
