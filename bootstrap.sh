@@ -62,7 +62,7 @@ function cmake_wasi_build {
 cd 3rdparty/llvm/
 # ./bootstrap.sh
 cd $OLD_PWD
- 
+
 # libclang
 LIBNAME=libclang
 cd tmp
@@ -183,6 +183,44 @@ fi
 mkdir boost
 tar xvf boost.tar.bz2 -C ./boost
 tar cvf boost.tar -C boost/boost_1_83_0/ boost
+cd $OLD_PWD
+
+# Python inside WebAssembly
+cd tmp
+if [ -f python.tar.gz ]; then
+    rm python.tar.gz
+fi
+if [ -f python.tar ]; then
+    rm python.tar
+fi
+curl -L https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/python%2F3.11.4%2B20230714-11be424/python-3.11.4-wasi-sdk-20.0.tar.gz --output python.tar.gz
+gunzip python.tar.gz
+cd $OLD_PWD
+
+# Libraries provided by VMWare Labs, stuffed into the sysroot
+cd tmp
+if [ -d libs ]; then
+    rm -rf libs
+fi
+mkdir libs
+if [ -d unpacked ]; then
+    rm -rf unpacked
+fi
+mkdir unpacked
+cd libs
+curl -L https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/libs%2Flibpng%2F1.6.39%2B20230629-ccb4cb0/libpng-1.6.39-wasi-sdk-20.0.tar.gz --output ${RANDOM}.tar.gz
+curl -L https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/libs%2Fzlib%2F1.2.13%2B20230623-2993864/libz-1.2.13-wasi-sdk-20.0.tar.gz --output ${RANDOM}.tar.gz
+curl -L https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/libs%2Fsqlite%2F3.42.0%2B20230623-2993864/libsqlite-3.42.0-wasi-sdk-20.0.tar.gz --output ${RANDOM}.tar.gz
+curl -L https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/libs%2Flibxml2%2F2.11.4%2B20230623-2993864/libxml2-2.11.4-wasi-sdk-20.0.tar.gz --output ${RANDOM}.tar.gz
+curl -L https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/libs%2Flibuuid%2F1.0.3%2B20230623-2993864/libuuid-1.0.3-wasi-sdk-20.0.tar.gz --output ${RANDOM}.tar.gz
+curl -L https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/libs%2Flibjpeg%2F2.1.5.1%2B20230623-2993864/libjpeg-2.1.5.1-wasi-sdk-20.0.tar.gz --output ${RANDOM}.tar.gz
+curl -L https://github.com/vmware-labs/webassembly-language-runtimes/releases/download/libs%2Fbzip2%2F1.0.8%2B20230623-2993864/libbzip2-1.0.8-wasi-sdk-20.0.tar.gz --output ${RANDOM}.tar.gz
+for f in $(ls *.tar.gz); do
+    tar xvf $f -C ../unpacked/
+done
+cd ..
+cp -a unpacked/lib/wasm32-wasi unpacked/lib/wasm32-wasi-threads
+cp -a unpacked/* $OLD_PWD/tmp/wasi-sysroot/
 cd $OLD_PWD
 
 # Package up the sysroot
