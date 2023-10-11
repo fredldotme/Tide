@@ -15,7 +15,8 @@
 #include "console.h"
 #include "openfilesmanager.h"
 #include "sysrootmanager.h"
-#include "wasmrunner.h"
+#include "runners/pyrunner.h"
+#include "runners/wasmrunner.h"
 #include "projectbuilder.h"
 #include "autocompleter.h"
 #include "projectcreator.h"
@@ -69,6 +70,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<OpenFilesManager>("Tide", 1, 0, "OpenFilesManager");
     qmlRegisterType<SysrootManager>("Tide", 1, 0, "SysrootManager");
     qmlRegisterType<WasmRunner>("Tide", 1, 0, "WasmRunner");
+    qmlRegisterType<PyRunner>("Tide", 1, 0, "PyRunner");
     qmlRegisterType<DirectoryListing>("Tide", 1, 0, "DirectoryListing");
     qmlRegisterType<ProjectBuilder>("Tide", 1, 0, "ProjectBuilder");
     qmlRegisterType<AutoCompleter>("Tide", 1, 0, "AutoCompleter");
@@ -98,7 +100,7 @@ int main(int argc, char *argv[])
         engine.rootContext()->setContextProperty("imFixer", &imFixer);
         engine.rootContext()->setContextProperty("sysroot", sysroot);
         engine.rootContext()->setContextProperty("iosSystem", &iosSystemGlue);
-        //engine.rootContext()->setContextProperty("runtime", runtime);
+        engine.rootContext()->setContextProperty("runtime", runtime);
 
         const QUrl url(u"qrc:/Tide/qml/Main.qml"_qs);
 #ifdef Q_OS_IOS
