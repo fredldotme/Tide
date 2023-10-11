@@ -17,10 +17,11 @@ public:
 class WasmRunnerInterface {
 public:
     WasmRunnerInterface(WasmRuntimeHost host) : host(host) {}
+    virtual ~WasmRunnerInterface() {}
 
     virtual void init() = 0;
     virtual void destroy() = 0;
-    virtual int exec(const std::string& path, int argc, char** argv, int infd, int outfd, int errfd, const bool debug) = 0;
+    virtual int exec(const std::string& path, int argc, char** argv, int infd, int outfd, int errfd, const bool debug, const std::string& readableDir) = 0;
     virtual void stop() = 0;
     WasmRuntimeHost host;
 };
@@ -58,7 +59,7 @@ struct wamr_runtime {
     void* handle;
     WasmRuntime (*init)(WasmRuntimeHost);
     uint32_t (*destroy)(WasmRuntime);
-    uint32_t (*start)(WasmRuntime, const char*, int, char**, int, int, int, const bool);
+    uint32_t (*start)(WasmRuntime, const char*, int, char**, int, int, int, const bool, const char*);
     uint32_t (*stop)(WasmRuntime);
     WasmRuntimeInterface (*interface)(WasmRuntime);
 };
@@ -73,7 +74,7 @@ static std::shared_ptr<wamr_runtime> wamr_runtime_load(const char* path)
 extern "C" {
 WasmRuntime init_wamr_runtime(WasmRuntimeHost host);
 uint32_t destroy_wamr_runtime(WasmRuntime instance);
-uint32_t start_wamr_runtime(WasmRuntime instance, const char* binary, int argc, char** argv, int infd, int outfd, int errfd, const bool debug);
+uint32_t start_wamr_runtime(WasmRuntime instance, const char* binary, int argc, char** argv, int infd, int outfd, int errfd, const bool debug, const char* readableDir);
 uint32_t stop_wamr_runtime(WasmRuntime instance);
 WasmRuntimeInterface interface_wamr_runtime(WasmRuntime instance);
 }

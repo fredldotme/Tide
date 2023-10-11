@@ -49,7 +49,7 @@ public:
     WasmRunnerFastImpl(WasmRuntimeHost host);
     virtual void init() override;
     virtual void destroy() override;
-    virtual int exec(const std::string& path, int argc, char** argv, int infd, int outfd, int errfd, const bool debug) override;
+    virtual int exec(const std::string& path, int argc, char** argv, int infd, int outfd, int errfd, const bool debug, const std::string& readableDir) override;
     virtual void stop() override;
 
 private:
@@ -86,7 +86,7 @@ WasmRunnerFastImpl::WasmRunnerFastImpl(WasmRuntimeHost host) :
 {
 }
 
-int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int stdinfd, int stdoutfd, int stderrfd, const bool debug)
+int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int stdinfd, int stdoutfd, int stderrfd, const bool debug, const std::string& readableDir)
 {
     char error_buf[128];
     int main_result;
@@ -94,7 +94,7 @@ int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int
     uint32_t addr_pool_size = 1;
     const char *ns_lookup_pool[8] = { "*" };
     uint32_t ns_lookup_pool_size = 1;
-    std::vector<const char*> mappedDirs { "/" };
+    std::vector<const char*> mappedDirs { "/::/", readableDir.c_str() };
     std::vector<const char*> env;
     int exitCode = -1;
 
@@ -102,6 +102,11 @@ int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int
     if (!hostInterface) {
         std::cout << "Unable to access host interface" << std::endl;
         return exitCode;
+    }
+
+    std::cout << "Loading wasm: " << path << std::endl;
+    for (int i = 0; i < argc; i++) {
+        std::cout << "arg: " << argv[i] << std::endl;
     }
 
     unsigned int siz = 0;
@@ -118,8 +123,8 @@ int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int
     std::cout << "WasmRunnerFastImpl: host " << host << std::endl;
 
     wasm_runtime_set_wasi_args_ex(shared.module,
-                                  mappedDirs.data(), mappedDirs.size(),
                                   nullptr, 0,
+                                  mappedDirs.data(), mappedDirs.size(),
                                   env.data(), env.size(),
                                   argv, argc,
                                   stdinfd,
@@ -181,7 +186,7 @@ fail:
 
 void WasmRunnerFastImpl::destroy()
 {
-//    wasm_runtime_destroy();
+    //wasm_runtime_destroy();
 }
 
 void WasmRunnerFastImpl::stop()
@@ -208,7 +213,7 @@ WasmRuntime init_wamr_runtime(WasmRuntimeHost host)
     return (WasmRuntime)runner;
 }
 
-uint32_t start_wamr_runtime(WasmRuntime instance, const char* binary, int argc, char** argv, int infd, int outfd, int errfd, const bool debug)
+uint32_t start_wamr_runtime(WasmRuntime instance, const char* binary, int argc, char** argv, int infd, int outfd, int errfd, const bool debug, const char* readableDir)
 {
     WasmRuntimePrivate* priv = (WasmRuntimePrivate*)(instance);
 
@@ -216,7 +221,8 @@ uint32_t start_wamr_runtime(WasmRuntime instance, const char* binary, int argc, 
         return 0;
 
     const auto binpath = std::string(binary);
-    priv->interface->exec(binpath, argc, argv, infd, outfd, errfd, debug);
+    const auto readablepath = std::string(readableDir);
+    priv->interface->exec(binpath, argc, argv, infd, outfd, errfd, debug, readablepath);
     return 1;
 }
 
@@ -237,6 +243,7 @@ uint32_t destroy_wamr_runtime(WasmRuntime instance)
         return 0;
 
     priv->interface->destroy();
+    delete priv->interface;
     delete priv;
     return 1;
 }
