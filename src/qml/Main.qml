@@ -147,6 +147,28 @@ ApplicationWindow {
         dbugger.debug(projectBuilder.runnableFile(), [])
     }
 
+    function attemptScriptRun() {
+        const killOnly = pyRunner.running
+
+        pyRunner.kill();
+        if (killOnly)
+            return;
+
+        consoleView.show()
+        pyRunner.run(editor.file.path, [])
+    }
+
+    function attemptReplRun() {
+        const killOnly = pyRunner.running
+
+        pyRunner.kill();
+        if (killOnly)
+            return;
+
+        consoleView.show()
+        pyRunner.runRepl()
+    }
+
     function stopRunAndDebug() {
         stopRequested = true
         debugRequested = false
@@ -157,6 +179,8 @@ ApplicationWindow {
             dbugger.killDebugger()
         if (wasmRunner.running)
             wasmRunner.kill()
+        if (pyRunner.running)
+            pyRunner.kill()
         if (projectBuilder.building)
             projectBuilder.cancel()
     }
@@ -177,6 +201,8 @@ ApplicationWindow {
         }
     }
 
+    signal reloadFilestructure()
+
     onActiveChanged: {
         if (active) {
             cleanObsoleteProjects()
@@ -184,6 +210,7 @@ ApplicationWindow {
         } else {
             saveCurrentFile()
         }
+        root.reloadFilestructure()
     }
 
     onWidthChanged: {
@@ -490,10 +517,17 @@ ApplicationWindow {
 
                     readonly property string project : {
                         let target = "";
-                        const crumbs = projectBuilder.projectFile.split('/');
-                        if (crumbs.length > 0) {
-                            target = crumbs[crumbs.length - 1]
+
+                        if (editor.file.name.endsWith(".py")) {
+                            if (!editor.invalidated)
+                                target = editor.file.name
+                        } else {
+                            const crumbs = projectBuilder.projectFile.split('/');
+                            if (crumbs.length > 0) {
+                                target = crumbs[crumbs.length - 1]
+                            }
                         }
+
                         return target
                     }
 
@@ -516,7 +550,7 @@ ApplicationWindow {
                     width: implicitWidth
                     height: implicitHeight
                     text: "|"
-                    property bool visibility: hudLabel.width > 0
+                    property bool visibility: hudLabel.width > 0 && prefixLabel.text !== ""
                     visible: opacity > 0.0
                     opacity: visibility ? 1.0 : 0.0
                     Behavior on opacity {
@@ -570,54 +604,53 @@ ApplicationWindow {
                 Layout.fillWidth: true
             }
 
-            /*
-                TideToolButton {
-                    visible: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
-                    enabled: !projectBuilder.building && !wasmRunner.running
-                    icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
-                    icon.color: root.palette.button
-                    onClicked: {
-                        saveCurrentFile()
-                        compiling = true
+            /*TideToolButton {
+                visible: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
+                enabled: !projectBuilder.building && !wasmRunner.running
+                icon.source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
+                icon.color: root.palette.button
+                onClicked: {
+                    saveCurrentFile()
+                    compiling = true
 
-                        projectBuilder.clean()
-                        projectBuilder.build()
-                    }
-
-                    BusyIndicator {
-                        visible: projectBuilder.building
-                        running: projectBuilder.building
-                        anchors.centerIn: parent
-                    }
+                    projectBuilder.clean()
+                    projectBuilder.build()
                 }
 
-                TideToolButton {
-                    visible: true
-                    enabled: !runtimeRunner.running
-                    icon.source: Qt.resolvedUrl("qrc:/assets/xmark.circle.fill@2x.png")
-                    icon.color: root.palette.button
-
-                    BusyIndicator {
-                        visible: runtimeRunner.running
-                        running: runtimeRunner.running
-                        anchors.centerIn: parent
-                    }
-
-                    WasmRunner {
-                        id: runtimeRunner
-                        onErrorOccured:
-                            (str) => {
-                                consoleView.consoleOutput.append({"content": str, "stdout": false})
-                                consoleView.show()
-                                consoleView.consoleScrollView.positionViewAtEnd()
-                            }
-                    }
-
-                    onClicked: {
-                        runtimeRunner.run(runtime + "/out.wasm", ["/bin/bash"])
-                    }
+                BusyIndicator {
+                    visible: projectBuilder.building
+                    running: projectBuilder.building
+                    anchors.centerIn: parent
                 }
-                */
+            }
+
+            TideHeaderButton {
+                visible: true
+                enabled: !runtimeRunner.running
+                source: Qt.resolvedUrl("qrc:/assets/hammer.fill@2x.png")
+                color: root.palette.button
+                height: headerItemHeight
+
+                BusyIndicator {
+                    visible: runtimeRunner.running
+                    running: runtimeRunner.running
+                    anchors.centerIn: parent
+                }
+
+                WasmRunner {
+                    id: runtimeRunner
+                    onErrorOccured:
+                        (str) => {
+                            consoleView.consoleOutput.append({"content": str, "stdout": false})
+                            consoleView.show()
+                            consoleView.consoleScrollView.positionViewAtEnd()
+                        }
+                }
+
+                onClicked: {
+                    runtimeRunner.run(runtime + "/out.wasm", ["/bin/bash"])
+                }
+            }*/
 
             TideHeaderButton {
                 //rightPadding: paddingMedium
@@ -760,13 +793,13 @@ ApplicationWindow {
             TideHeaderButton {
                 //rightPadding: paddingMedium
 
-                readonly property bool idle: !projectBuilder.building && !wasmRunner.running && !dbugger.running
+                readonly property bool idle: !projectBuilder.building && !wasmRunner.running && !pyRunner.running && !dbugger.running
 
                 source: idle ?
                             Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
                             Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
                 color: root.headerItemColor
-                visible: projectBuilder.projectFile !== ""
+                visible: projectBuilder.projectFile !== "" || (!editor.invalidated && editor.file.name.endsWith(".py")) || pyRunner.running
                 height: headerItemHeight
 
                 onClicked: {
@@ -802,17 +835,23 @@ ApplicationWindow {
                         }
                     }
                     MenuItem {
-                        property bool isRunning: wasmRunner.running
-                        text: !isRunning ? qsTr("Run") : qsTr("Stop")
+                        id: runMenuItem
+                        readonly property bool isRunning: wasmRunner.running || pyRunner.running
+                        readonly property bool isRunnableScript: (!editor.invalidated && editor.file.name.endsWith(".py"))
+                        text: !isRunning ? qsTr("Run %1").arg(prefixLabel.project) : qsTr("Stop")
                         icon.source: !isRunning ?
                                          Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
                                          Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
-                        enabled: !projectBuilder.building && projectBuilder.projectFile !== ""
+                        enabled: !projectBuilder.building && (projectBuilder.projectFile !== "" || isRunnableScript) || pyRunner.running
                         onTriggered: {
                             if (!isRunning) {
-                                root.debugRequested = false
-                                root.runRequested = true
-                                root.attemptBuild()
+                                if (isRunnableScript) {
+                                    root.attemptScriptRun()
+                                } else {
+                                    root.debugRequested = false
+                                    root.runRequested = true
+                                    root.attemptBuild()
+                                }
                             } else {
                                 root.stopRunAndDebug()
                             }
@@ -838,12 +877,35 @@ ApplicationWindow {
                 //rightPadding: paddingMedium
                 enabled: !sysrootManager.installing
                 height: headerItemHeight
-
                 onClicked: {
-                    if (consoleView.visibility)
-                        consoleView.hide()
-                    else
-                        consoleView.show()
+                    consoleContextMenu.open()
+                }
+                onPressAndHold: {
+                    consoleContextMenu.open()
+                }
+
+                TideMenu {
+                    id: consoleContextMenu
+                    MenuItem {
+                        text: consoleView.visibility ? qsTr("Hide console") : qsTr("Show console")
+                        icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
+                        onPressed: {
+                            if (consoleView.visibility)
+                                consoleView.hide()
+                            else
+                                consoleView.show()
+                            consoleContextMenu.close()
+                        }
+                    }
+                    MenuItem {
+                        text: qsTr("Run Python REPL")
+                        icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
+                        enabled: !runners.atLeastOneRunning
+                        onPressed: {
+                            root.attemptReplRun()
+                            consoleContextMenu.close()
+                        }
+                    }
                 }
             }
         }
@@ -942,45 +1004,91 @@ ApplicationWindow {
             }
     }
 
-    WasmRunner {
-        id: wasmRunner
-        system: iosSystem
-        forceDebugInterpreter: settings.fallbackInterpreter
-        onRunningChanged: {
-            if (running) {
-                hud.hudLabel.flashMessage(qsTr("Started"))
-            } else {
-                hud.hudLabel.flashMessage(qsTr("Stopped"))
-            }
+    QtObject {
+        id: runners
 
-            if (running && settings.clearConsole)
-                clearConsoleOutput()
+        readonly property bool atLeastOneRunning : pyRunner.running || wasmRunner.running
 
-            if (!running) {
-                if (!root.stopRequested) {
-                    warningSign.flashSuccess(qsTr("Execution ended"))
+        property var pyRunner : PyRunner {
+            id: pyRunner
+            system: iosSystem
+            onRunningChanged: {
+                if (running) {
+                    hud.hudLabel.flashMessage(qsTr("Started"))
+                } else {
+                    hud.hudLabel.flashMessage(qsTr("Stopped"))
                 }
-                root.stopRequested = false
+
+                if (running && settings.clearConsole)
+                    clearConsoleOutput()
+
+                if (!running) {
+                    if (!root.stopRequested) {
+                        warningSign.flashSuccess(qsTr("Execution ended"))
+                    }
+                    root.stopRequested = false
+                }
             }
+
+            onRunEnded:
+                (exitCode) => {
+                    if (exitCode === 255) {
+                        hud.hudLabel.flashMessage(qsTr("Terminated!"))
+                        warningSign.flashStop(qsTr("Execution stopped"))
+                    }
+                }
+
+            onErrorOccured:
+                (str) => {
+                    consoleView.consoleOutput.append({"content": str, "stdout": false})
+                    consoleView.show()
+                    consoleView.consoleScrollView.positionViewAtEnd()
+                    if (!root.stopRequested) {
+                        warningSign.flashWarning(qsTr("Error occured"))
+                    }
+                }
         }
 
-        onRunEnded:
-            (exitCode) => {
-                if (exitCode === 255) {
-                    hud.hudLabel.flashMessage(qsTr("Terminated!"))
-                    warningSign.flashStop(qsTr("Execution stopped"))
+        property var wasmRunner : WasmRunner {
+            id: wasmRunner
+            system: iosSystem
+            forceDebugInterpreter: settings.fallbackInterpreter
+            onRunningChanged: {
+                if (running) {
+                    hud.hudLabel.flashMessage(qsTr("Started"))
+                } else {
+                    hud.hudLabel.flashMessage(qsTr("Stopped"))
+                }
+
+                if (running && settings.clearConsole)
+                    clearConsoleOutput()
+
+                if (!running) {
+                    if (!root.stopRequested) {
+                        warningSign.flashSuccess(qsTr("Execution ended"))
+                    }
+                    root.stopRequested = false
                 }
             }
 
-        onErrorOccured:
-            (str) => {
-                consoleView.consoleOutput.append({"content": str, "stdout": false})
-                consoleView.show()
-                consoleView.consoleScrollView.positionViewAtEnd()
-                if (!root.stopRequested) {
-                    warningSign.flashWarning(qsTr("Error occured"))
+            onRunEnded:
+                (exitCode) => {
+                    if (exitCode === 255) {
+                        hud.hudLabel.flashMessage(qsTr("Terminated!"))
+                        warningSign.flashStop(qsTr("Execution stopped"))
+                    }
                 }
-            }
+
+            onErrorOccured:
+                (str) => {
+                    consoleView.consoleOutput.append({"content": str, "stdout": false})
+                    consoleView.show()
+                    consoleView.consoleScrollView.positionViewAtEnd()
+                    if (!root.stopRequested) {
+                        warningSign.flashWarning(qsTr("Error occured"))
+                    }
+                }
+        }
     }
 
     Debugger {
@@ -1044,7 +1152,7 @@ ApplicationWindow {
         });
         iosSystem.stdioWritersPrepared.connect(function(spec) {
             wasmRunner.prepareStdio(spec)
-            //runtimeRunner.prepareStdio(spec)
+            pyRunner.prepareStdio(spec)
         });
         iosSystem.setupStdIo()
 
@@ -1442,6 +1550,12 @@ ApplicationWindow {
                                                         }
                                                     }
                                                 }
+                                                Connections {
+                                                    target: root
+                                                    function onReloadFilestructure() {
+                                                        directoryListView.refresh()
+                                                    }
+                                                }
 
                                                 headerPositioning: ListView.PullBackHeader
                                                 header: Rectangle {
@@ -1553,6 +1667,13 @@ ApplicationWindow {
                                                             if (path === project.path) {
                                                                 directoryListView.refresh();
                                                             }
+                                                        }
+                                                    }
+
+                                                    Connections {
+                                                        target: root
+                                                        function onReloadFilestructure() {
+                                                            directoryListView.refresh()
                                                         }
                                                     }
 
@@ -1912,8 +2033,12 @@ ApplicationWindow {
                         attemptBuild();
                     }
                     onRunRequested: {
-                        root.runRequested = true
-                        attemptBuild();
+                        if (isRunnableScript) {
+                            attemptScriptRun();
+                        } else {
+                            root.runRequested = true
+                            attemptBuild();
+                        }
                     }
                     onInvalidatedChanged: {
                         if (invalidated) {
@@ -1921,6 +2046,8 @@ ApplicationWindow {
                             showDebugArea = false
                         }
                     }
+
+                    readonly property bool isRunnableScript : runMenuItem.isRunnableScript
                 }
             }
         }
