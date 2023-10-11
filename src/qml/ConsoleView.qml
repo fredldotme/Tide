@@ -34,6 +34,24 @@ Item {
 
     ListModel {
         id: consoleOutput
+        onCountChanged: {
+            if (consoleView.visibility) {
+                consoleInputField.focus = false
+                consoleInputField.focus = true
+            }
+        }
+    }
+
+    Timer {
+        id: delayedRefocus
+        interval: 100
+        repeat: false
+        onTriggered: {
+            if (consoleView.visibility) {
+                consoleInputField.focus = false
+                consoleInputField.focus = true
+            }
+        }
     }
 
     Behavior on y {
@@ -175,10 +193,16 @@ Item {
                 background: Item { }
                 placeholderText: qsTr("Input:")
                 focus: consoleView.visibility
+
                 onAccepted: {
                     consoleHandler.write(text + "\n")
+                    if (consoleOutput.count > 0) {
+                        consoleOutput.get(consoleOutput.count - 1).content += (text + "\n")
+                    } else {
+                        consoleOutput.append({"content": text, "stdout": true})
+                    }
                     clear()
-                    forceActiveFocus()
+                    delayedRefocus.restart()
                 }
                 Component.onCompleted: {
                     imFixer.setupImEventFilter(consoleInputField)
