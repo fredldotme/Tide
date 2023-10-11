@@ -91,7 +91,7 @@ void SysrootManager::runInThread()
     m_installing = true;
     emit installingChanged();
 
-    const int stages = 7;
+    const int stages = 9;
     int stage = 0;
 
     // Clear old temporaries
@@ -121,6 +121,13 @@ void SysrootManager::runInThread()
     {
         const auto archive = qApp->applicationDirPath() + "/cmake.tar";
         unpackTar(archive, temporaries + QStringLiteral("/CMake"));
+        setProgress((qreal)stage++ / (qreal)stages);
+    }
+
+    // Python
+    {
+        const auto archive = qApp->applicationDirPath() + "/python.tar";
+        unpackTar(archive, temporaries + QStringLiteral("/Python"));
         setProgress((qreal)stage++ / (qreal)stages);
     }
 
@@ -209,6 +216,37 @@ void SysrootManager::runInThread()
             qDebug() << targetDir.removeRecursively();
 
         qDebug() << "Moving bundled CMake contents";
+        QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
+
+        while (it.hasNext()) {
+            const QString sourcePath = it.next();
+            const QString relativePath = sourcePath.mid(source.length());
+            const QString targetPath = target + relativePath;
+            const QString targetDir = QFileInfo(targetPath).absolutePath();
+
+            QDir dir(targetDir);
+            if (!dir.exists()) {
+                dir.mkpath(targetDir);
+            }
+
+            qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
+            QFile::rename(sourcePath, targetPath);
+        }
+        setProgress((qreal)stage++ / (qreal)stages);
+    }
+
+    // Python parts
+    {
+        const QString source = temporaries + "/Python";
+        const QString target = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                               QStringLiteral("/Library/Python");
+
+        qDebug() << "Clearing old Python area";
+        QDir targetDir(target);
+        if (targetDir.exists())
+            qDebug() << targetDir.removeRecursively();
+
+        qDebug() << "Moving bundled Python contents";
         QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
 
         while (it.hasNext()) {
