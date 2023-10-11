@@ -8,7 +8,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(PROJECT_NAME tide)
 endif()
 
-project(${PROJECT_NAME} VERSION 1.5.0 LANGUAGES C CXX)
+project(${PROJECT_NAME} VERSION 1.6.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
@@ -63,6 +63,7 @@ if(IOS)
     resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
     resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
+    resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
     resource(COMMANDSYAML ${CMAKE_CURRENT_SOURCE_DIR} Resources commands.yaml)
 endif()
 
@@ -103,7 +104,8 @@ qt_add_executable(${PROJECT_NAME}
     utility/linuxruntimemanager.cpp
     utility/searchandreplace.cpp
     utility/debugger.cpp
-    utility/wasmrunner.cpp
+    utility/runners/pyrunner.cpp
+    utility/runners/wasmrunner.cpp
     projects/bookmarkdb.cpp
     projects/projectbuilder.cpp
     projects/projectcreator.cpp
@@ -135,6 +137,7 @@ qt_add_executable(${PROJECT_NAME}
     ${THE_SYSROOT}
     ${BOOST_TAR}
     ${CMAKE_MODULES}
+    ${PYTHON_WASM}
     ${COMMANDSYAML}
 
     # Assets
