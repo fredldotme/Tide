@@ -58,25 +58,20 @@ private:
 
 void WasmRunnerImpl::init()
 {
-    static bool initialized = false;
-    if (!initialized) {
-        RuntimeInitArgs init_args;
-        memset(&init_args, 0, sizeof(RuntimeInitArgs));
+    RuntimeInitArgs init_args;
+    memset(&init_args, 0, sizeof(RuntimeInitArgs));
 
-        strcpy(init_args.ip_addr, "127.0.0.1");
-        init_args.instance_port = 0;
-        init_args.mem_alloc_type = Alloc_With_System_Allocator;
-        init_args.max_thread_num = 64;
+    strcpy(init_args.ip_addr, "127.0.0.1");
+    init_args.instance_port = 0;
+    init_args.mem_alloc_type = Alloc_With_System_Allocator;
+    init_args.max_thread_num = 64;
 
-        wasm_runtime_full_init(&init_args);
+    wasm_runtime_full_init(&init_args);
 
-        // Register native API bindings
-        //register_wamr_opengles_bindings();
-        //register_wamr_tideui_bindings();
-        //register_wamr_sdl2_bindings();
-
-        initialized = true;
-    }
+    // Register native API bindings
+    //register_wamr_opengles_bindings();
+    //register_wamr_tideui_bindings();
+    //register_wamr_sdl2_bindings();
 
     shared.host = (WasmRunnerHost*)host;
 }
@@ -187,11 +182,13 @@ fail:
         wasm_runtime_unload(shared.module);
         shared.module = nullptr;
     }
+
+    return exitCode;
 }
 
 void WasmRunnerImpl::destroy()
 {
-    //wasm_runtime_destroy();
+    wasm_runtime_destroy();
 }
 
 void WasmRunnerImpl::stop()

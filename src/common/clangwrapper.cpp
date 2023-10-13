@@ -6,10 +6,15 @@
 
 ClangWrapper::ClangWrapper()
 {
-    // We link against libclang directly now
-    //const auto libPath = qApp->applicationDirPath() + "/Frameworks/libclang.framework/libclang";
+#if defined(Q_OS_IOS)
+    const auto libPath = qApp->applicationDirPath() + QStringLiteral("/Frameworks/libclang.framework/libclang");
+#elif defined(Q_OS_MACOS)
+    const auto libPath = qApp->applicationDirPath() + QStringLiteral("/../Frameworks/libclang.dylib");
+#else
+    const auto libPath = qApp->applicationDirPath() + QStringLiteral("/Frameworks");
+#endif
 
-    this->handle = dlopen(nullptr, RTLD_NOW);
+    this->handle = dlopen(libPath.toStdString().c_str(), RTLD_NOW);
 
     if (!this->handle) {
         qWarning() << "Failed to load libclang functions";

@@ -196,6 +196,7 @@ void QMakeBuilder::build(const bool debug, const bool aot)
         const auto compiler = source.endsWith(".c") ? QStringLiteral("clang") : QStringLiteral("clang++");
         const QString command = compiler +
                                 QStringLiteral(" --sysroot=") + m_sysroot +
+                                QStringLiteral(" -iwithprefix/Users/alfredneumayer/Library/usr/lib/clang/17/include") +
                                 QStringLiteral(" -c ") +
                                 (debug ? QStringLiteral(" -g ") : QString()) +
                                 defaultFlags +
@@ -233,6 +234,8 @@ void QMakeBuilder::build(const bool debug, const bool aot)
 
     const QString linkCommand = QStringLiteral("clang++") +
                                 (debug ? QStringLiteral(" -g ") : QString()) +
+                                QStringLiteral(" --sysroot=") + m_sysroot +
+                                defaultFlags +
                                 commonFlags +
                                 undefinedSymbolsLinkFlags +
                                 defaultLinkFlags +

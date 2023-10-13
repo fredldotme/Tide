@@ -21,12 +21,24 @@ typedef PosixProjectList ProjectList;
 #include "platform/ios/externalprojectpicker.h"
 #include "platform/ios/iosintegrationdelegate.h"
 #include "platform/ios/imfixerinstaller.h"
-#include "platform/ios/iosprojectlist.h"
 #include "platform/ios/clangcompiler.h"
+#include "platform/darwin/iosprojectlist.h"
 
 typedef IosSystemGlue SystemGlue;
 typedef ExternalProjectPicker ProjectPicker;
 typedef IosIntegrationDelegate PlatformIntegrationDelegate;
+typedef ImFixerInstaller InputMethodFixerInstaller;
+typedef IosProjectList ProjectList;
+#elif defined(Q_OS_MACOS)
+#include "platform/macos/macsystemglue.h"
+#include "platform/macos/externalprojectpicker.h"
+#include "platform/macos/integrationdelegate.h"
+#include "platform/macos/imfixerinstaller.h"
+#include "platform/darwin/iosprojectlist.h"
+
+typedef MacSystemGlue SystemGlue;
+typedef ExternalProjectPicker ProjectPicker;
+typedef MacosIntegrationDelegate PlatformIntegrationDelegate;
 typedef ImFixerInstaller InputMethodFixerInstaller;
 typedef IosProjectList ProjectList;
 #endif

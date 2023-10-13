@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 
-if(IOS)
+if(IOS OR APPLE)
     set(PROJECT_NAME Tide)
 endif()
 
@@ -23,7 +23,7 @@ endif()
 message("Tide build type: ${CMAKE_BUILD_TYPE}")
 
 # Artifacts from LLVM build
-if(IOS OR CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
+if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphoneos)
     if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
         set(LLVM_BUILD_DIR "build-iphonesimulator")
         set(LLVM_MODE "Release-iphonesimulator")
@@ -33,6 +33,15 @@ if(IOS OR CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
         set(LLVM_MODE "Release-iphoneos")
         set(OS "iphoneos")
     endif()
+    set(LLVM_TOOLS ${LLVM_DIR}/ios/${LLVM_BUILD_DIR}/Debug-${OS})
+elseif(APPLE)
+    set(LLVM_BUILD_DIR "build_osx")
+    set(LLVM_MODE "Release-macos")
+    set(OS "osx")
+    set(CMAKE_MACOSX_BUNDLE ON)
+    set(QT6_IS_SHARED_LIBS_BUILD ON)
+    set(LLVM_TOOLS ${LLVM_DIR}/${LLVM_BUILD_DIR}/bin)
+    message("LLVM tools in: ${LLVM_TOOLS}")
 endif()
 
 function(resource VAR SOURCE_PATH DESTINATION PATTERN)
@@ -65,6 +74,13 @@ if(IOS)
     resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
     resource(COMMANDSYAML ${CMAKE_CURRENT_SOURCE_DIR} Resources commands.yaml)
+endif()
+
+if(APPLE)
+    resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
+    resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
+    resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
+    resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
 endif()
 
 # Qt6
@@ -175,7 +191,6 @@ qt_add_qml_module(${PROJECT_NAME}
 
 # Build toolchain itself
 set(LLVM_FRAMEWORKS ${LLVM_DIR}/${LLVM_BUILD_DIR}/build/${LLVM_MODE})
-set(LLVM_TOOLS ${LLVM_DIR}/ios/${LLVM_BUILD_DIR}/Debug-${OS})
 set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
 set(LLVM_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/include)
 set(LLVM_CLANG_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/tools/clang/include)
@@ -184,39 +199,39 @@ set(NOSYSTEM_FRAMEWORK ${LLVM_DIR}/no_system/${LLVM_BUILD_DIR}/Debug-iphoneos)
 # Include libs after defining a few crucial variables
 add_subdirectory(lib)
 
-if(IOS)
+include_directories(${PROJECT_NAME}
+    # WAMR AOT compiler
+    ${WAMR_DIR}/core/shared/utils/uncommon
+    ${WAMR_DIR}/core/shared/platform/darwin
+
+    # system() replacement through no_system
+    ${NOSYSTEM}
+    ${LLVM_DIR}
+
+    # Clang & LLVM libraries
+    ${LLVM_DIR}/llvm/include
+    ${LLVM_DIR}/clang/include
+    ${LLVM_DIR}/lld/include
+    ${LLVM_DIR}/lldb/include
+    ${LLVM_DIR}/${LLVM_BUILD_DIR}/include
+    ${LLVM_DIR}/${LLVM_BUILD_DIR}/tools/clang/include
+
+    # Platform abstraction
+    ${CMAKE_CURRENT_SOURCE_DIR}/platform/ios
+)
+
+if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphoneos)
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
 
         # Code
-        platform/ios/iosprojectlist.mm
         platform/ios/iosintegrationdelegate.mm
-        platform/ios/externalprojectpicker.mm
+        platform/ios/clangcompiler.cpp
         platform/ios/iossystemglue.mm
+        platform/ios/externalprojectpicker.mm
         platform/ios/imeventfixer.mm
         platform/ios/imfixerinstaller.mm
-        platform/ios/clangcompiler.cpp
-    )
-
-    include_directories(${PROJECT_NAME}
-        # WAMR AOT compiler
-        ${WAMR_DIR}/core/shared/utils/uncommon
-        ${WAMR_DIR}/core/shared/platform/darwin
-
-        # system() replacement through no_system
-        ${NOSYSTEM}
-        ${LLVM_DIR}
-
-        # Clang & LLVM libraries
-        ${LLVM_DIR}/llvm/include
-        ${LLVM_DIR}/clang/include
-        ${LLVM_DIR}/lld/include
-        ${LLVM_DIR}/lldb/include
-        ${LLVM_DIR}/${LLVM_BUILD_DIR}/include
-        ${LLVM_DIR}/${LLVM_BUILD_DIR}/tools/clang/include
-
-        # Platform abstraction
-        ${CMAKE_CURRENT_SOURCE_DIR}/platform/ios
+        platform/darwin/iosprojectlist.mm
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -280,7 +295,7 @@ if(IOS)
     find_library(UIKIT_LIBRARY UIKit)
 
     # libclang for C++ ASTs
-    find_library(LIBCLANG_CPP REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LIBCLANG_C REQUIRED NAMES libclang PATHS ${CLANGRT_DIR} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # CMake and Ninja
     find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${CMAKE_PATH} CMAKE_FIND_ROOT_PATH_BOTH)
@@ -317,33 +332,98 @@ if(IOS)
     set(ANGLE_HEADERS "${CLANGRT_DIR}/angle-metal/include")
 endif()
 
+if(APPLE AND NOT IOS)
+    qt_add_library(${PROJECT_NAME}-platform
+        STATIC
+
+        # Code
+        platform/macos/integrationdelegate.mm
+        platform/macos/macsystemglue.mm
+        platform/macos/externalprojectpicker.mm
+        platform/macos/imeventfixer.mm
+        platform/macos/imfixerinstaller.mm
+        platform/darwin/iosprojectlist.mm
+    )
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        MACOSX_BUNDLE_GUI_IDENTIFIER me.fredl.tide
+        PRODUCT_BUNDLE_IDENTIFIER me.fredl.tide
+        MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
+        MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
+        MACOSX_BUNDLE TRUE
+        MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/Info.plist
+        WIN32_EXECUTABLE TRUE
+        #XCODE_ATTRIBUTE_LD_RUNPATH_SEARCH_PATHS "@executable_path/Frameworks @loader_path/Frameworks"
+        XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS "${CMAKE_CURRENT_SOURCE_DIR}/Tide.entitlements"
+        XCODE_ATTRIBUTE_INSTALL_PATH "$(LOCAL_APPS_DIR)"
+        XCODE_ATTRIBUTE_SKIP_INSTALL "No"
+        XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "Yes"
+        XCODE_ATTRIBUTE_COPY_PHASE_STRIP "No"
+        XCODE_ATTRIBUTE_CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION "Yes"
+    )
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES
+        QT_IOS_LAUNCH_SCREEN "${CMAKE_CURRENT_SOURCE_DIR}/assets/LaunchScreen.storyboard")
+
+    target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/assets/Tide@2x.png)
+    set_source_files_properties(
+        ${CMAKE_CURRENT_SOURCE_DIR}/assets/Tide@2x.png
+        PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+
+    # Asset catalog root
+    target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets")
+    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets" PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources
+    )
+
+    # Asset catalog app icon set
+    list(APPEND app_icon_set "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset")
+    list(APPEND app_icon_set "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset/Contents.json")
+    set_source_files_properties(${app_icon_set} PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources/Assets.xcassets
+    )
+
+    # Asset catalog icon files
+    file(GLOB app_icon_files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset/*.png")
+    list(APPEND app_icon_files "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset/Contents.json")
+    set_source_files_properties(${app_icon_set} PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources/Assets.xcassets/AppIcon.appiconset
+    )
+
+    set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")
+
+    # LLVM
+    find_library(LLVM REQUIRED NAMES LLVM PATHS ${LLVM_LIBS} CMAKE_FIND_ROOT_PATH_BOTH)
+
+    find_library(COMPRESSION compression)
+    find_library(XML2 xml2)
+    find_library(FOUNDATION_LIBRARY Foundation)
+    find_library(UIKIT_LIBRARY UIKit)
+
+    # libclang for C++ ASTs
+    message("LLVM_LIBS: ${LLVM_LIBS}")
+    find_library(LIBCLANG_C REQUIRED NAMES clang PATHS ${LLVM_LIBS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LIBCLANG_CPP REQUIRED NAMES clang-cpp PATHS ${LLVM_LIBS} CMAKE_FIND_ROOT_PATH_BOTH)
+    message(${LIBCLANG_CPP})
+
+    # Debugger's lldb requires some trickery
+    #set_source_files_properties(${LLDB}
+    #    PROPERTIES
+    #    MACOSX_PACKAGE_LOCATION Frameworks
+    #    XCODE_FILE_ATTRIBUTES "CodeSignOnCopy"
+    #)
+
+    # Ship SDL headers generated as part of its build process
+    #add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+    #    COMMAND tar cvf "$<TARGET_FILE_DIR:${PROJECT_NAME}>/SDL.tar" -C "${CMAKE_CURRENT_BINARY_DIR}/../3rdparty/SDL/include" .  -C "${CMAKE_CURRENT_BINARY_DIR}/../3rdparty/SDL/include-config-debug" .
+    #)
+
+    # ANGLE for consumption by WebAssembly apps
+    #set(ANGLE_A "${CLANGRT_DIR}/angle-metal/arm64/libangle.a")
+    #set(ANGLE_HEADERS "${CLANGRT_DIR}/angle-metal/include")
+endif()
+
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    if(${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
-        set (WAMR_BUILD_TARGET "X86_64")
-    else()
-        set (WAMR_BUILD_TARGET "AARCH64")
-    endif()
-
-    set (WAMR_BUILD_PLATFORM "linux")
-    set (WAMR_BUILD_INTERP 1)
-    set (WAMR_BUILD_FAST_INTERP 0)
-    set (WAMR_BUILD_AOT 1)
-    set (WAMR_BUILD_JIT 0)
-    set (WAMR_BUILD_LIB_WASI_THREADS 1)
-    set (WAMR_BUILD_SHARED_MEMORY 1)
-    set (WAMR_BUILD_TAIL_CALL 1)
-    set (WAMR_BUILD_LIBC_BUILTIN 0)
-    set (WAMR_BUILD_LIBC_WASI 1)
-    set (WAMR_BUILD_LIBC_UVWASI 0)
-    set (WAMR_BUILD_SIMD 1)
-    set (WAMR_DISABLE_HW_BOUND_CHECK 1)
-    set (WAMR_BUILD_DEBUG_INTERP 1)
-    set (WAMR_BUILD_MULTI_MODULE 1)
-    set (WAMR_BUILD_EXCE_HANDLING 1)
-    set (WAMR_BUILD_REF_TYPES 1)
-    set (WAMR_ROOT_DIR ${WAMR_DIR})
-    add_definitions(-DWASM_UINT32_IS_ATOMIC=1 -DWASM_ENABLE_WAMR_COMPILER=1)
-
     find_library(LLVM REQUIRED NAMES libLLVM-15.so PATHS /usr/lib/llvm-15/lib)
 
     include_directories(${PROJECT_NAME}
@@ -384,6 +464,7 @@ target_link_libraries(${PROJECT_NAME}-platform
     Qt6::GuiPrivate
     Qt6::Sql
     Qt6::Quick
+    Qt6::Widgets
     ${NOSYSTEM}
     ${CMAKEFW}
     ${CMAKELIB}
@@ -414,7 +495,6 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Widgets
     ${LLVM}
     ${NOSYSTEM}
-    ${LIBCLANG_CPP}
     ${COMPRESSION}
     ${XML2}
     ${FOUNDATION_LIBRARY}
@@ -426,7 +506,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 # Deployment on iOS
-if(IOS)
+if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphoneos)
     set_property(TARGET ${PROJECT_NAME}
         PROPERTY XCODE_EMBED_FRAMEWORKS
         ${NOSYSTEM}
@@ -434,6 +514,22 @@ if(IOS)
         ${CLANGFW}
         ${LLDFW}
         ${LLDBFW}
+        ${LIBCLANG_C}
+        ${PROJECT_NAME}-Formatter
+        ${PROJECT_NAME}-Wasmrunner
+        ${PROJECT_NAME}-Wasmrunnerfast
+    )
+
+    set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY OFF)
+    set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_CODE_SIGN_ON_COPY ON)
+endif()
+
+# Deployment on macOS
+if(APPLE AND NOT IOS)
+    set_property(TARGET ${PROJECT_NAME}
+        PROPERTY XCODE_EMBED_FRAMEWORKS
+        ${LLVM}
+        ${LIBCLANG_C}
         ${LIBCLANG_CPP}
         ${PROJECT_NAME}-Formatter
         ${PROJECT_NAME}-Wasmrunner
@@ -449,3 +545,58 @@ install(TARGETS ${PROJECT_NAME}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
+
+# Non-resource bundling on macOS
+if(APPLE AND NOT IOS)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LLVM_TOOLS}/clang-17" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -change "@rpath/libclang-cpp.dylib" "@rpath/../Frameworks/libclang-cpp.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/clang-17"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/../Frameworks/libLLVM.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/clang-17"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -add_rpath "@loader_path/../Frameworks" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/clang-17"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LLVM_TOOLS}/clang" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LLVM_TOOLS}/clang++" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LLVM_TOOLS}/lld" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -change "@rpath/libclang-cpp.dylib" "@rpath/../Frameworks/libclang-cpp.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lld"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/../Frameworks/libLLVM.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lld"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -add_rpath "@loader_path/../Frameworks" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lld"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LLVM_TOOLS}/wasm-ld" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LLVM_TOOLS}/lldb" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -change "@rpath/libclang-cpp.dylib" "@rpath/../Frameworks/libclang-cpp.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lldb"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/../Frameworks/libLLVM.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lldb"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -add_rpath "@loader_path/../Frameworks" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lldb"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND ${MACDEPLOYQT_EXECUTABLE} "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../.." "-qmldir=${CMAKE_CURRENT_SOURCE_DIR}/qml"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND codesign --deep --force --verify --verbose --timestamp --sign "Apple Development" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../.."
+    )
+endif()

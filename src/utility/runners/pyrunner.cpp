@@ -71,7 +71,6 @@ static void* runInThread(void* userdata)
         args.push_back(shared.binary.toStdString());
     else {
         args.push_back("-i");
-        //args.push_back("\"import code; code.interact(local=locals());\"");
     }
 
     for (const auto& arg : shared.args) {
@@ -166,7 +165,13 @@ void PyRunner::start(const QString binary, const QStringList args, const bool de
     sharedData.debug = false;
     sharedData.runner = this;
 
-    std::string runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(qApp->applicationDirPath()).toStdString();
+#ifdef Q_OS_IOS
+    const auto libsRoot = qApp->applicationDirPath();
+#else
+    const auto libsRoot = qApp->applicationDirPath() + "/..";
+#endif
+
+    std::string runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(libsRoot).toStdString();
     sharedData.lib = wamr_runtime_load(runnerPath.c_str());
     std::cout << "Loaded Python Wasmrunner " << sharedData.lib->handle << " from " << runnerPath << std::endl;
 
@@ -199,6 +204,9 @@ void PyRunner::stop(bool silent)
         if (sharedData.lib->stop) {
             sharedData.lib->stop(sharedData.runtime);
         }
+
+        waitForFinished();
+
         if (sharedData.lib->destroy) {
             sharedData.lib->destroy(sharedData.runtime);
         }
@@ -227,7 +235,13 @@ void PyRunner::runRepl()
     sharedData.debug = false;
     sharedData.runner = this;
 
-    std::string runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(qApp->applicationDirPath()).toStdString();
+#ifdef Q_OS_IOS
+    const auto libsRoot = qApp->applicationDirPath();
+#else
+    const auto libsRoot = qApp->applicationDirPath() + "/..";
+#endif
+
+    std::string runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(libsRoot).toStdString();
     sharedData.lib = wamr_runtime_load(runnerPath.c_str());
     std::cout << "Loaded Python Wasmrunner " << sharedData.lib->handle << " from " << runnerPath << std::endl;
 

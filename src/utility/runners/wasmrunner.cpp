@@ -158,11 +158,18 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
     sharedData.debugger = m_debugger;
     sharedData.runner = this;
 
+
+#ifdef Q_OS_IOS
+    const auto libsRoot = qApp->applicationDirPath();
+#else
+    const auto libsRoot = qApp->applicationDirPath() + "/..";
+#endif
+
     std::string runnerPath;
     if (m_forceDebugInterpreter || debug) {
-        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunner.framework/Tide-Wasmrunner").arg(qApp->applicationDirPath()).toStdString();
+        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunner.framework/Tide-Wasmrunner").arg(libsRoot).toStdString();
     } else {
-        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(qApp->applicationDirPath()).toStdString();
+        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(libsRoot).toStdString();
     }
 
     sharedData.lib = wamr_runtime_load(runnerPath.c_str());
@@ -195,6 +202,9 @@ void WasmRunner::stop(bool silent)
         if (sharedData.lib->stop) {
             sharedData.lib->stop(sharedData.runtime);
         }
+
+        waitForFinished();
+
         if (sharedData.lib->destroy) {
             sharedData.lib->destroy(sharedData.runtime);
         }

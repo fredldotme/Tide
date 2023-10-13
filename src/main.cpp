@@ -30,7 +30,7 @@
 
 int main(int argc, char *argv[])
 {
-#ifdef Q_OS_IOS
+#if defined(Q_OS_IOS)
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                             QStringLiteral("/Library/wasi-sysroot");
 
@@ -44,6 +44,17 @@ int main(int argc, char *argv[])
     {
         ClangCompiler setup;
     }
+#elif defined(Q_OS_MACOS)
+    const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                            QStringLiteral("/Library/wasi-sysroot");
+
+    const QString runtime = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                            QStringLiteral("/Runtimes/Linux");
+
+    qputenv("SYSROOT", sysroot.toUtf8().data());
+    QQuickStyle::setStyle("iOS");
+
+    qputenv("CLANG_RESOURCE_DIR", "/Users/alfredneumayer/Library/usr/lib/clang/17");
 #elif defined(Q_OS_LINUX)
     const QString sysroot = QStringLiteral("/usr");
     QQuickStyle::setStyle("Material");
@@ -56,6 +67,16 @@ int main(int argc, char *argv[])
     app.setAutoSipEnabled(true);
     app.setOrganizationDomain("fredl.me");
     app.setApplicationName("Tide");
+
+    // Set up PATH for macOS here
+#if defined(Q_OS_MACOS)
+    {
+        const auto path = qgetenv("PATH");
+        const auto mybins = qApp->applicationDirPath();
+        const auto newpath = mybins + ":" + path;
+        qputenv("PATH", newpath.toLocal8Bit());
+    }
+#endif
 
     auto styleHints = app.styleHints();
     styleHints->setUseHoverEffects(true);

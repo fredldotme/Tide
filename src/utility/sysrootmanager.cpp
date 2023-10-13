@@ -43,8 +43,6 @@ void SysrootManager::unpackTar(QString archive, QString target)
 
     mtar_open(&tar, archive.toUtf8().data(), "r");
     while ((mtar_read_header(&tar, &tarHeader)) != MTAR_ENULLRECORD) {
-        printf("%s (%d bytes, type %d)\n", tarHeader.name, tarHeader.size, tarHeader.type);
-
         const auto temporaryPath = target + "/" + QString::fromUtf8(tarHeader.name, strlen(tarHeader.name));
         const auto temporaryDirPath = QFileInfo(temporaryPath).absolutePath();
         QDir temporaryDir(temporaryDirPath);
@@ -69,8 +67,6 @@ void SysrootManager::unpackTar(QString archive, QString target)
                 qWarning() << "Failed to write size of" << tarHeader.size;
                 goto next;
             }
-
-            qDebug() << "Unpacked" << temporaryPath;
         }
 
     next:
@@ -85,6 +81,16 @@ void SysrootManager::unpackTar(QString archive, QString target)
 
 void SysrootManager::runInThread()
 {
+#if defined(Q_OS_IOS)
+    const auto resourcesRoot = qApp->applicationDirPath();
+#elif defined(Q_OS_MACOS)
+    const auto resourcesRoot = qApp->applicationDirPath() + QStringLiteral("/../Resources");
+#else
+    const auto resourcesRoot = qApp->applicationDirPath() + QStringLiteral("/Resources");
+#endif
+
+    qDebug() << "Resources:" << resourcesRoot;
+
     const QString temporaries = QStandardPaths::writableLocation(QStandardPaths::TempLocation) +
                                 QStringLiteral("/The-Sysroot");
 
@@ -105,28 +111,28 @@ void SysrootManager::runInThread()
 
     // Unpack new temporaries
     {
-        const auto archive = qApp->applicationDirPath() + "/the-sysroot.tar";
+        const auto archive = resourcesRoot + "/the-sysroot.tar";
         unpackTar(archive, temporaries);
         setProgress((qreal)stage++ / (qreal)stages);
     }
 
     // Boost
     {
-        const auto archive = qApp->applicationDirPath() + "/boost.tar";
+        const auto archive = resourcesRoot + "/boost.tar";
         unpackTar(archive, temporaries + QStringLiteral("/Sysroot/include"));
         setProgress((qreal)stage++ / (qreal)stages);
     }
 
     // CMake
     {
-        const auto archive = qApp->applicationDirPath() + "/cmake.tar";
+        const auto archive = resourcesRoot + "/cmake.tar";
         unpackTar(archive, temporaries + QStringLiteral("/CMake"));
         setProgress((qreal)stage++ / (qreal)stages);
     }
 
     // Python
     {
-        const auto archive = qApp->applicationDirPath() + "/python.tar";
+        const auto archive = resourcesRoot + "/python.tar";
         unpackTar(archive, temporaries + QStringLiteral("/Python"));
         setProgress((qreal)stage++ / (qreal)stages);
     }
@@ -167,7 +173,7 @@ void SysrootManager::runInThread()
                 dir.mkpath(targetDir);
             }
 
-            qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
+            //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
             QFile::rename(sourcePath, targetPath);
         }
         setProgress((qreal)stage++ / (qreal)stages);
@@ -198,7 +204,7 @@ void SysrootManager::runInThread()
                 dir.mkpath(targetDir);
             }
 
-            qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
+            //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
             QFile::rename(sourcePath, targetPath);
         }
         setProgress((qreal)stage++ / (qreal)stages);
@@ -229,7 +235,7 @@ void SysrootManager::runInThread()
                 dir.mkpath(targetDir);
             }
 
-            qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
+            //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
             QFile::rename(sourcePath, targetPath);
         }
         setProgress((qreal)stage++ / (qreal)stages);
@@ -260,7 +266,7 @@ void SysrootManager::runInThread()
                 dir.mkpath(targetDir);
             }
 
-            qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
+            //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
             QFile::rename(sourcePath, targetPath);
         }
         setProgress((qreal)stage++ / (qreal)stages);

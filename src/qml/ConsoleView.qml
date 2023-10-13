@@ -36,7 +36,6 @@ Item {
         id: consoleOutput
         onCountChanged: {
             if (consoleView.visibility) {
-                consoleInputField.focus = false
                 consoleInputField.focus = true
             }
         }
@@ -48,7 +47,6 @@ Item {
         repeat: false
         onTriggered: {
             if (consoleView.visibility) {
-                consoleInputField.focus = false
                 consoleInputField.focus = true
             }
         }
