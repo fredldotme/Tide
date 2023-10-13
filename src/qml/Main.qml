@@ -488,7 +488,7 @@ ApplicationWindow {
             }
 
             Item {
-                Layout.fillWidth: true
+                Layout.fillWidth: root.landscapeMode
             }
 
             Row {
@@ -503,8 +503,8 @@ ApplicationWindow {
 
                 BusyIndicator {
                     id: hudIndicator
-                    visible: wasmRunner.running || projectBuilder.building || dbugger.running
-                    running: wasmRunner.running || projectBuilder.building || dbugger.running
+                    visible: wasmRunner.running || projectBuilder.building || dbugger.running || git.busy
+                    running: wasmRunner.running || projectBuilder.building || dbugger.running || git.busy
                 }
 
                 Text {
@@ -581,7 +581,7 @@ ApplicationWindow {
                     }
 
                     function flashMessage(msg) {
-                        flashMessageWithDuration(msg, 1500)
+                        flashMessageWithDuration(msg, 3000)
                     }
 
                     function flashMessageWithDuration(msg, duration) {
@@ -651,6 +651,25 @@ ApplicationWindow {
                     runtimeRunner.run(runtime + "/out.wasm", ["/bin/bash"])
                 }
             }*/
+
+            TideHeaderButton {
+                //rightPadding: paddingMedium
+                source: Qt.resolvedUrl("qrc:/assets/arrow.triangle.branch@2x.png")
+                color: root.headerItemColor
+                visible: true // TODO
+                height: headerItemHeight
+
+                onClicked: root.showDialog(gitManagementComponent)
+                onPressAndHold: root.showDialog(gitManagementComponent)
+
+                Component {
+                    id: gitManagementComponent
+
+                    TideInteractiveDialog {
+
+                    }
+                }
+            }
 
             TideHeaderButton {
                 //rightPadding: paddingMedium
@@ -1004,6 +1023,24 @@ ApplicationWindow {
             }
     }
 
+    GitClient {
+        id: git
+        onRepoCloned:
+            (url, name) => {
+                console.log("Repo cloned")
+                hud.hudLabel.flashMessage(qsTr("Repo '%1' cloned").arg(name))
+                root.reloadFilestructure()
+            }
+        onRepoCloneStarted:
+            (url, name) => {
+                hud.hudLabel.flashMessage(qsTr("Started cloning '%1'").arg(name))
+            }
+
+        onRepoExists: {
+            console.log("Repo already exists")
+        }
+    }
+
     QtObject {
         id: runners
 
@@ -1260,6 +1297,14 @@ ApplicationWindow {
                     }
                 }
                 TideButton {
+                    icon.source: Qt.resolvedUrl("qrc:/assets/icloud.and.arrow.down@2x.png")
+                    font.pixelSize: startPage.sideLength
+                    height: parent.height
+                    color: root.palette.button
+                    text: qsTr("Clone")
+                    onClicked: root.showDialog(cloneDialogComponent)
+                }
+                TideButton {
                     icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.down.on.square@2x.png")
                     font.pixelSize: startPage.sideLength
                     height: parent.height
@@ -1408,6 +1453,15 @@ ApplicationWindow {
                                                             }
                                                         }
                                                         ToolButton {
+                                                            text: qsTr("Clone")
+                                                            icon.source: Qt.resolvedUrl("qrc:/assets/icloud.and.arrow.down@2x.png")
+                                                            icon.color: root.palette.button
+                                                            leftPadding: paddingMedium
+                                                            onClicked: {
+                                                                root.showDialog(cloneDialogComponent)
+                                                            }
+                                                        }
+                                                        ToolButton {
                                                             text: qsTr("Import")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.down.on.square@2x.png")
                                                             icon.color: root.palette.button
@@ -1420,6 +1474,24 @@ ApplicationWindow {
                                                 Connections {
                                                     target: projectCreator
                                                     function onProjectCreated() {
+                                                        projectList.refresh()
+                                                    }
+                                                }
+
+                                                Connections {
+                                                    target: root
+                                                    function onReloadFilestructure() {
+                                                        projectList.refresh()
+                                                    }
+                                                }
+
+                                                property bool refreshFlick : false
+                                                onFlickStarted: {
+                                                    refreshFlick = atYBeginning
+                                                }
+                                                onFlickEnded: {
+                                                    if (atYBeginning && refreshFlick)
+                                                    {
                                                         projectList.refresh()
                                                     }
                                                 }
@@ -1530,6 +1602,17 @@ ApplicationWindow {
                                                         return qsTr("%1 contents").arg(fileIo.directoryContents(listing.path))
                                                     } else {
                                                         return qsTr("%1 bytes").arg(fileIo.fileSize(listing.path))
+                                                    }
+                                                }
+
+                                                property bool refreshFlick : false
+                                                onFlickStarted: {
+                                                    refreshFlick = atYBeginning
+                                                }
+                                                onFlickEnded: {
+                                                    if (atYBeginning && refreshFlick)
+                                                    {
+                                                        refresh()
                                                     }
                                                 }
 
@@ -2654,6 +2737,62 @@ ApplicationWindow {
             property bool rubberDuck : false
             property bool fallbackInterpreter : false
             readonly property bool aotOptimizations : false
+        }
+
+        Component {
+            id: cloneDialogComponent
+            TideDialog {
+                title: qsTr("Clone project");
+                modal: true
+                anchors.centerIn: parent
+                standardButtons: Dialog.Ok | Dialog.Cancel
+                Component.onCompleted: imFixer.setupImEventFilter(projectName)
+
+                signal done()
+
+                Column {
+                    width: parent.width
+                    height: implicitHeight
+
+                    TextField {
+                        id: projectUrl
+                        width: parent.width
+                        placeholderText: qsTr("URL:")
+                        focus: true
+                        validator: RegularExpressionValidator {
+                            regularExpression: /^[http|https|git]:\/\/[a-zA-Z0-9_.-]*$/
+                        }
+                        onTextChanged: {
+                            let newProjectName = ""
+                            {
+                                const crumbs = projectBuilder.projectFile.split('/');
+                                if (crumbs.length > 0) {
+                                    newProjectName = crumbs[crumbs.length - 1]
+                                }
+                            }
+                            projectName.text = newProjectName
+                        }
+                    }
+                    TextField {
+                        id: projectName
+                        width: parent.width
+                        placeholderText: qsTr("Name:")
+                        focus: true
+                        validator: RegularExpressionValidator {
+                            regularExpression: /^[a-zA-Z0-9_.-]*$/
+                        }
+                    }
+                }
+
+                onAccepted: {
+                    git.clone(projectUrl.text, projectName.text)
+                    done()
+                }
+
+                onRejected: {
+                    done()
+                }
+            }
         }
 
         Component {

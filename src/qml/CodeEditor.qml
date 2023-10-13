@@ -341,7 +341,7 @@ Item {
                     icon.source: Qt.resolvedUrl("qrc:/assets/link@2x.png")
                     font.pixelSize: 20
                     onClicked: {
-                        Qt.openUrlExternally("https://github.com/fredldotme/TideExamples")
+                        git.clone("https://github.com/fredldotme/TideExamples", "TideExamples");
                     }
                 }
                 Button {

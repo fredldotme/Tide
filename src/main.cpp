@@ -23,6 +23,7 @@
 #include "cppformatter.h"
 #include "searchandreplace.h"
 #include "debugger.h"
+#include "gitclient.h"
 
 #include "platform/systemglue.h"
 
@@ -100,6 +101,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<CppFormatter>("Tide", 1, 0, "CppFormatter");
     qmlRegisterType<SearchAndReplace>("Tide", 1, 0, "SearchAndReplace");
     qmlRegisterType<Debugger>("Tide", 1, 0, "Debugger");
+    qmlRegisterType<GitClient>("Tide", 1, 0, "GitClient");
     qmlRegisterType<PlatformIntegrationDelegate>("Tide", 1, 0, "PlatformIntegrationDelegate");
 
     qmlRegisterUncreatableType<SystemGlue>("Tide", 1, 0, "IosSystemGlue", "Created in main() as 'iosSystem'.");

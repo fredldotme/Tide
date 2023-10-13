@@ -160,7 +160,7 @@ ColumnLayout {
         font.pixelSize: 18
         spacing: 8
         onClicked: {
-            Qt.openUrlExternally("https://github.com/fredldotme/TideExamples")
+            git.clone("https://github.com/fredldotme/TideExamples", "TideExamples");
         }
     }
     Button {

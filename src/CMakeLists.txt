@@ -122,6 +122,7 @@ qt_add_executable(${PROJECT_NAME}
     utility/debugger.cpp
     utility/runners/pyrunner.cpp
     utility/runners/wasmrunner.cpp
+    utility/gitclient.cpp
     projects/bookmarkdb.cpp
     projects/projectbuilder.cpp
     projects/projectcreator.cpp
@@ -501,7 +502,16 @@ target_link_libraries(${PROJECT_NAME}
     ${UIKITLIBRARY}
     ${ANGLE_A}
     ${PROJECT_NAME}-platform
-    vmlib
+
+    # Fit for git
+    libgit2
+    util
+    pcre
+    xdiff
+    ntlmclient
+    http-parser
+    iconv
+
     #SDL2-static
 )
 

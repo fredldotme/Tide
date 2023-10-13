@@ -77,6 +77,8 @@ include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
 include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
 
 add_library(vmlibfast
+    STATIC
+
     ${WAMR_RUNTIME_LIB_SOURCE}
     ${PLATFORM_SHARED_SOURCE}
     ${MEM_ALLOC_SHARED_SOURCE}
@@ -90,6 +92,12 @@ add_library(vmlibfast
     ${IWASM_COMMON_SOURCE}
     ${IWASM_INTERP_SOURCE}
     ${IWASM_AOT_SOURCE})
+
+target_link_libraries(vmlibfast
+    PRIVATE
+    ${LLVM}
+    ${NOSYSTEM}
+)
 
 qt_add_library(${PROJECT_NAME}
     SHARED
