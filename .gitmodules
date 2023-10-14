@@ -75,4 +75,4 @@
 	url = https://github.com/python/cpython.git
 [submodule "3rdparty/libgit2"]
 	path = 3rdparty/libgit2
-	url = https://github.com/libgit2/libgit2.git
+	url = https://github.com/fredldotme/libgit2.git
