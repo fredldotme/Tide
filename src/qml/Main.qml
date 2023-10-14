@@ -656,7 +656,7 @@ ApplicationWindow {
                 //rightPadding: paddingMedium
                 source: Qt.resolvedUrl("qrc:/assets/arrow.triangle.branch@2x.png")
                 color: root.headerItemColor
-                visible: true // TODO
+                visible: projectBuilder.projectFile !== ""
                 height: headerItemHeight
 
                 onClicked: root.showDialog(gitManagementComponent)
@@ -665,8 +665,9 @@ ApplicationWindow {
                 Component {
                     id: gitManagementComponent
 
-                    TideInteractiveDialog {
-
+                    GitDialog {
+                        width: mainView.dialogWidth
+                        height: mainView.dialogHeight
                     }
                 }
             }
@@ -1038,6 +1039,16 @@ ApplicationWindow {
 
         onRepoExists: {
             console.log("Repo already exists")
+        }
+
+        path: {
+            let fullPath = projectBuilder.projectFile;
+            if (fullPath === "")
+                return "";
+
+            let parts = fullPath.split("/")
+            parts.pop()
+            return parts.join("/")
         }
     }
 
@@ -1447,7 +1458,6 @@ ApplicationWindow {
                                                             text: qsTr("Create")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/plus.app@2x.png")
                                                             icon.color: root.palette.button
-                                                            leftPadding: paddingMedium
                                                             onClicked: {
                                                                 root.showDialog(createProjectDialogComponent)
                                                             }
@@ -1456,7 +1466,6 @@ ApplicationWindow {
                                                             text: qsTr("Clone")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/icloud.and.arrow.down@2x.png")
                                                             icon.color: root.palette.button
-                                                            leftPadding: paddingMedium
                                                             onClicked: {
                                                                 root.showDialog(cloneDialogComponent)
                                                             }
@@ -1465,7 +1474,6 @@ ApplicationWindow {
                                                             text: qsTr("Import")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.down.on.square@2x.png")
                                                             icon.color: root.palette.button
-                                                            leftPadding: paddingSmall
                                                             onClicked: projectPicker.startImport()
                                                         }
                                                     }
@@ -2759,13 +2767,13 @@ ApplicationWindow {
                         width: parent.width
                         placeholderText: qsTr("URL:")
                         focus: true
-                        validator: RegularExpressionValidator {
-                            regularExpression: /^[http|https|git]:\/\/[a-zA-Z0-9_.-]*$/
-                        }
+                        /*validator: RegularExpressionValidator {
+                            regularExpression: /^(http|https|git):\/\//
+                        }*/
                         onTextChanged: {
                             let newProjectName = ""
                             {
-                                const crumbs = projectBuilder.projectFile.split('/');
+                                const crumbs = projectUrl.text.split('/');
                                 if (crumbs.length > 0) {
                                     newProjectName = crumbs[crumbs.length - 1]
                                 }

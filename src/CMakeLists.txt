@@ -186,6 +186,8 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/TideComboBox.qml
     qml/TideHeaderButton.qml
     qml/AutocompletorFrame.qml
+    qml/GitDialog.qml
+    qml/GitLogEntry.qml
 
     NO_LINT
 )
