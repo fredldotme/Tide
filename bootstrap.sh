@@ -2,14 +2,32 @@
 
 set -e
 
+BUILD_LINUX=0
+if [ "$1" = "--linux" ]; then
+    BUILD_LINUX=1
+fi
+
 # Preparations
 if [ ! -d tmp ]; then
     mkdir tmp
 fi
 
-IOS_SDKROOT=$(xcrun --sdk iphoneos --show-sdk-path)
-SIM_SDKROOT=$(xcrun --sdk iphonesimulator --show-sdk-path)
+if [ "$BUILD_LINUX" = "0" ]; then
+    IOS_SDKROOT=$(xcrun --sdk iphoneos --show-sdk-path)
+    SIM_SDKROOT=$(xcrun --sdk iphonesimulator --show-sdk-path)
+fi
 OLD_PWD=$(pwd)
+
+
+if [ "$BUILD_LINUX" = "0" ]; then
+    CLANG_BINS=$OLD_PWD/3rdparty/llvm/build_osx/bin
+    CLANG_LIBS=$OLD_PWD/3rdparty/llvm/build_osx/lib
+    LLVM_BUILD=build-iphoneos
+else
+    CLANG_BINS=$OLD_PWD/3rdparty/llvm/build-linux/bin
+    CLANG_LIBS=$OLD_PWD/3rdparty/llvm/build-linux/lib
+    LLVM_BUILD=build-linux
+fi
 
 function cmake_iossystem_build {
     echo "Custom args: $1"
@@ -42,11 +60,11 @@ function cmake_wasi_build {
         -DCMAKE_SYSTEM_NAME=WASI \
         -DCMAKE_SYSTEM_VERSION=1 \
         -DCMAKE_SYSTEM_PROCESSOR=wasm32 \
-        -DCMAKE_C_COMPILER=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang \
-        -DCMAKE_CXX_COMPILER=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang++ \
-        -DCMAKE_ASM_COMPILER=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang \
-        -DCMAKE_AR=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ar \
-        -DCMAKE_RANLIB=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ranlib \
+        -DCMAKE_C_COMPILER=$CLANG_BINS/clang \
+        -DCMAKE_CXX_COMPILER=$CLANG_BINS/clang++ \
+        -DCMAKE_ASM_COMPILER=$CLANG_BINS/clang \
+        -DCMAKE_AR=$CLANG_BINS/llvm-ar \
+        -DCMAKE_RANLIB=$CLANG_BINS/llvm-ranlib \
         -DCMAKE_C_COMPILER_TARGET=$1 \
         -DCMAKE_CXX_COMPILER_TARGET=$1 \
         -DCMAKE_ASM_COMPILER_TARGET=$1 \
@@ -60,42 +78,58 @@ function cmake_wasi_build {
 
 # LLVM
 cd 3rdparty/llvm/
-# ./bootstrap.sh
+if [ "$BUILD_LINUX" = "0" ]; then
+    ./bootstrap.sh
+else
+    mkdir build-linux || true
+    cd build-linux
+    cmake -GNinja \
+        -DLLVM_TARGETS_TO_BUILD="WebAssembly" \
+        -DLLVM_ENABLE_PROJECTS='clang;lld;lldb' \
+        -DLLVM_ENABLE_EH=ON \
+        -DLLVM_ENABLE_RTTI=ON \
+        -DLLVM_LINK_LLVM_DYLIB=ON \
+        -DLLDB_INCLUDE_TESTS=OFF \
+        -DCMAKE_BUILD_TYPE=Release \
+        ../llvm
+    ninja
+fi
 cd $OLD_PWD
 
-# libclang
-LIBNAME=libclang
-cd tmp
-rm -rf libclang.framework || true
-mkdir -p $LIBNAME.framework
-cd $LIBNAME.framework
-cp -a $OLD_PWD/aux/libclang/Info.plist ./
-cp -a $OLD_PWD/3rdparty/llvm/build-iphoneos/lib/libclang.dylib ./$LIBNAME
-install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/libLLVM.framework/libLLVM" ./$LIBNAME
-install_name_tool -id "@rpath/libclang.framework/libclang" ./$LIBNAME
-plutil -convert binary1 Info.plist
-cd $OLD_PWD
+if [ "$BUILD_LINUX" = "0" ]; then
+    # libclang
+    LIBNAME=libclang
+    cd tmp
+    rm -rf libclang.framework || true
+    mkdir -p $LIBNAME.framework
+    cd $LIBNAME.framework
+    cp -a $OLD_PWD/aux/libclang/Info.plist ./
+    cp -a $OLD_PWD/3rdparty/llvm/build-iphoneos/lib/libclang.dylib ./$LIBNAME
+    install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/libLLVM.framework/libLLVM" ./$LIBNAME
+    install_name_tool -id "@rpath/libclang.framework/libclang" ./$LIBNAME
+    plutil -convert binary1 Info.plist
+    cd $OLD_PWD
 
+    # CMake
+    cd 3rdparty/CMake
+    cmake_iossystem_build "-DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/no_system/build-iphoneos/Debug-iphoneos"
+    tar cvf $OLD_PWD/tmp/cmake.tar Modules
+    cd $OLD_PWD
 
-# CMake
-cd 3rdparty/CMake
-cmake_iossystem_build "-DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/no_system/build-iphoneos/Debug-iphoneos"
-tar cvf $OLD_PWD/tmp/cmake.tar Modules
-cd $OLD_PWD
-
-# Ninja
-cd 3rdparty/ninja
-cmake_iossystem_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DNINJA_BUILD_BINARY=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/no_system/build-iphoneos/Debug-iphoneos"
-cd $OLD_PWD
+    # Ninja
+    cd 3rdparty/ninja
+    cmake_iossystem_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DNINJA_BUILD_BINARY=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/3rdparty/llvm/no_system/build-iphoneos/Debug-iphoneos"
+    cd $OLD_PWD
+fi
 
 # wasi-libc
 cd 3rdparty/wasi-libc
-make CC=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang \
-     AR=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ar \
-     NM=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-nm
-make CC=$OLD_PWD/3rdparty/llvm/build_osx/bin/clang \
-     AR=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-ar \
-     NM=$OLD_PWD/3rdparty/llvm/build_osx/bin/llvm-nm \
+make CC=$CLANG_BINS/clang \
+     AR=$CLANG_BINS/llvm-ar \
+     NM=$CLANG_BINS/llvm-nm
+make CC=$CLANG_BINS/clang \
+     AR=$CLANG_BINS/llvm-ar \
+     NM=$CLANG_BINS/llvm-nm \
      SYSROOT=$(pwd)/sysroot-threads \
      THREAD_MODEL=posix
 rm -rf $OLD_PWD/tmp/wasi-sysroot
@@ -124,7 +158,7 @@ cd $OLD_PWD
 cd tmp
 curl -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/libclang_rt.builtins-wasm32-wasi-20.0.tar.gz --output clangrt.tar.gz
 tar xvf clangrt.tar.gz
-cp -a $OLD_PWD/tmp/lib/wasi $OLD_PWD/3rdparty/llvm/build_osx/lib/clang/17/lib/
+cp -a $OLD_PWD/tmp/lib/wasi $CLANG_LIBS/clang/17/lib/
 cd $OLD_PWD
 
 # OpenSSL
@@ -231,7 +265,7 @@ mkdir -p tmp/the-sysroot/Clang
 mkdir -p tmp/the-sysroot/Sysroot
 mkdir -p tmp/the-sysroot/Clang/lib/wasi/
 cp -a $OLD_PWD/tmp/wasi-sysroot/* tmp/the-sysroot/Sysroot
-cp -a $OLD_PWD/3rdparty/llvm/build-iphoneos/lib/clang/17/include tmp/the-sysroot/Clang/
+cp -a $OLD_PWD/3rdparty/llvm/$LLVM_BUILD/lib/clang/17/include tmp/the-sysroot/Clang/
 cp -a $OLD_PWD/tmp/lib/wasi/* tmp/the-sysroot/Clang/lib/wasi/
 tar cvf tmp/the-sysroot.tar -C tmp/the-sysroot .
 cd $OLD_PWD

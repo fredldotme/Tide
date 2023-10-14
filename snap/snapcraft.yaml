@@ -1,0 +1,101 @@
+name: tide
+version: git
+grade: stable
+confinement: strict
+base: core22
+summary: A modern approach to WebAssembly development
+description: TBD
+
+apps:
+  tide:
+    environment:
+      LD_LIBRARY_PATH: ${SNAP}/usr/lib:${SNAP}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}
+      QT_PLUGIN_PATH: ${SNAP}/usr/plugins
+      # QML_IMPORT_PATH: ${SNAP}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/qt6/qml
+    command: tide
+    plugs: [ x11, wayland, desktop, desktop-legacy, opengl, alsa, pulseaudio, home, removable-media, network, network-bind ]
+
+parts:
+  tide:
+    plugin: cmake
+    source: .
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+      - libssl-dev
+      - libcrypt-dev
+    override-build: |
+      cd $SNAPCRAFT_PART_SRC
+      bash bootstrap.sh --linux
+      snapcraftctl build
+    after: [ llvm, qt6, qt6declarative ]
+  qt6:
+    plugin: cmake
+    source: https://github.com/qt/qtbase.git
+    source-branch: 6.6.0
+    cmake-parameters:
+      - -GNinja
+      - -DCMAKE_INSTALL_PREFIX=/usr
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+      - libinput-dev
+      - libgl-dev
+      - libgles-dev
+      - libwayland-dev
+      - libfontconfig1-dev
+      - libfreetype6-dev
+      - libx11-dev
+      - libx11-xcb-dev
+      - libxext-dev
+      - libxfixes-dev
+      - libxi-dev
+      - libxrender-dev
+      - libxcb1-dev
+      - libxcb-cursor-dev
+      - libxcb-glx0-dev
+      - libxcb-keysyms1-dev
+      - libxcb-image0-dev
+      - libxcb-shm0-dev
+      - libxcb-icccm4-dev
+      - libxcb-sync-dev
+      - libxcb-xfixes0-dev
+      - libxcb-shape0-dev
+      - libxcb-randr0-dev
+      - libxcb-render-util0-dev
+      - libxcb-util-dev
+      - libxcb-xinerama0-dev
+      - libxcb-xkb-dev
+      - libxkbcommon-dev
+      - libxkbcommon-x11-dev
+    stage-packages:
+      - libxkbcommon0
+      - dmz-cursor-theme
+      - light-themes
+      - adwaita-icon-theme
+      - gnome-themes-standard
+      - shared-mime-info
+      - libgdk-pixbuf2.0-0
+  qt6declarative:
+    plugin: cmake
+    source: https://github.com/qt/qtdeclarative.git
+    source-branch: 6.6.0
+    override-build: |
+      mkdir $SNAPCRAFT_PART_BUILD || true
+      cd $SNAPCRAFT_PART_BUILD
+      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_BUILD
+      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib:$LD_LIBRARY_PATH
+      ninja
+      ninja install
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+    after: [ qt6 ]
