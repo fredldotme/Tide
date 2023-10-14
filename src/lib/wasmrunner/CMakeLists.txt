@@ -72,29 +72,68 @@ if(APPLE AND NOT IOS)
     add_definitions(-DWASM_UINT32_IS_ATOMIC=1 -DWASM_ENABLE_WAMR_COMPILER=1)
 endif()
 
-# WAMR + AOT
-include(${WAMR_DIR}/core/shared/utils/shared_utils.cmake)
-include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
-include(${WAMR_DIR}/core/shared/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
-include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
-include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set (WAMR_BUILD_PLATFORM "linux")
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES aarch64)
+        set (WAMR_BUILD_TARGET "AARCH64")
+    else()
+        set (WAMR_BUILD_TARGET "X86_64")
+    endif()
+    set (WAMR_BUILD_INTERP 1)
+    set (WAMR_BUILD_AOT 0)
+    set (WAMR_BUILD_LIBC_BUILTIN 0)
+    set (WAMR_BUILD_LIBC_WASI 1)
+    set (WAMR_BUILD_LIB_WASI_THREADS 1)
+    set (WAMR_BUILD_SHARED_MEMORY 1)
+    set (WAMR_BUILD_TAIL_CALL 1)
+    set (WAMR_BUILD_LIBC_UVWASI 0)
+    set (WAMR_BUILD_SIMD 0)
+    set (WAMR_DISABLE_HW_BOUND_CHECK 1)
+    set (WAMR_BUILD_DEBUG_AOT 0)
+    set (WAMR_BUILD_THREAD_MGR 1)
+    set (WAMR_BUILD_MINI_LOADER 0)
+    set (WAMR_BUILD_DEBUG_INTERP 1)
+    set (WAMR_BUILD_REF_TYPES 1)
+    set (WAMR_BUILD_MULTI_MODULE 1)
+    set (WAMR_BUILD_EXCE_HANDLING 0)
+    set (WAMR_BUILD_WAMR_COMPILER 0)
+    set (WAMR_ROOT_DIR ${WAMR_DIR})
+    add_definitions(-DWASM_UINT32_IS_ATOMIC=1)
+endif()
 
-add_library(vmlib
-    STATIC
+# WAMR + AOT or not
+if(APPLE OR IOS)
+    include(${WAMR_DIR}/core/shared/utils/shared_utils.cmake)
+    include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
+    include(${WAMR_DIR}/core/shared/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
+    include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
+    include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
+endif()
 
-    ${WAMR_RUNTIME_LIB_SOURCE}
-    ${PLATFORM_SHARED_SOURCE}
-    ${MEM_ALLOC_SHARED_SOURCE}
-    ${UTILS_SHARED_SOURCE}
-    ${UNCOMMON_SHARED_SOURCE}
-    ${THREAD_MGR_SOURCE}
-    ${LIBC_BUILTIN_SOURCE}
-    ${LIBC_WASI_SOURCE}
-    ${LIB_PTHREAD_SOURCE}
-    ${LIB_WASI_THREADS_SOURCE}
-    ${IWASM_COMMON_SOURCE}
-    ${IWASM_INTERP_SOURCE}
-    ${IWASM_AOT_SOURCE})
+if (APPLE OR IOS)
+    add_library(vmlib
+        STATIC
+
+        ${WAMR_RUNTIME_LIB_SOURCE}
+        ${PLATFORM_SHARED_SOURCE}
+        ${MEM_ALLOC_SHARED_SOURCE}
+        ${UTILS_SHARED_SOURCE}
+        ${UNCOMMON_SHARED_SOURCE}
+        ${THREAD_MGR_SOURCE}
+        ${LIBC_BUILTIN_SOURCE}
+        ${LIBC_WASI_SOURCE}
+        ${LIB_PTHREAD_SOURCE}
+        ${LIB_WASI_THREADS_SOURCE}
+        ${IWASM_COMMON_SOURCE}
+        ${IWASM_INTERP_SOURCE}
+        ${IWASM_AOT_SOURCE})
+endif()
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
+    include (${WAMR_DIR}/build-scripts/runtime_lib.cmake)
+    add_library(vmlib ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
+endif()
 
 target_link_libraries(vmlib
     PRIVATE
@@ -153,6 +192,7 @@ endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(LLVM_LIBS /usr/lib/llvm-15/lib)
+    set(LLVM_SYSTEM_DEFAULT_HEADERS "/usr/include/llvm-15")
 
     find_library(LLVM REQUIRED NAMES libLLVM-15.so PATHS ${LLVM_FRAMEWORKS})
 endif()
@@ -160,6 +200,7 @@ endif()
 message(${LLVM_DIR}/${LLVM_MODE}/include)
 
 include_directories(${PROJECT_NAME}
+    ${LLVM_SYSTEM_DEFAULT_HEADERS}
     ${LLVM_DIR}/llvm/include
     ${LLVM_DIR}/${LLVM_BUILD_DIR}/include
     ${LLVM_INCLUDES}

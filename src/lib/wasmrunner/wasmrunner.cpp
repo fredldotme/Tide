@@ -16,6 +16,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <memory>
+#include <vector>
 
 #include <wasm_c_api.h>
 #include <wasm_export.h>

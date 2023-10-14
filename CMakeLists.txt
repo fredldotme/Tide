@@ -18,7 +18,10 @@ set(CMAKE_UTIL_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/CMake/build/Utilities)
 set(NINJA_PATH ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/ninja/build)
 
 # When it's time: add_subdirectory(${SDL_DIR})
-set(USE_HTTPS "SecureTransport" CACHE STRING "" FORCE)
+if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    set(USE_HTTPS "SecureTransport" CACHE STRING "" FORCE)
+endif()
+set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(${GIT2_DIR})
 
 # Main Tide source

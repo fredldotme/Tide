@@ -2,6 +2,7 @@
 #define WASMRUNNERINTERFACE_H
 
 #include <string>
+#include <memory>
 #include <dlfcn.h>
 
 typedef void* WasmRuntime;

@@ -1,6 +1,7 @@
 #include "wasmrunner.h"
 
 #include <QObject>
+#include <QCoreApplication>
 #include <QDebug>
 #include <QFile>
 #include <QFileInfo>

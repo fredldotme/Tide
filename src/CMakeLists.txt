@@ -84,7 +84,7 @@ if(APPLE)
 endif()
 
 # Qt6
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Sql QuickControls2 QuickEffectsPrivate)
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Sql QuickControls2)
 
 include_directories(${PROJECT_NAME}
     # QMake parser
@@ -224,6 +224,9 @@ include_directories(${PROJECT_NAME}
 )
 
 if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphoneos)
+    set (QT6GUIPRIVATE Qt6::GuiPrivate)
+    set (ICONV iconv)
+
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
 
@@ -336,6 +339,9 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
 endif()
 
 if(APPLE AND NOT IOS)
+    set (QT6GUIPRIVATE Qt6::GuiPrivate)
+    set (ICONV iconv)
+
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
 
@@ -427,6 +433,9 @@ if(APPLE AND NOT IOS)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    set (LIBZ z)
+    set (OPENSSL crypto ssl)
+
     find_library(LLVM REQUIRED NAMES libLLVM-15.so PATHS /usr/lib/llvm-15/lib)
 
     include_directories(${PROJECT_NAME}
@@ -464,7 +473,7 @@ target_link_libraries(${PROJECT_NAME}-platform
     PRIVATE
     Qt6::Core
     Qt6::Gui
-    Qt6::GuiPrivate
+    ${QT6GUIPRIVATE}
     Qt6::Sql
     Qt6::Quick
     Qt6::Widgets
@@ -502,7 +511,13 @@ target_link_libraries(${PROJECT_NAME}
     ${XML2}
     ${FOUNDATION_LIBRARY}
     ${UIKITLIBRARY}
+    ${LIBZ}
+    ${OPENSSL}
+
+    # Wasm APIs and other enhancements
     ${ANGLE_A}
+
+    # Platform abstraction
     ${PROJECT_NAME}-platform
 
     # Fit for git
@@ -512,7 +527,7 @@ target_link_libraries(${PROJECT_NAME}
     xdiff
     ntlmclient
     http-parser
-    iconv
+    ${ICONV}
 
     #SDL2-static
 )

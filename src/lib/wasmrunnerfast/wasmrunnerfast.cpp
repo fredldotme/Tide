@@ -16,6 +16,7 @@
 #include <pthread.h>
 #include <stdint.h>
 #include <memory>
+#include <vector>
 
 #include <wasm_c_api.h>
 #include <wasm_export.h>
@@ -100,7 +101,7 @@ int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int
     }
 
     std::cout << "Loading wasm: " << path << std::endl;
-    for (int i = 0; i < argc; i++) {
+    for (int i = 0; i < argc; i++) {
         std::cout << "arg: " << argv[i] << std::endl;
     }
 

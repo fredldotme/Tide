@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
         engine.rootContext()->setContextProperty("imFixer", &imFixer);
         engine.rootContext()->setContextProperty("sysroot", sysroot);
         engine.rootContext()->setContextProperty("iosSystem", &iosSystemGlue);
-        engine.rootContext()->setContextProperty("runtime", runtime);
+        //engine.rootContext()->setContextProperty("runtime", runtime);
 
         const QUrl url(u"qrc:/Tide/qml/Main.qml"_qs);
 #ifdef Q_OS_IOS
