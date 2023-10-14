@@ -76,3 +76,6 @@
 [submodule "3rdparty/libgit2"]
 	path = 3rdparty/libgit2
 	url = https://github.com/fredldotme/libgit2.git
+[submodule "3rdparty/threadweaver"]
+	path = 3rdparty/threadweaver
+	url = https://invent.kde.org/frameworks/threadweaver.git
