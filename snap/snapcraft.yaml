@@ -46,6 +46,7 @@ parts:
       - dpkg-dev
       - libssl-dev
       - libcrypt-dev
+      - curl
     override-build: |
       cd $SNAPCRAFT_PART_SRC
       bash bootstrap.sh --linux
