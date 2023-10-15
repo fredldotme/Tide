@@ -74,3 +74,4 @@ CMakeLists.txt.user*
 
 tmp/
 build/
+*.snap
