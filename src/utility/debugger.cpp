@@ -153,7 +153,7 @@ void Debugger::read(FILE* io)
                                     break;
                                 }
                             }
-                            if (!hasIndex) {
+                            if (!hasIndex) {
                                 m_backtrace.append(varmap);
                                 emit backtraceChanged();
                             }

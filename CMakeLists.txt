@@ -22,6 +22,8 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     set(USE_HTTPS "SecureTransport" CACHE STRING "" FORCE)
 endif()
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
+
+# libgit2
 add_subdirectory(${GIT2_DIR})
 
 # Main Tide source
