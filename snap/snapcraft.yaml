@@ -1,4 +1,4 @@
-name: tide
+name: tide-ide
 version: git
 grade: stable
 confinement: strict
