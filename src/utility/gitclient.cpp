@@ -101,15 +101,15 @@ void GitClient::clone(const QString& url, const QString& name)
     if (m_busy)
         return;
 
+    const auto projectDirPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                                QStringLiteral("/Projects/%1").arg(name);
+
+    if (QDir(projectDirPath).exists()) {
+        emit this->repoExists(projectDirPath, name);
+        return;
+    }
+
     const auto func = [=]() {
-        const auto projectDirPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
-                                    QStringLiteral("/Projects/%1").arg(name);
-
-        if (QDir(projectDirPath).exists()) {
-            emit this->repoExists(projectDirPath);
-            return;
-        }
-
         emit this->repoCloneStarted(url, name);
 
         git_repository* cloned_repo = nullptr;
@@ -144,6 +144,38 @@ void GitClient::clone(const QString& url, const QString& name)
     emit busyChanged();
 
     QThreadPool::globalInstance()->start(func);
+}
+
+bool GitClient::hasRepo(const QString& path)
+{
+    if (path.isEmpty())
+        return false;
+
+    git_repository* repo;
+    git_repository_open_ext(&repo, path.toStdString().c_str(), 0, nullptr);
+    if (repo) {
+        git_repository_free(repo);
+        return true;
+    } else {
+        return false;
+    }
+}
+
+void GitClient::stage(const QString& path)
+{
+    git_index *index;
+    git_strarray array = {0};
+
+    git_repository_index(&index, m_repo);
+    git_index_add_all(index, &array, 0, nullptr, nullptr);
+
+    git_index_write(index);
+    git_index_free(index);
+}
+
+void GitClient::unstage(const QString& path)
+{
+
 }
 
 QVariantList GitClient::logs(const QString branch)
@@ -219,3 +251,4 @@ QVariantList GitClient::logs(const QString branch)
 
     return ret;
 }
+

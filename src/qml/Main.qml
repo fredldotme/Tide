@@ -654,26 +654,6 @@ ApplicationWindow {
 
             TideHeaderButton {
                 //rightPadding: paddingMedium
-                source: Qt.resolvedUrl("qrc:/assets/arrow.triangle.branch@2x.png")
-                color: root.headerItemColor
-                visible: projectBuilder.projectFile !== ""
-                height: headerItemHeight
-
-                onClicked: root.showDialog(gitManagementComponent)
-                onPressAndHold: root.showDialog(gitManagementComponent)
-
-                Component {
-                    id: gitManagementComponent
-
-                    GitDialog {
-                        width: mainView.dialogWidth
-                        height: mainView.dialogHeight
-                    }
-                }
-            }
-
-            TideHeaderButton {
-                //rightPadding: paddingMedium
                 source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
                 color: dbugger.paused && !dbugger.heatingUp ? "orange" : root.headerItemColor
                 visible: projectBuilder.projectFile !== ""
@@ -1037,19 +1017,11 @@ ApplicationWindow {
                 hud.hudLabel.flashMessage(qsTr("Started cloning '%1'").arg(name))
             }
 
-        onRepoExists: {
-            console.log("Repo already exists")
-        }
-
-        path: {
-            let fullPath = projectBuilder.projectFile;
-            if (fullPath === "")
-                return "";
-
-            let parts = fullPath.split("/")
-            parts.pop()
-            return parts.join("/")
-        }
+        onRepoExists:
+            (path, name) => {
+                console.log("Repo already exists")
+                hud.hudLabel.flashMessage(qsTr("'%1' already cloned").arg(name))
+            }
     }
 
     QtObject {
@@ -1658,26 +1630,46 @@ ApplicationWindow {
                                                     RowLayout {
                                                         anchors.fill: parent
                                                         spacing: paddingSmall * 2
-                                                        ToolButton {
-                                                            text: qsTr("New file")
+                                                        TideToolButton {
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/doc.badge.plus@2x.png")
                                                             icon.color: root.palette.button
                                                             leftPadding: paddingMedium
+                                                            Layout.alignment: Qt.AlignLeft
+                                                            Layout.leftMargin: paddingSmall
                                                             onClicked: {
                                                                 let newFileDialog = root.showDialog(newFileDialogComponent)
                                                                 newFileDialog.rootPath = directoryListView.project.path
                                                                 newFileDialog.open();
                                                             }
                                                         }
-                                                        ToolButton {
-                                                            text: qsTr("New directory")
+                                                        TideToolButton {
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/plus.rectangle.on.folder@2x.png")
                                                             icon.color: root.palette.button
                                                             height: parent.height
+                                                            Layout.alignment: Qt.AlignLeft
                                                             onClicked: {
                                                                 let newDirectoryDialog = root.showDialog(newDirectoryDialogComponent)
                                                                 newDirectoryDialog.rootPath = directoryListView.project.path
                                                                 newDirectoryDialog.open();
+                                                            }
+                                                        }
+
+                                                        Item {
+                                                            Layout.fillWidth: true
+                                                        }
+
+                                                        TideToolButton {
+                                                            //rightPadding: paddingMedium
+                                                            text: qsTr("Status")
+                                                            icon.source: Qt.resolvedUrl("qrc:/assets/arrow.triangle.branch@2x.png")
+                                                            icon.color: root.palette.button
+                                                            visible: git.hasRepo(directoryListView.project.path)
+                                                            height: parent.height
+                                                            Layout.alignment: Qt.AlignRight
+                                                            Layout.rightMargin: paddingMedium
+                                                            onClicked: {
+                                                                git.path = directoryListView.project.path
+                                                                gitDialog.show()
                                                             }
                                                         }
                                                     }
@@ -2167,6 +2159,7 @@ ApplicationWindow {
                 // Bindings for reevaluation
                 paddedOverlayArea.children.length;
                 consoleView.visible;
+                gitDialog.visible;
                 overlayLandingPad.visible;
 
                 console.log("Reevaluating dialog shadow opacity: " + overlayLandingPad.visible + " " + consoleView.visible)
@@ -2175,6 +2168,9 @@ ApplicationWindow {
                     return 1.0
 
                 if (consoleView.visible)
+                    return 1.0
+
+                if (gitDialog.visible)
                     return 1.0
 
                 for (let i = 0; i < paddedOverlayArea.children.length; i++) {
@@ -2307,6 +2303,16 @@ ApplicationWindow {
                 openEditorFile(contextDialog.currentPath)
                 contextDialog.hide()
             }
+        }
+
+        GitDialog {
+            id: gitDialog
+            width: !landscapeMode && showDebugArea ?
+                       0 : // Don't overlap debugger area and ConsoleView in portraitMode
+                       mainView.dialogWidth - (debuggerArea.width / 2)
+            height: mainView.dialogHeight - paddedOverlayArea.y
+            parent: paddedOverlayArea
+            z: paddedOverlayArea.searchAndReplaceZ
         }
 
         /* Debugger area */
