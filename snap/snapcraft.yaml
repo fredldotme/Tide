@@ -32,7 +32,7 @@ parts:
       cd $SNAPCRAFT_PART_SRC
       bash bootstrap.sh --linux
       snapcraftctl build
-    after: [ llvm, qt6, qt6declarative ]
+    after: [ qt6, qt6declarative ]
   qt6:
     plugin: cmake
     source: https://github.com/qt/qtbase.git
@@ -89,10 +89,10 @@ parts:
     override-build: |
       mkdir $SNAPCRAFT_PART_BUILD || true
       cd $SNAPCRAFT_PART_BUILD
-      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_BUILD
+      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_SRC
       export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib:$LD_LIBRARY_PATH
       ninja
-      ninja install
+      DESTDIR=$SNAPCRAFT_STAGE ninja install
     build-packages:
       - cmake
       - ninja-build
