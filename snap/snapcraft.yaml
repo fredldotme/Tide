@@ -46,22 +46,22 @@ parts:
       - dpkg-dev
       - libssl-dev
       - libcrypt-dev
-    stage-packages:
-      - libpcre2-32-0
     override-build: |
       cd $SNAPCRAFT_PART_SRC
       bash bootstrap.sh --linux
       snapcraftctl build
-    after: [ qt6, qt6declarative ]
+    after: [ qt6declarative ]
   graphics-core22:
-    after: [ tide ]
     source: https://github.com/MirServer/graphics-core22.git
     plugin: dump
+    stage-packages:
+      - libpcre2-32-0
     override-prime: |
       craftctl default
       ${CRAFT_PART_SRC}/bin/graphics-core22-cleanup mesa-core22 nvidia-core22
     prime:
     - bin/graphics-core22-wrapper
+    after: [ tide ]
   qt6:
     plugin: cmake
     source: https://github.com/qt/qtbase.git
@@ -111,6 +111,8 @@ parts:
       - gnome-themes-standard
       - shared-mime-info
       - libgdk-pixbuf2.0-0
+    stage:
+      - usr/*
   qt6shadertools:
     plugin: cmake
     source: https://github.com/qt/qtshadertools.git
@@ -121,6 +123,7 @@ parts:
       cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_SRC
       export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib:$LD_LIBRARY_PATH
       ninja
+      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     override-stage: |
       cd $SNAPCRAFT_PART_BUILD
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
@@ -129,6 +132,8 @@ parts:
       - ninja-build
       - build-essential
       - dpkg-dev
+    stage:
+      - usr/*
     after: [ qt6 ]
   qt6declarative:
     plugin: cmake
@@ -140,6 +145,7 @@ parts:
       cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_SRC
       export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib:$LD_LIBRARY_PATH
       ninja
+      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     override-stage: |
       cd $SNAPCRAFT_PART_BUILD
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
@@ -148,4 +154,6 @@ parts:
       - ninja-build
       - build-essential
       - dpkg-dev
-    after: [ qt6, qt6shadertools ]
+    stage:
+      - usr/*
+    after: [ qt6shadertools ]
