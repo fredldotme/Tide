@@ -121,7 +121,7 @@ parts:
       mkdir $SNAPCRAFT_PART_BUILD || true
       cd $SNAPCRAFT_PART_BUILD
       cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_SRC
-      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib:$LD_LIBRARY_PATH
+      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     override-stage: |
@@ -143,7 +143,7 @@ parts:
       mkdir $SNAPCRAFT_PART_BUILD || true
       cd $SNAPCRAFT_PART_BUILD
       cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_SRC
-      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib:$LD_LIBRARY_PATH
+      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
       ninja
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     override-stage: |
