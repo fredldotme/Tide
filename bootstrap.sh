@@ -158,7 +158,8 @@ cd $OLD_PWD
 cd tmp
 curl -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/libclang_rt.builtins-wasm32-wasi-20.0.tar.gz --output clangrt.tar.gz
 tar xvf clangrt.tar.gz
-cp -a $OLD_PWD/tmp/lib/wasi $CLANG_LIBS/clang/17/lib/
+mkdir -p $CLANG_LIBS/clang/17/lib/wasi
+cp -a $OLD_PWD/tmp/lib/wasi/libclang_rt.builtins-wasm32.a $CLANG_LIBS/clang/17/lib/wasi/libclang_rt.builtins-wasm32.a
 cd $OLD_PWD
 
 # OpenSSL
