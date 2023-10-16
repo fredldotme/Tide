@@ -133,7 +133,7 @@ parts:
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     override-stage: |
       cd $SNAPCRAFT_PART_BUILD
-      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+      DESTDIR=$SNAPCRAFT_STAGE ninja install
     build-packages:
       - cmake
       - ninja-build
@@ -155,7 +155,7 @@ parts:
       DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
     override-stage: |
       cd $SNAPCRAFT_PART_BUILD
-      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+      DESTDIR=$SNAPCRAFT_STAGE ninja install
     build-packages:
       - cmake
       - ninja-build
