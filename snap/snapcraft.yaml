@@ -6,6 +6,12 @@ base: core22
 summary: A modern approach to WebAssembly development
 description: TBD
 
+architectures:
+  - build-on: [amd64]
+    build-for: [amd64]
+  - build-on: [arm64]
+    build-for: [arm64]
+
 apps:
   tide:
     environment:
@@ -49,7 +55,7 @@ parts:
       - curl
     override-build: |
       cd $SNAPCRAFT_PART_SRC
-      bash bootstrap.sh --linux
+      bash -x bootstrap.sh --linux
       snapcraftctl build
     after: [ qt6declarative ]
   graphics-core22:
