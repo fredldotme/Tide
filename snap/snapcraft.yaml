@@ -61,8 +61,9 @@ parts:
   graphics-core22:
     source: https://github.com/MirServer/graphics-core22.git
     plugin: dump
-    stage-packages:
-      - libpcre2-32-0
+    # Avoid polluting the "tide" part with deps since it causes massive rebuilds
+    stage-packages: 
+      - libpcre2-16-0
     override-prime: |
       craftctl default
       ${CRAFT_PART_SRC}/bin/graphics-core22-cleanup mesa-core22 nvidia-core22
