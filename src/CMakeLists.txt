@@ -89,24 +89,6 @@ if(APPLE)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
 endif()
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND mkdir -p "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${CLANGRT_DIR}/the-sysroot.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${CLANGRT_DIR}/boost.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${CLANGRT_DIR}/cmake.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${CLANGRT_DIR}/python.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
-endif()
-
 # Qt6
 find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Sql QuickControls2)
 
@@ -652,9 +634,24 @@ if(APPLE AND NOT IOS)
     )
 endif()
 
-# Non-resource bundling on Linux
+# Resource & tool bundling on Linux
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(LLVM_LIBRARIES "${LLVM_DIR}/${LLVM_BUILD_DIR}/lib")
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND mkdir -p "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${CLANGRT_DIR}/the-sysroot.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${CLANGRT_DIR}/boost.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${CLANGRT_DIR}/cmake.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${CLANGRT_DIR}/python.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
+    )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND cp -a "${LLVM_TOOLS}/clang-17" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
     )
