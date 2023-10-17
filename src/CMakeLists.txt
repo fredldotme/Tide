@@ -5,7 +5,7 @@ if(IOS OR APPLE)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(PROJECT_NAME tide)
+    set(PROJECT_NAME tide-ide)
 endif()
 
 project(${PROJECT_NAME} VERSION 1.6.0 LANGUAGES C CXX)
@@ -77,7 +77,7 @@ set(TIDE_SRC_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 if(IOS)
     resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
-    resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
+    # resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
     resource(COMMANDSYAML ${CMAKE_CURRENT_SOURCE_DIR} Resources commands.yaml)
 endif()
@@ -85,7 +85,7 @@ endif()
 if(APPLE)
     resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
-    resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
+    # resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
 endif()
 
@@ -410,10 +410,11 @@ if(APPLE AND NOT IOS)
     # LLVM
     find_library(LLVM REQUIRED NAMES LLVM PATHS ${LLVM_LIBS} CMAKE_FIND_ROOT_PATH_BOTH)
 
-    find_library(COMPRESSION compression)
-    find_library(XML2 xml2)
-    find_library(FOUNDATION_LIBRARY Foundation)
-    find_library(UIKIT_LIBRARY UIKit)
+    find_library(COMPRESSION compression REQUIRED)
+    find_library(XML2 xml2 REQUIRED)
+    find_library(FOUNDATION_LIBRARY Foundation REQUIRED)
+    find_library(SECURITY_LIBRARY Security REQUIRED)
+    find_library(LIBZ z REQUIRED)
 
     # libclang for C++ ASTs
     message("LLVM_LIBS: ${LLVM_LIBS}")
@@ -439,14 +440,12 @@ if(APPLE AND NOT IOS)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
+    include(GNUInstallDirs)
     set (LIBZ z)
     set (OPENSSL crypto ssl)
+    set (DL_LIBRARY dl)
 
     find_library(LLVM REQUIRED NAMES libLLVM-15.so PATHS /usr/lib/llvm-15/lib)
-
-    include_directories(${PROJECT_NAME}
-        "/usr/include/llvm-15"
-    )
 
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
@@ -516,6 +515,7 @@ target_link_libraries(${PROJECT_NAME}
     ${COMPRESSION}
     ${XML2}
     ${FOUNDATION_LIBRARY}
+    ${SECURITY_LIBRARY}
     ${UIKITLIBRARY}
     ${LIBZ}
     ${OPENSSL}
@@ -534,6 +534,8 @@ target_link_libraries(${PROJECT_NAME}
     ntlmclient
     http-parser
     ${ICONV}
+
+    ${DL_LIBRARY}
 
     #SDL2-static
 )
@@ -637,43 +639,19 @@ endif()
 # Resource & tool bundling on Linux
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(LLVM_LIBRARIES "${LLVM_DIR}/${LLVM_BUILD_DIR}/lib")
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND mkdir -p "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${CLANGRT_DIR}/the-sysroot.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${CLANGRT_DIR}/boost.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${CLANGRT_DIR}/cmake.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${CLANGRT_DIR}/python.tar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/Resources"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${LLVM_TOOLS}/clang-17" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${LLVM_TOOLS}/clang" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${LLVM_TOOLS}/clang++" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${LLVM_TOOLS}/lld" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${LLVM_TOOLS}/wasm-ld" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${LLVM_TOOLS}/lldb" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${LLVM_TOOLS}/lldb" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
-    )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${LLVM_LIBRARIES}/*.so" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../lib/"
-    )
+    install(FILES "${CLANGRT_DIR}/the-sysroot.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
+    install(FILES "${CLANGRT_DIR}/boost.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
+    # install(FILES "${CLANGRT_DIR}/cmake.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
+    install(FILES "${CLANGRT_DIR}/python.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
+
+    install(FILES "${LLVM_TOOLS}/clang-17" DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES "${LLVM_TOOLS}/clang" DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES "${LLVM_TOOLS}/clang++" DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES "${LLVM_TOOLS}/lld" DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES "${LLVM_TOOLS}/wasm-ld" DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(FILES "${LLVM_TOOLS}/lldb" DESTINATION ${CMAKE_INSTALL_BINDIR})
+
+    install(FILES "${LLVM_LIBRARIES}/libclang.so" DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(FILES "${LLVM_LIBRARIES}/libclang-cpp.so" DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(FILES "${LLVM_LIBRARIES}/libLLVM-17.so" DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()

@@ -104,3 +104,6 @@ target_link_libraries(${PROJECT_NAME}
     ${LIBCLANGFORMAT}
 )
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_LIBDIR})
+endif()
