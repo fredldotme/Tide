@@ -13,14 +13,14 @@ architectures:
     build-for: [arm64]
 
 apps:
-  tide:
+  tide-ide:
     environment:
-      LD_LIBRARY_PATH: ${SNAP}/usr/lib:${SNAP}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}
-      QT_PLUGIN_PATH: ${SNAP}/usr/plugins
-      QML_IMPORT_PATH: ${SNAP}/usr/qml
+      LD_LIBRARY_PATH: ${SNAP}/lib:${SNAP}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}
+      QT_PLUGIN_PATH: ${SNAP}/plugins
+      QML_IMPORT_PATH: ${SNAP}/qml
     command-chain:
       - bin/graphics-core22-wrapper
-    command: usr/bin/tide
+    command: bin/tide-ide
     plugs: [ x11, wayland, desktop, desktop-legacy, opengl, alsa, pulseaudio, home, removable-media, network, network-bind ]
 
 plugs:
@@ -44,7 +44,7 @@ parts:
     plugin: cmake
     source: .
     cmake-parameters:
-      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_INSTALL_PREFIX=/
     build-packages:
       - cmake
       - ninja-build
