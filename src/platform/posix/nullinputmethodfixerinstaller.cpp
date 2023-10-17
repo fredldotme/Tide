@@ -5,3 +5,7 @@ NullInputMethodFixerInstaller::NullInputMethodFixerInstaller(QObject *parent)
 {
 
 }
+
+void NullInputMethodFixerInstaller::setupImEventFilter(QQuickItem *item)
+{
+}
