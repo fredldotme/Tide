@@ -35,7 +35,6 @@ signals:
     void stdioWritersPrepared(StdioSpec spec);
     void stdioCreated(StdioSpec spec);
     void commandEnded(int returnCode);
-
 };
 
 #endif // POSIXSYSTEMGLUE_H

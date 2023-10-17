@@ -2,16 +2,19 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QStandardPaths>
+#include <QUrl>
+#include <QProcess>
 
-#include <unistd.h>
-#include <spawn.h>
+#include <thread>
+
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <spawn.h>
+#include <unistd.h>
 
-PosixSystemGlue::PosixSystemGlue(QObject *parent)
-    : QObject{parent}
+PosixSystemGlue::PosixSystemGlue(QObject* parent) : QObject(parent)
 {
-
 }
 
 PosixSystemGlue::~PosixSystemGlue()
@@ -60,6 +63,7 @@ std::pair<StdioSpec, StdioSpec> PosixSystemGlue::setupPipes()
     errReadEnd = fdopen(fdErr[0], "r");
     errWriteEnd = fdopen(fdErr[1], "w");
 
+    setvbuf(inReadEnd , nullptr , _IOLBF , 1024);
     setvbuf(outWriteEnd , nullptr , _IOLBF , 1024);
     setvbuf(errWriteEnd , nullptr , _IOLBF , 1024);
 
@@ -112,63 +116,16 @@ static inline std::vector<std::string> split_command(const std::string& cmd)
 // Blocking and hence shouldn't be called from the main or GUI threads
 bool PosixSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spec)
 {
-    StdioSpec copy;
-    int status;
-    pid_t childpid, statuspid;
-
-    if (spec.stdin || spec.stdout || spec.stderr) {
-        copy.stdin = fdopen(dup(fileno(spec.stdin)), "r");
-        copy.stdout = fdopen(dup(fileno(spec.stdout)), "w");
-        copy.stderr = fdopen(dup(fileno(spec.stderr)), "w");
-    } else {
-        copy.stdin = fdopen(dup(fileno(m_spec.stdin)), "r");
-        copy.stdout = fdopen(dup(fileno(m_spec.stdout)), "w");
-        copy.stderr = fdopen(dup(fileno(m_spec.stderr)), "w");
-    }
+    bool ret = true;
 
     for (const auto& command : cmds) {
-        const auto stdcmd = command.toStdString();
-        const auto cmdcrumbs = command.split(' ', Qt::KeepEmptyParts);
-
-        std::vector<std::string> args = split_command(stdcmd);
-        std::vector<const char*> cargs;
-
-        for (const auto& arg : args) {
-            cargs.push_back(arg.c_str());
+        if (runCommand(command, spec) != 0) {
+            ret = false;
+            break;
         }
-
-        if (cmdcrumbs.length() == 0)
-            continue;
-
-        posix_spawn_file_actions_t action;
-        posix_spawn_file_actions_init(&action);
-        posix_spawn_file_actions_adddup2(&action, fileno(copy.stdin), 0);
-        posix_spawn_file_actions_adddup2(&action, fileno(copy.stdout), 1);
-        posix_spawn_file_actions_adddup2(&action, fileno(copy.stderr), 2);
-        extern char **environ;
-
-        const auto binpath = qApp->applicationDirPath() + "/" + cmdcrumbs[0];
-        qDebug() << "Run build command:" << binpath;
-
-        status = posix_spawn(&childpid, binpath.toLocal8Bit().data(), &action, NULL, (char**)cargs.data(), environ);
-        statuspid = waitpid(childpid, &status, WUNTRACED | WCONTINUED);
-        posix_spawn_file_actions_destroy(&action);
-
-        if (statuspid == -1)
-            return false;
-        if (WEXITSTATUS(status) != 0)
-            return false;
     }
 
-done:
-    if (copy.stdin)
-        fclose(copy.stdin);
-    if (copy.stdout)
-        fclose(copy.stdout);
-    if (copy.stderr)
-        fclose(copy.stderr);
-
-    return true;
+    return ret;
 }
 
 // Blocking and hence shouldn't be called from the main or GUI threads
@@ -231,7 +188,6 @@ done:
 
     return ret;
 }
-
 
 void PosixSystemGlue::killBuildCommands()
 {

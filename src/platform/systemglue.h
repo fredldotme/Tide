@@ -1,7 +1,7 @@
 #ifndef SYSTEMGLUE_H
 #define SYSTEMGLUE_H
 
-#include <QtGlobal>
+#include <QtSystemDetection>
 
 #if defined(Q_OS_LINUX)
 #include "platform/posix/posixsystemglue.h"
