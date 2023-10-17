@@ -1,7 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(Tide VERSION 0.1 LANGUAGES CXX C)
+project(Tide VERSION 0.1 LANGUAGES C)
+project(Tide VERSION 0.1 LANGUAGES CXX)
 set (CMAKE_CXX_STANDARD 17)
+
+option(BUILD_CLICK_METADATA "Build metadata for Ubuntu Touch Click packaging" ON)
 
 set(LLVM_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/llvm)
 set(WASI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tmp/wasi-sysroot)
@@ -25,6 +28,10 @@ set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 # libgit2
 add_subdirectory(${GIT2_DIR})
+
+if(BUILD_CLICK_METADATA)
+    add_subdirectory(click)
+endif()
 
 # Main Tide source
 add_subdirectory(src)

@@ -1,0 +1,22 @@
+{
+    "builder": "custom",
+    "default": "build",
+    "kill": "tide",
+    "dependencies_host": [
+        "clang",
+        "ninja-build"
+    ],
+    "dependencies_target": [
+        "libwayland-dev",
+        "mesa-common-dev",
+        "libgl-dev",
+        "libgles-dev",
+        "libgles2-mesa-dev",
+        "libegl1-mesa-dev",
+        "libhybris-dev"
+    ],
+    "build": "bash ${ROOT}/click/build.sh",
+    "make_jobs": 6,
+    "qt_version": "5.12",
+    "framework": "ubuntu-sdk-20.04"
+}

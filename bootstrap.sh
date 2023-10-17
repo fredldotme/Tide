@@ -83,7 +83,8 @@ if [ "$BUILD_LINUX" = "0" ]; then
 else
     mkdir build-linux || true
     cd build-linux
-    cmake -GNinja \
+
+    env CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake -GNinja \
         -DLLVM_TARGETS_TO_BUILD="WebAssembly" \
         -DLLVM_ENABLE_PROJECTS='clang;lld;lldb' \
         -DLLVM_ENABLE_EH=ON \

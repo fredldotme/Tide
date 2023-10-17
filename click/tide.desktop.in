@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Tide
+Exec=tide-ide %U
+Icon=logo.png
+Terminal=false
+Type=Application
+X-Ubuntu-Touch=true

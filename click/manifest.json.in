@@ -1,0 +1,16 @@
+{
+    "name": "tide.fredldotme",
+    "description": "A modern approach to WebAssembly development",
+    "architecture": "@CLICK_ARCH@",
+    "title": "Tide",
+    "hooks": {
+        "pvms": {
+            "apparmor": "tide.apparmor",
+            "desktop":  "tide.desktop",
+            "content-hub": "tide.contenthub"
+        }
+    },
+    "version": "1.7.0",
+    "maintainer": "Alfred Neumayer <dev.beidl@gmail.com>",
+    "framework" : "@CLICK_FRAMEWORK@"
+}
