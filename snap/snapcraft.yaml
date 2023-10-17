@@ -53,6 +53,7 @@ parts:
       - libssl-dev
       - libcrypt-dev
       - curl
+      - clang
     override-build: |
       cd $SNAPCRAFT_PART_SRC
       bash -x bootstrap.sh --linux
