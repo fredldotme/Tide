@@ -11,7 +11,7 @@ ClangWrapper::ClangWrapper()
 #elif defined(Q_OS_MACOS)
     const auto libPath = qApp->applicationDirPath() + QStringLiteral("/../Frameworks/libclang.dylib");
 #else
-    const auto libPath = qApp->applicationDirPath() + QStringLiteral("/Frameworks");
+    const auto libPath = qApp->applicationDirPath() + QStringLiteral("/../lib/libclang.so");
 #endif
 
     this->handle = dlopen(libPath.toStdString().c_str(), RTLD_NOW);

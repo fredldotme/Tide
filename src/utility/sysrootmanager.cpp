@@ -86,7 +86,7 @@ void SysrootManager::runInThread()
 #elif defined(Q_OS_MACOS)
     const auto resourcesRoot = qApp->applicationDirPath() + QStringLiteral("/../Resources");
 #else
-    const auto resourcesRoot = qApp->applicationDirPath() + QStringLiteral("/Resources");
+    const auto resourcesRoot = qApp->applicationDirPath() + QStringLiteral("/../tide");
 #endif
 
     qDebug() << "Resources:" << resourcesRoot;
@@ -97,7 +97,7 @@ void SysrootManager::runInThread()
     m_installing = true;
     emit installingChanged();
 
-    const int stages = 9;
+    const int stages = 7;
     int stage = 0;
 
     // Clear old temporaries
@@ -123,12 +123,14 @@ void SysrootManager::runInThread()
         setProgress((qreal)stage++ / (qreal)stages);
     }
 
+#if 0
     // CMake
     {
         const auto archive = resourcesRoot + "/cmake.tar";
         unpackTar(archive, temporaries + QStringLiteral("/CMake"));
         setProgress((qreal)stage++ / (qreal)stages);
     }
+#endif
 
     // Python
     {
@@ -210,6 +212,7 @@ void SysrootManager::runInThread()
         setProgress((qreal)stage++ / (qreal)stages);
     }
 
+#if 0
     // CMake parts
     {
         const QString source = temporaries + "/CMake";
@@ -240,6 +243,7 @@ void SysrootManager::runInThread()
         }
         setProgress((qreal)stage++ / (qreal)stages);
     }
+#endif
 
     // Python parts
     {

@@ -159,19 +159,30 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
     sharedData.debugger = m_debugger;
     sharedData.runner = this;
 
+    std::string runnerPath;
 
 #ifdef Q_OS_IOS
     const auto libsRoot = qApp->applicationDirPath();
-#else
+#elif defined(Q_OS_MACOS)
     const auto libsRoot = qApp->applicationDirPath() + "/..";
+#elif defined(Q_OS_LINUX)
+    const auto libsRoot = qApp->applicationDirPath() + "/../lib";
 #endif
 
-    std::string runnerPath;
+
+#ifndef Q_OS_LINUX
     if (m_forceDebugInterpreter || debug) {
         runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunner.framework/Tide-Wasmrunner").arg(libsRoot).toStdString();
     } else {
         runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(libsRoot).toStdString();
     }
+#else
+    if (m_forceDebugInterpreter || debug) {
+        runnerPath = QStringLiteral("%1/libtide-Wasmrunner.so").arg(libsRoot).toStdString();
+    } else {
+        runnerPath = QStringLiteral("%1/libtide-Wasmrunnerfast.so").arg(libsRoot).toStdString();
+    }
+#endif
 
     sharedData.lib = wamr_runtime_load(runnerPath.c_str());
     std::cout << "Loaded Wasmrunner " << sharedData.lib->handle << " from " << runnerPath << std::endl;

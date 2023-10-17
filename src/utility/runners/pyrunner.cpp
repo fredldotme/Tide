@@ -8,6 +8,7 @@
 #include <QStandardPaths>
 #include <QString>
 
+#include <string>
 #include <cstring>
 #include <iostream>
 #include <fstream>
@@ -166,13 +167,22 @@ void PyRunner::start(const QString binary, const QStringList args, const bool de
     sharedData.debug = false;
     sharedData.runner = this;
 
+    std::string runnerPath;
+
 #ifdef Q_OS_IOS
     const auto libsRoot = qApp->applicationDirPath();
-#else
+#elif defined(Q_OS_MACOS)
     const auto libsRoot = qApp->applicationDirPath() + "/..";
+#elif defined(Q_OS_LINUX)
+    const auto libsRoot = qApp->applicationDirPath() + "/../lib";
 #endif
 
-    std::string runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(libsRoot).toStdString();
+#ifndef Q_OS_LINUX
+    runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(libsRoot).toStdString();
+#else
+    runnerPath = QStringLiteral("%1/libtide-Wasmrunnerfast.so").arg(libsRoot).toStdString();
+#endif
+
     sharedData.lib = wamr_runtime_load(runnerPath.c_str());
     std::cout << "Loaded Python Wasmrunner " << sharedData.lib->handle << " from " << runnerPath << std::endl;
 
@@ -236,13 +246,22 @@ void PyRunner::runRepl()
     sharedData.debug = false;
     sharedData.runner = this;
 
+    std::string runnerPath;
+
 #ifdef Q_OS_IOS
     const auto libsRoot = qApp->applicationDirPath();
-#else
+#elif defined(Q_OS_MACOS)
     const auto libsRoot = qApp->applicationDirPath() + "/..";
+#elif defined(Q_OS_LINUX)
+    const auto libsRoot = qApp->applicationDirPath() + "/../lib";
 #endif
 
-    std::string runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(libsRoot).toStdString();
+#ifndef Q_OS_LINUX
+    runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(libsRoot).toStdString();
+#else
+    runnerPath = QStringLiteral("%1/libtide-Wasmrunnerfast.so").arg(libsRoot).toStdString();
+#endif
+
     sharedData.lib = wamr_runtime_load(runnerPath.c_str());
     std::cout << "Loaded Python Wasmrunner " << sharedData.lib->handle << " from " << runnerPath << std::endl;
 

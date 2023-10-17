@@ -12,7 +12,15 @@ CppFormatter::CppFormatter(QObject *parent)
 
 QString CppFormatter::format(QString text, FormattingStyle formatStyle)
 {
-    const auto libPath = qApp->applicationDirPath() + "/Frameworks/Tide-Formatter.framework/Tide-Formatter";
+
+#if defined(Q_OS_IOS)
+    const auto libPath = qApp->applicationDirPath() + QStringLiteral("/Frameworks/Tide-Formatter.framework/Tide-Formatter");
+#elif defined(Q_OS_MACOS)
+    const auto libPath = qApp->applicationDirPath() + QStringLiteral("/../Frameworks/libTide-Formatter.dylib");
+#else
+    const auto libPath = qApp->applicationDirPath() + QStringLiteral("/../lib/libtide-Formatter.so");
+#endif
+
     this->handle = dlopen(libPath.toUtf8().data(), RTLD_NOW | RTLD_LOCAL);
 
     if (!this->handle) {

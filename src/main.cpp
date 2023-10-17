@@ -25,13 +25,14 @@
 #include "debugger.h"
 #include "gitclient.h"
 
-#include "platform/systemglue.h"
-
 #include <signal.h>
 
 int main(int argc, char *argv[])
 {
 #if defined(Q_OS_IOS)
+    const auto org = QStringLiteral("fredl.me");
+    const auto appName = QStringLiteral("Tide");
+
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                             QStringLiteral("/Library/wasi-sysroot");
 
@@ -45,7 +46,12 @@ int main(int argc, char *argv[])
     {
         ClangCompiler setup;
     }
+    //qputenv("LIBCLANG_DISABLE_CRASH_RECOVERY", "1");
+    //qputenv("LLVM_DISABLE_CRASH_REPORT", "1");
+    qputenv("NOSYSTEM_DEBUG", "1");
 #elif defined(Q_OS_MACOS)
+    const auto orgName = QStringLiteral("fredl.me");
+    const auto appName = QStringLiteral("Tide");
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                             QStringLiteral("/Library/wasi-sysroot");
 
@@ -53,21 +59,27 @@ int main(int argc, char *argv[])
                             QStringLiteral("/Runtimes/Linux");
 
     qputenv("SYSROOT", sysroot.toUtf8().data());
+
     QQuickStyle::setStyle("iOS");
 
     qputenv("CLANG_RESOURCE_DIR", "/Users/alfredneumayer/Library/usr/lib/clang/17");
 #elif defined(Q_OS_LINUX)
-    const QString sysroot = QStringLiteral("/usr");
+    const auto orgName = QStringLiteral("");
+    const auto appName = QStringLiteral("tide.fredldotme");
+
+    const auto sysroot = QStringLiteral("/usr");
+
     QQuickStyle::setStyle("Material");
+
+    qputenv("QML_IMPORT_PATH", "./qml");
+    qputenv("QT_PLUGIN_PATH", "./plugins");
+    qputenv("QT_QPA_PLATFORM", "wayland-egl");
 #endif
-    //qputenv("LIBCLANG_DISABLE_CRASH_RECOVERY", "1");
-    //qputenv("LLVM_DISABLE_CRASH_REPORT", "1");
-    qputenv("NOSYSTEM_DEBUG", "1");
 
     QApplication app(argc, argv);
     app.setAutoSipEnabled(true);
-    app.setOrganizationDomain("fredl.me");
-    app.setApplicationName("Tide");
+    app.setOrganizationDomain(orgName);
+    app.setApplicationName(appName);
 
     // Set up PATH for macOS here
 #if defined(Q_OS_MACOS)
