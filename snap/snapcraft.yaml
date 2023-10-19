@@ -44,7 +44,7 @@ parts:
     plugin: cmake
     source: .
     cmake-parameters:
-      - -DCMAKE_INSTALL_PREFIX=/
+      - -DCMAKE_INSTALL_PREFIX=/usr
     build-packages:
       - cmake
       - ninja-build
