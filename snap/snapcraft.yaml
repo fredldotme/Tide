@@ -15,12 +15,12 @@ architectures:
 apps:
   tide-ide:
     environment:
-      LD_LIBRARY_PATH: ${SNAP}/lib:${SNAP}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}
-      QT_PLUGIN_PATH: ${SNAP}/plugins
-      QML_IMPORT_PATH: ${SNAP}/qml
+      LD_LIBRARY_PATH: ${SNAP}/lib:${SNAP}/usr/lib:${SNAP}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}
+      QT_PLUGIN_PATH: ${SNAP}/usr/plugins
+      QML_IMPORT_PATH: ${SNAP}/usr/qml
     command-chain:
       - bin/graphics-core22-wrapper
-    command: bin/tide-ide
+    command: usr/bin/tide-ide
     plugs: [ x11, wayland, desktop, desktop-legacy, opengl, alsa, pulseaudio, home, removable-media, network, network-bind ]
 
 plugs:
