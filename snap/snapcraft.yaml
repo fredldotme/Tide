@@ -53,7 +53,9 @@ parts:
       - libssl-dev
       - libcrypt-dev
       - curl
-      - clang
+      - clang 
+    stage-packages: 
+      - libpcre2-16-0
     override-build: |
       cd $SNAPCRAFT_PART_SRC
       bash -x bootstrap.sh --linux
@@ -62,9 +64,6 @@ parts:
   graphics-core22:
     source: https://github.com/MirServer/graphics-core22.git
     plugin: dump
-    # Avoid polluting the "tide" part with deps since it causes massive rebuilds
-    stage-packages: 
-      - libpcre2-16-0
     override-prime: |
       craftctl default
       ${CRAFT_PART_SRC}/bin/graphics-core22-cleanup mesa-core22 nvidia-core22
