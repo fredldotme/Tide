@@ -53,14 +53,14 @@ parts:
       - libssl-dev
       - libcrypt-dev
       - curl
-      - clang 
-    stage-packages: 
+      - clang
+    stage-packages:
       - libpcre2-16-0
     override-build: |
       cd $SNAPCRAFT_PART_SRC
       bash -x bootstrap.sh --linux
       snapcraftctl build
-    after: [ qt6declarative ]
+    after: [ qt6wayland ]
   graphics-core22:
     source: https://github.com/MirServer/graphics-core22.git
     plugin: dump
@@ -95,7 +95,6 @@ parts:
       - libxi-dev
       - libxrender-dev
       - libxcb1-dev
-      - libxcb-cursor-dev
       - libxcb-glx0-dev
       - libxcb-keysyms1-dev
       - libxcb-image0-dev
@@ -165,3 +164,28 @@ parts:
     stage:
       - usr/*
     after: [ qt6shadertools ]
+  qt6wayland:
+    plugin: cmake
+    source: https://github.com/qt/qtwayland.git
+    source-branch: 6.6.0
+    override-build: |
+      mkdir $SNAPCRAFT_PART_BUILD || true
+      cd $SNAPCRAFT_PART_BUILD
+      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_SRC
+      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
+      ninja
+      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+    override-stage: |
+      cd $SNAPCRAFT_PART_BUILD
+      DESTDIR=$SNAPCRAFT_STAGE ninja install
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+    stage-packages:
+      - libwayland-client0
+      - libwayland-cursor0
+    stage:
+      - usr/*
+    after: [ qt6declarative ]
