@@ -104,7 +104,7 @@ bool FileIo::fileIsTextFile(const QString path)
     int c;
     std::ifstream stream(path.toStdString());
     while ((c = stream.get()) != EOF) {
-        if (c > 127)
+        if (c > 255)
             return false;
     }
     return true;

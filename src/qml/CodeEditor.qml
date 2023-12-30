@@ -415,6 +415,19 @@ Item {
             }
         }
 
+        Connections {
+            target: root
+            function onReloadFilestructure() {
+                // Reload previews
+                const toReload = preview.source
+                preview.source = ""
+                preview.source = toReload
+
+                // Reset "Unsaved" state
+                changed = false
+            }
+        }
+
         Column {
             id: mainEditorColumn
             anchors.fill: parent
