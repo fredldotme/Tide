@@ -32,6 +32,7 @@ class TidePyRunnerHost : public WasmRunnerHost
 {
 public:
     TidePyRunnerHost(PyRunner* runner) : runner(runner) {}
+    virtual void report(const std::string& msg) override;
     virtual void reportError(const std::string& err) override;
     virtual void reportExit(const int code) override;
     virtual void reportDebugPort(const uint32_t debugPort) override;
@@ -44,7 +45,6 @@ class PyRunner : public QObject
 
     Q_PROPERTY(bool running MEMBER m_running NOTIFY runningChanged CONSTANT)
     Q_PROPERTY(SystemGlue* system MEMBER m_system NOTIFY systemChanged)
-    Q_PROPERTY(QString interpreterPath MEMBER m_interpreterPath NOTIFY interpreterPathChanged)
 
 public:
     explicit PyRunner(QObject *parent = nullptr);
@@ -74,16 +74,15 @@ private:
     SystemGlue* m_system;
     bool m_running;
     TidePyRunnerHost* m_runnerHost;
-    QString m_interpreterPath;
 
 signals:
     void printfReceived(QString str);
+    void message(QString str);
     void errorOccured(QString str);
     void runningChanged();
     void runEnded(int exitCode);
     void debugSessionStarted(int port);
     void systemChanged();
-    void interpreterPathChanged();
 };
 
 #endif // PYRUNNER_H

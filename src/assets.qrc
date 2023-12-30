@@ -66,5 +66,6 @@
         <file>assets/play.circle@2x.png</file>
         <file>assets/icloud.and.arrow.down@2x.png</file>
         <file>assets/arrow.triangle.branch@2x.png</file>
+        <file>assets/figure.run@2x.png</file>
     </qresource>
 </RCC>

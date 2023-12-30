@@ -19,7 +19,7 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
     set (WAMR_BUILD_TARGET "AARCH64")
     set (WAMR_BUILD_INTERP 1)
     set (WAMR_BUILD_FAST_INTERP 1)
-    set (WAMR_BUILD_AOT 1)
+    set (WAMR_BUILD_AOT 0)
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
     set (WAMR_BUILD_LIB_WASI_THREADS 1)
@@ -49,6 +49,8 @@ if(APPLE AND NOT IOS)
     endif()
     set (WAMR_BUILD_INTERP 1)
     set (WAMR_BUILD_AOT 1)
+    set (WAMR_BUILD_JIT 0)
+    set (WAMR_BUILD_LAZY_JIT 0)
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
     set (WAMR_BUILD_LIB_WASI_THREADS 1)
@@ -78,6 +80,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     endif()
     set (WAMR_BUILD_INTERP 1)
     set (WAMR_BUILD_AOT 0)
+    set (WAMR_BUILD_JIT 1)
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
     set (WAMR_BUILD_LIB_WASI_THREADS 1)
@@ -98,6 +101,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     add_definitions(-DWASM_UINT32_IS_ATOMIC=1)
 endif()
 
+list(APPEND CMAKE_PREFIX_PATH "${LLVM_DIR}/${LLVM_BUILD_DIR}")
+
 # WAMR + AOT
 if(APPLE OR IOS)
     include(${WAMR_DIR}/core/shared/utils/shared_utils.cmake)
@@ -105,11 +110,16 @@ if(APPLE OR IOS)
     include(${WAMR_DIR}/core/shared/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
     include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
     include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
+    include(${WAMR_DIR}/core/shared/platform/common/libc-util/platform_common_libc_util.cmake)
+
+    set (WAMR_COMPILER "${WAMR_DIR}/wamr-compiler/main.c")
 endif()
 
 if (APPLE OR IOS)
     add_library(vmlibfast
         STATIC
+
+        ${WAMR_COMPILER}
 
         ${WAMR_RUNTIME_LIB_SOURCE}
         ${PLATFORM_SHARED_SOURCE}
@@ -124,11 +134,15 @@ if (APPLE OR IOS)
         ${IWASM_COMMON_SOURCE}
         ${IWASM_INTERP_SOURCE}
         ${IWASM_AOT_SOURCE})
+
+    target_include_directories(vmlibfast PUBLIC
+        ${WAMR_DIR}/core/shared/platform/common/libc-util
+    )
 endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
-    include (${WAMR_DIR}/build-scripts/runtime_lib.cmake)
+    include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
     add_library(vmlibfast ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 endif()
 
@@ -182,7 +196,7 @@ if(APPLE AND NOT IOS)
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         FRAMEWORK TRUE
-        MACOSX_FRAMEWORK_IDENTIFIER me.fredl.wasmrunner
+        MACOSX_FRAMEWORK_IDENTIFIER me.fredl.wasmrunnerfast
         MACOSX_FRAMEWORK_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_FRAMEWORK_SHORT_VERSION_STRING ${PROJECT_VERSION}
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
@@ -222,6 +236,6 @@ include_directories(${PROJECT_NAME}
     ${UNCOMMON_SHARED_DIR}
 )
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+#if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_LIBDIR})
-endif()
+#endif()

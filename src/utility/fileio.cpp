@@ -5,6 +5,8 @@
 #include <QDir>
 #include <QDirIterator>
 
+#include <fstream>
+
 FileIo::FileIo(QObject *parent)
     : QObject{parent}
 {
@@ -96,3 +98,15 @@ quint64 FileIo::directoryContents(const QString path)
 
     return ret;
 }
+
+bool FileIo::fileIsTextFile(const QString path)
+{
+    int c;
+    std::ifstream stream(path.toStdString());
+    while ((c = stream.get()) != EOF) {
+        if (c > 127)
+            return false;
+    }
+    return true;
+}
+

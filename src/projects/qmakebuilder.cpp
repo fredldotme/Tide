@@ -9,7 +9,15 @@
 
 #include <thread>
 
-#define SUPPORT_AOT 1
+#include <unistd.h>
+
+#if __APPLE__
+#include <TargetConditionals.h>
+#define SUPPORT_AOT !TARGET_OS_IPHONE
+#else
+#define SUPPORT_AOT 0
+#endif
+
 #define SUPPORT_EXCEPTIONS 0
 
 inline static QString resolveDefaultVariables(const QString& line,
@@ -69,6 +77,9 @@ void QMakeBuilder::clean()
     if (!buildDir.removeRecursively()) {
         qWarning() << "Failed to clean build directory" << buildDirPath;
     }
+
+    sync();
+
     emit cleaned();
 }
 
@@ -196,7 +207,6 @@ void QMakeBuilder::build(const bool debug, const bool aot)
         const auto compiler = source.endsWith(".c") ? QStringLiteral("clang") : QStringLiteral("clang++");
         const QString command = compiler +
                                 QStringLiteral(" --sysroot=") + m_sysroot +
-                                //QStringLiteral(" -iwithprefix/Users/alfredneumayer/Library/usr/lib/clang/17/include") +
                                 QStringLiteral(" -c ") +
                                 (debug ? QStringLiteral(" -g ") : QString()) +
                                 defaultFlags +
@@ -246,16 +256,6 @@ void QMakeBuilder::build(const bool debug, const bool aot)
 
     qDebug() << "Link command:" << linkCommand;
     buildCommands << linkCommand;
-
-#if SUPPORT_AOT
-    if (aot && !debug) {
-        const QString aotPath = runnableFile() + QStringLiteral(".aot");
-        const QString aotCommand =
-            QStringLiteral("wamrc --size-level=3 --format=aot ") +
-            QStringLiteral(" -o \"%1\" \"%2\"").arg(aotPath, runnableFile());
-        buildCommands << aotCommand;
-    }
-#endif
 
     std::thread buildThread([=]() {
         m_building = true;

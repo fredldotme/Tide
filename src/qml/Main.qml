@@ -8,8 +8,8 @@ import Tide
 
 ApplicationWindow {
     id: root
-    width: 640
-    height: 480
+    width: 1280
+    height: 720
     visible: true
     title: qsTr("Tide")
     flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
@@ -18,8 +18,9 @@ ApplicationWindow {
 
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
     property alias tidePalette : tidePalette
-
     property alias dbugger: dbugger
+
+    readonly property alias preview : editor.preview
 
     readonly property int paddingSmall: 8
     readonly property int paddingMid: 12
@@ -78,6 +79,9 @@ ApplicationWindow {
         if (editor.file == null || editor.invalidated)
             return
 
+        if (!fileIo.fileIsTextFile(editor.file.path))
+            return
+
         const file = editor.file
         const path = projectPicker.openBookmark(file.bookmark)
         editor.loading = true
@@ -109,7 +113,10 @@ ApplicationWindow {
         saveCurrentFile()
         root.compiling = true
         projectBuilder.clean()
-        projectBuilder.build(debugRequested, !releaseRequested && settings.aotOptimizations)
+
+        // No AOT for releases
+        const aot = !releaseRequested && settings.aotOptimizations
+        projectBuilder.build(debugRequested, aot)
     }
 
     function attemptRun() {
@@ -119,13 +126,17 @@ ApplicationWindow {
         if (editor.invalidated)
             return;
 
-        const killOnly = wasmRunner.running
+        const killOnly = wasmRunner.running;
 
         wasmRunner.kill();
         if (killOnly)
             return;
 
-        consoleView.show()
+        consoleView.show();
+        wasmRunner.configure((settings.stackSize * 1024) * 1024,
+                             (settings.heapSize * 1024) * 1024,
+                             settings.threads,
+                             platformProperties.supportsAot);
         wasmRunner.run(projectBuilder.runnableFile(), [])
     }
 
@@ -136,14 +147,18 @@ ApplicationWindow {
         if (editor.invalidated)
             return;
 
-        const killOnly = wasmRunner.running
+        const killOnly = wasmRunner.running;
 
         wasmRunner.kill();
         if (killOnly)
             return;
 
-        consoleView.show()
-        showDebugArea = true
+        consoleView.show();
+        showDebugArea = true;
+        wasmRunner.configure((settings.stackSize * 1024) * 1024,
+                             (settings.heapSize * 1024) * 1024,
+                             settings.threads,
+                             platformProperties.supportsAot);
         dbugger.debug(projectBuilder.runnableFile(), [])
     }
 
@@ -877,6 +892,7 @@ ApplicationWindow {
                 //rightPadding: paddingMedium
                 enabled: !sysrootManager.installing
                 height: headerItemHeight
+                z: debuggerArea.z + 1 // Otherwise the debuggerArea overlaps the contextMenu
                 onClicked: {
                     consoleContextMenu.open()
                 }
@@ -1006,6 +1022,7 @@ ApplicationWindow {
 
     GitClient {
         id: git
+
         onRepoCloned:
             (url, name) => {
                 console.log("Repo cloned")
@@ -1022,6 +1039,10 @@ ApplicationWindow {
                 console.log("Repo already exists")
                 hud.hudLabel.flashMessage(qsTr("'%1' already cloned").arg(name))
             }
+    }
+
+    PlatformProperties {
+        id: platformProperties
     }
 
     QtObject {
@@ -1090,6 +1111,10 @@ ApplicationWindow {
                     root.stopRequested = false
                 }
             }
+            onMessage:
+                (msg) => {
+                    hud.hudLabel.flashMessage(msg);
+                }
 
             onRunEnded:
                 (exitCode) => {
@@ -1195,18 +1220,32 @@ ApplicationWindow {
         bookmarkDb.importProject(bookmark)
     }
 
+    function fileIsImageFile(path) {
+        return path.toLowerCase().endsWith(".png") ||
+                path.toLowerCase().endsWith(".jpg") ||
+                path.toLowerCase().endsWith(".jpeg") ||
+                path.toLowerCase().endsWith(".gif")
+    }
+
     function openEditor(modelData) {
         saveCurrentFile()
 
-        openFiles.push(modelData)
-        editor.file = modelData
+        if (!fileIo.fileIsTextFile(modelData.path)) {
+            if (!fileIsImageFile(modelData.path)) {
+                hud.hudLabel.flashMessage("Not opening binary file...");
+                return;
+            }
+        }
+
+        openFiles.push(modelData);
+        editor.file = modelData;
 
         // Also load project in case it's a project
         if (modelData.path.endsWith(".pro") /*|| modelData.name === "CMakeLists.txt"*/)
-            projectBuilder.loadProject(modelData.path)
+            projectBuilder.loadProject(modelData.path);
 
         if (root.width < root.height)
-            showLeftSideBar = false
+            showLeftSideBar = false;
     }
 
     function openEditorFile(file) {
@@ -1287,6 +1326,13 @@ ApplicationWindow {
                     text: qsTr("Clone")
                     onClicked: root.showDialog(cloneDialogComponent)
                 }
+            }
+
+            Row {
+                width: parent.width
+                spacing: paddingMedium
+                Layout.alignment: Qt.AlignHCenter
+
                 TideButton {
                     icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.down.on.square@2x.png")
                     font.pixelSize: startPage.sideLength
@@ -1294,6 +1340,17 @@ ApplicationWindow {
                     color: root.palette.button
                     text: qsTr("Import")
                     onClicked: projectPicker.startImport()
+                }
+
+                TideButton {
+                    icon.source: Qt.resolvedUrl("qrc:/assets/link@2x.png")
+                    font.pixelSize: startPage.sideLength
+                    height: startPage.sideLength
+                    color: root.palette.button
+                    text: qsTr("Examples")
+                    onClicked: {
+                        git.clone("https://github.com/fredldotme/TideExamples", "TideExamples");
+                    }
                 }
             }
 
@@ -1317,6 +1374,7 @@ ApplicationWindow {
             id: mainView
             spacing: 1
             visible: projectList.projects.length > 0
+            opacity: projectList.projects.length > 0 ? 1.0 : 0.0
             onVisibleChanged: mainView.forceLayout()
 
             x: !centered ? 0 : ((parent.width - width) / 2)
@@ -1335,6 +1393,9 @@ ApplicationWindow {
                 NumberAnimation { duration: 300; easing.type: Easing.OutCubic; }
             }
             Behavior on height {
+                NumberAnimation { duration: 300; easing.type: Easing.OutCubic; }
+            }
+            Behavior on opacity {
                 NumberAnimation { duration: 300; easing.type: Easing.OutCubic; }
             }
 
@@ -1363,10 +1424,25 @@ ApplicationWindow {
                 }
 
                 Item {
+                    id: projectsArea
                     x: paddingMedium
                     width: parent.width - paddingMedium
                     height: parent.height - (paddingMedium * 2)
                     readonly property int spaceBetweenSections : openFiles.files.length > 0 ? paddingSmall : 0
+
+                    property var project : null
+                    onProjectChanged: {
+                        git.path = getRepoPathFromProject(project)
+                    }
+
+                    function getRepoPathFromProject(project) {
+                        if (project.isBookmark) {
+                            const bookmarkPath = projectPicker.openBookmark(project.bookmark)
+                            return bookmarkPath
+                        } else {
+                            return project.path
+                        }
+                    }
 
                     Column {
                         width: parent.width
@@ -1417,6 +1493,11 @@ ApplicationWindow {
                                             radius: roundedCornersRadiusMedium
                                             color: root.tidePalette.base
                                             clip: true
+
+                                            property var project : null
+                                            onProjectChanged: {
+                                                projectsArea.project = project
+                                            }
 
                                             ListView {
                                                 headerPositioning: ListView.PullBackHeader
@@ -1504,6 +1585,7 @@ ApplicationWindow {
                                                     }
 
                                                     onClicked: {
+                                                        git.path = projectsArea.getRepoPathFromProject(modelData)
                                                         projectNavigationStack.push(directoryComponent,
                                                                                     {project: modelData})
                                                     }
@@ -1531,7 +1613,8 @@ ApplicationWindow {
                                                         MenuItem {
                                                             text: qsTr("Remove")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
-                                                            onClicked: {
+
+                                                            function causeDeletion() {
                                                                 if (projectsContextMenu.selectedProject.isBookmark) {
                                                                     const bookmark = projectsContextMenu.selectedProject.bookmark
                                                                     openFiles.closeAllByBookmark(bookmark)
@@ -1540,6 +1623,15 @@ ApplicationWindow {
                                                                     projectList.removeProject(projectsContextMenu.selectedProject.path)
                                                                 }
                                                                 projectsContextMenu.selectedProject = null
+                                                            }
+
+                                                            onClicked: {
+                                                                let deletionDialog = null;
+                                                                if (projectsContextMenu.selectedProject.isBookmark)
+                                                                    deletionDialog = root.showDialog(bookmarkRemoveDialogComponent)
+                                                                else
+                                                                    deletionDialog = root.showDialog(sureDialogComponent)
+                                                                deletionDialog.accepted.connect(causeDeletion)
                                                             }
                                                         }
                                                     }
@@ -1567,9 +1659,14 @@ ApplicationWindow {
                                                 height: parent.height
                                                 spacing: paddingSmall
                                                 clip: true
+
                                                 property var project : null
+                                                onProjectChanged: {
+                                                    projectsArea.project = project
+                                                }
 
                                                 function refresh() {
+                                                    projectsArea.project = project
                                                     if (project.isBookmark) {
                                                         model = projectPicker.listBookmarkContents(project.bookmark)
                                                     } else {
@@ -1598,6 +1695,7 @@ ApplicationWindow {
 
                                                 Component.onCompleted: {
                                                     refresh()
+                                                    projectsArea.project = project
                                                 }
 
                                                 Connections {
@@ -1663,12 +1761,12 @@ ApplicationWindow {
                                                             text: qsTr("Status")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/arrow.triangle.branch@2x.png")
                                                             icon.color: root.palette.button
-                                                            visible: git.hasRepo(directoryListView.project.path)
+                                                            visible: gitDialog.model.length > 0 && git.hasRepo(directoryListView.project.path)
                                                             height: parent.height
                                                             Layout.alignment: Qt.AlignRight
                                                             Layout.rightMargin: paddingMedium
                                                             onClicked: {
-                                                                git.path = directoryListView.project.path
+                                                                projectsArea.project = directoryListView.project
                                                                 gitDialog.show()
                                                             }
                                                         }
@@ -1785,7 +1883,8 @@ ApplicationWindow {
                                                         MenuItem {
                                                             text: qsTr("Delete")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
-                                                            onClicked: {
+
+                                                            function causeDeletion() {
                                                                 if (!isDir) {
                                                                     openFiles.close(modelData)
                                                                     if (openFiles.files.length > 0)
@@ -1796,6 +1895,11 @@ ApplicationWindow {
 
                                                                 fileIo.deleteFileOrDirectory(modelData.path)
                                                                 directoryListView.refresh()
+                                                            }
+
+                                                            onClicked: {
+                                                                let deletionDialog = root.showDialog(sureDialogComponent)
+                                                                deletionDialog.accepted.connect(causeDeletion)
                                                             }
                                                         }
                                                     }
@@ -1987,7 +2091,6 @@ ApplicationWindow {
                                                 }
                                             }
 
-                                            saveCurrentFile()
                                             openEditor(modelData)
                                         }
                                         onPressAndHold: {
@@ -2022,7 +2125,6 @@ ApplicationWindow {
                                                         dbugger.removeWatchpoint(dbugger.waitingpoints[i].value)
                                                 }
 
-                                                saveCurrentFile()
                                                 openEditor(projectFile)
                                                 done()
                                             }
@@ -2294,7 +2396,7 @@ ApplicationWindow {
         ContextView {
             id: contextDialog
             width: !landscapeMode && showDebugArea ?
-                       0 : // Don't overlap debugger area and ConsoleView in portraitMode
+                       0 : // Don't overlap debugger area and ContextView in portraitMode
                        mainView.dialogWidth - (debuggerArea.width / 2)
             height: mainView.dialogHeight - paddedOverlayArea.y
             parent: paddedOverlayArea
@@ -2303,16 +2405,6 @@ ApplicationWindow {
                 openEditorFile(contextDialog.currentPath)
                 contextDialog.hide()
             }
-        }
-
-        GitDialog {
-            id: gitDialog
-            width: !landscapeMode && showDebugArea ?
-                       0 : // Don't overlap debugger area and ConsoleView in portraitMode
-                       mainView.dialogWidth - (debuggerArea.width / 2)
-            height: mainView.dialogHeight - paddedOverlayArea.y
-            parent: paddedOverlayArea
-            z: paddedOverlayArea.searchAndReplaceZ
         }
 
         /* Debugger area */
@@ -2391,37 +2483,21 @@ ApplicationWindow {
                                     anchors.fill: parent
                                     spacing: paddingSmall * 2
                                     ToolButton {
-                                        Layout.alignment: Qt.AlignLeft
-                                        Layout.leftMargin: paddingSmall
-                                        icon.source: "" // Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
-                                        icon.width: 24
-                                        icon.height: 24
+                                        text: qsTr("Step over")
+                                        enabled: dbugger.running
+                                        onClicked: dbugger.stepOver()
+                                    }
+                                    ToolButton {
                                         text: qsTr("Step in")
                                         enabled: dbugger.running
                                         font.pixelSize: 16
                                         onClicked: dbugger.stepIn()
                                     }
                                     ToolButton {
-                                        Layout.alignment: Qt.AlignLeft
-                                        Layout.leftMargin: paddingSmall
-                                        icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
-                                        icon.width: 24
-                                        icon.height: 24
                                         text: qsTr("Step out")
                                         enabled: dbugger.running
                                         font.pixelSize: 16
                                         onClicked: dbugger.stepOut()
-                                    }
-                                    ToolButton {
-                                        Layout.alignment: Qt.AlignLeft
-                                        Layout.leftMargin: paddingSmall
-                                        icon.source: ""; // Qt.resolvedUrl("qrc:/assets/chevron.compact.up@2x.png")
-                                        icon.width: 24
-                                        icon.height: 24
-                                        text: qsTr("Step over")
-                                        enabled: dbugger.running
-                                        font.pixelSize: 16
-                                        onClicked: dbugger.stepOver()
                                     }
                                 }
                             }
@@ -2691,6 +2767,15 @@ ApplicationWindow {
             z: paddedOverlayArea.settingsZ
         }
 
+        GitDialog {
+            id: gitDialog
+            width: mainView.settingsDialogWidth
+            height: mainView.settingsDialogHeight
+            anchors.centerIn: parent
+            parent: paddedOverlayArea
+            z: paddedOverlayArea.contextMenuZ
+        }
+
         ListModel {
             id: availableFontSizes
             ListElement {
@@ -2750,7 +2835,58 @@ ApplicationWindow {
             property bool clearConsole: true
             property bool rubberDuck : false
             property bool fallbackInterpreter : false
-            readonly property bool aotOptimizations : false
+            property int stackSize : 536870912
+            property int heapSize : 536870912
+            property int threads : 16
+            property bool aotOptimizations : false
+        }
+
+        Component {
+            id: sureDialogComponent
+
+            TideDialog {
+                title: qsTr("Are you sure?");
+                modal: true
+                anchors.centerIn: parent
+                standardButtons: Dialog.Ok | Dialog.Cancel
+
+                property var projectFile : null
+
+                signal done()
+
+                Label {
+                    width: parent.width
+                    text: qsTr("This will delete the selected files permanently.")
+                }
+
+                onRejected: {
+                    done()
+                }
+            }
+        }
+
+        Component {
+            id: bookmarkRemoveDialogComponent
+
+            TideDialog {
+                title: qsTr("Are you sure?");
+                modal: true
+                anchors.centerIn: parent
+                standardButtons: Dialog.Ok | Dialog.Cancel
+
+                property var projectFile : null
+
+                signal done()
+
+                Label {
+                    width: parent.width
+                    text: qsTr("This will remove the selected bookmark.")
+                }
+
+                onRejected: {
+                    done()
+                }
+            }
         }
 
         Component {
@@ -2760,7 +2896,10 @@ ApplicationWindow {
                 modal: true
                 anchors.centerIn: parent
                 standardButtons: Dialog.Ok | Dialog.Cancel
-                Component.onCompleted: imFixer.setupImEventFilter(projectName)
+                Component.onCompleted: {
+                    imFixer.setupImEventFilter(projectUrl)
+                    imFixer.setupImEventFilter(projectName)
+                }
 
                 signal done()
 

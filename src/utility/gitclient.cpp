@@ -18,12 +18,18 @@ GitClient::GitClient(QObject *parent)
                 git_repository_free(m_repo);
                 m_repo = nullptr;
             }
-            if (m_path.isEmpty())
+
+            // Early return with the indication that a refresh is desired
+            if (m_path.isEmpty()) {
+                emit this->repoOpened(m_path);
                 return;
+            }
 
             git_repository_open_ext(&m_repo, m_path.toStdString().c_str(), 0, nullptr);
             emit this->repoOpened(m_path);
         }, Qt::DirectConnection);
+    QObject::connect(this, &GitClient::hasStagedFilesChanged, this, &GitClient::hasCommittableChanged);
+
     git_libgit2_init();
 }
 
@@ -38,13 +44,22 @@ GitClient::~GitClient()
 
 void GitClient::refreshStatus()
 {
-    if (!m_repo)
-        return;
-
     QVariantMap status;
+
+    if (!m_repo) {
+        m_status = status;
+        emit statusChanged();
+        return;
+    }
 
     git_reference *head = NULL;
     int error = git_repository_head(&head, m_repo);
+    
+    if (error) {
+        m_status = status;
+        emit statusChanged();
+        return;
+    }
 
     const char* currentBranch = git_reference_shorthand(head);
     status.insert("currentBranch", QString::fromLocal8Bit(currentBranch));
@@ -78,7 +93,7 @@ void GitClient::refreshStatus()
     git_reference* ref = nullptr;
     git_branch_t branch;
     git_branch_iterator_new(&branchiterator, m_repo, GIT_BRANCH_LOCAL);
-    while ((error = git_branch_next(&ref, &branch, branchiterator)) == 0) {
+    while ((git_branch_next(&ref, &branch, branchiterator)) == 0) {
         if (ref) {
             const char* buf;
             git_branch_name(&buf, ref);
@@ -92,8 +107,81 @@ void GitClient::refreshStatus()
     git_branch_iterator_free(branchiterator);
     status.insert("branches", branchesList);
 
+    refreshStage();
+
     m_status = status;
     emit statusChanged();
+}
+
+QVariantMap GitClient::gitEntryToVariant(const git_status_entry *s)
+{
+    QVariantMap ret;
+
+    if (!s || !s->head_to_index)
+        return ret;
+    
+    const auto path = QString::fromLocal8Bit(s->head_to_index->new_file.path,
+                                             strlen(s->head_to_index->new_file.path));
+
+    // Old path existing implies a difference between old and new
+    if (s->head_to_index->old_file.path) {
+        const auto old_path = QString::fromLocal8Bit(s->head_to_index->old_file.path,
+                                                     strlen(s->head_to_index->old_file.path));
+    } else {
+        const auto old_path = path;
+        ret.insert("oldPath", old_path);
+    }
+
+    ret.insert("status", QVariant((int)s->status));
+    ret.insert("path", path);
+
+    return ret;
+}
+
+bool GitClient::hasCommittable()
+{
+    for (const auto& entry : m_files) {
+        const auto entryValue = entry.value<QVariantMap>();
+        const auto status = entryValue.value("status").toInt();
+        if (!(status & GitFileStatus::Current)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void GitClient::refreshStage()
+{
+    git_status_list *status;
+    git_status_list_new(&status, m_repo, nullptr);
+
+    size_t i, maxi = git_status_list_entrycount(status);
+    int header = 0, changes_in_index = 0;
+    int changed_in_workdir = 0, rm_in_workdir = 0;
+    const git_status_entry *s;
+    bool stageChanged = false;
+
+    /** Print index changes. */
+    QVariantList newFileStates;
+
+    for (i = 0; i < maxi; ++i) {
+        s = git_status_byindex(status, i);
+
+        if (s->status == GIT_STATUS_CURRENT)
+            continue;
+
+        stageChanged = true;
+        QVariant entry = gitEntryToVariant(s);
+        newFileStates << entry;
+    }
+    m_files = newFileStates;
+    emit filesChanged();
+
+    if (stageChanged) {
+        m_hasStagedFiles = hasCommittable();
+        emit hasStagedFilesChanged();
+    }
 }
 
 void GitClient::clone(const QString& url, const QString& name)
@@ -129,7 +217,7 @@ void GitClient::clone(const QString& url, const QString& name)
                 const auto msg = QString::fromLocal8Bit(err->message, strlen(err->message));
                 emit this->error(msg);
             } else {
-                emit this->error("ERROR: no detailed info\n");
+                emit this->error("ERROR: no detailed info");
             }
         } else if (cloned_repo) {
             git_repository_free(cloned_repo);
@@ -166,7 +254,9 @@ void GitClient::stage(const QString& path)
     git_index *index;
     git_strarray array = {0};
 
+    array.count = 1;
     git_repository_index(&index, m_repo);
+
     git_index_add_all(index, &array, 0, nullptr, nullptr);
 
     git_index_write(index);
@@ -176,6 +266,62 @@ void GitClient::stage(const QString& path)
 void GitClient::unstage(const QString& path)
 {
 
+}
+
+void GitClient::resetStage()
+{
+
+}
+
+void GitClient::commit(const QString& summary, const QString& body)
+{
+    const char *opt = summary.toLocal8Bit();
+    const char *comment = body.toLocal8Bit();
+    int err;
+
+    git_oid commit_oid,tree_oid;
+    git_tree *tree;
+    git_index *index;
+    git_object *parent = NULL;
+    git_reference *ref = NULL;
+    git_signature *signature;
+
+    err = git_revparse_ext(&parent, &ref, m_repo, "HEAD");
+    if (err == GIT_ENOTFOUND) {
+        err = 0;
+    } else if (err != 0) {
+        const git_error *err = git_error_last();
+        if (err) {
+            const auto errStr = QString::fromLocal8Bit(err->message);
+            emit error(QStringLiteral("Error %1: %2").arg(QString::number(err->klass), errStr));
+        } else {
+            emit error("Unknown error");
+        }
+    }
+
+    git_repository_index(&index, m_repo);
+    git_index_write_tree(&tree_oid, index);
+    git_index_write(index);
+    git_tree_lookup(&tree, m_repo, &tree_oid);
+    git_signature_default(&signature, m_repo);
+
+    git_commit_create_v(
+        &commit_oid,
+        m_repo,
+        "HEAD",
+        signature,
+        signature,
+        NULL,
+        comment,
+        tree,
+        parent ? 1 : 0,
+        parent);
+
+    git_index_free(index);
+    git_signature_free(signature);
+    git_tree_free(tree);
+    git_object_free(parent);
+    git_reference_free(ref);
 }
 
 QVariantList GitClient::logs(const QString branch)
@@ -238,9 +384,11 @@ QVariantList GitClient::logs(const QString branch)
 
         const char* commitSummary = git_commit_summary(commit);
         const char* commitMessage  = git_commit_message(commit);
+        const auto commitTimestamp = git_commit_time(commit);
 
         commitLog.insert("summary", QString::fromLocal8Bit(commitSummary));
         commitLog.insert("message", QString::fromLocal8Bit(commitMessage));
+        commitLog.insert("timestamp", QDateTime::fromMSecsSinceEpoch(commitTimestamp * 1000));
 
         ret << commitLog;
         qDebug() << "CommitLog:" << commitLog;

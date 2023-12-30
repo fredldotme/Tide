@@ -1,10 +1,10 @@
+import QtQml
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
 TideDialog {
     id: settingsDialog
-    clip: true
 
     readonly property bool paneHeight : implicitHeight
 
@@ -96,9 +96,17 @@ TideDialog {
                         category: qsTr("Editor")
                         categoryIcon: "qrc:/assets/doc.plaintext@2x.png"
                     }
+                    /*ListElement {
+                        category: qsTr("Git")
+                        categoryIcon: "qrc:/assets/arrow.triangle.branch@2x.png"
+                    }*/
                     ListElement {
                         category: qsTr("Tools")
                         categoryIcon: "qrc:/assets/scissors@2x.png"
+                    }
+                    ListElement {
+                        category: qsTr("Runtime")
+                        categoryIcon: "qrc:/assets/figure.run@2x.png"
                     }
                     ListElement {
                         category: qsTr("Misc")
@@ -265,11 +273,16 @@ TideDialog {
                     }
                 }
 
+                // Git
+                /*ScrollView {
+                    width: parent.width
+                    contentWidth: -1
+                }*/
+
                 // Tools
                 ScrollView {
                     width: parent.width
                     contentWidth: -1
-
 
                     Column {
                         width: childrenRect.width
@@ -322,6 +335,104 @@ TideDialog {
                     }
                 }
 
+                // Runtime
+                ScrollView {
+                    id: runtimeView
+                    width: parent.width
+                    contentWidth: -1
+
+                    Column {
+                        width: childrenRect.width
+                        height: childrenRect.height
+                        spacing: paddingSmall
+                        RowLayout {
+                            spacing: paddingMedium
+                            Slider {
+                                from: 1
+                                to: 1024
+                                value: settings.stackSize
+                                onValueChanged: {
+                                    settings.stackSize = value;
+                                }
+                            }
+                            Label {
+                                text: qsTr("Stack size (MB): ")
+                            }
+                            TextField {
+                                id: stackSizeTextField
+                                text: settings.stackSize
+                                validator: RegularExpressionValidator {
+                                    regularExpression: /^[d+]$/
+                                }
+                                onAccepted: settings.stackSize = parseInt(text)
+                                Component.onCompleted: {
+                                    imFixer.setupImEventFilter(stackSizeTextField)
+                                }
+                            }
+                        }
+                        RowLayout {
+                            spacing: paddingMedium
+                            Slider {
+                                from: 1
+                                to: 1024
+                                value: settings.heapSize
+                                onValueChanged: {
+                                    settings.heapSize = value;
+                                }
+                            }
+                            Label {
+                                text: qsTr("Heap size (MB): ")
+                            }
+                            TextField {
+                                id: heapSizeTextField
+                                text: settings.heapSize
+                                validator: RegularExpressionValidator {
+                                    regularExpression: /^[d+]$/
+                                }
+                                onAccepted: settings.heapSize = parseInt(text)
+                                Component.onCompleted: {
+                                    imFixer.setupImEventFilter(heapSizeTextField)
+                                }
+                            }
+                        }
+                        RowLayout {
+                            spacing: paddingMedium
+                            Slider {
+                                from: 1
+                                to: 64
+                                value: settings.threads
+                                onValueChanged: {
+                                    settings.threads = value;
+                                }
+                            }
+                            Label {
+                                text: qsTr("Thread count: ")
+                            }
+                            TextField {
+                                id: threadsTextField
+                                text: settings.threads
+                                validator: RegularExpressionValidator {
+                                    regularExpression: /^[d+]$/
+                                }
+                                onAccepted: settings.threads = parseInt(text)
+                                Component.onCompleted: {
+                                    imFixer.setupImEventFilter(threadsTextField)
+                                }
+                            }
+                        }
+                        Switch {
+                            id: aotSwitch
+                            text: qsTr("AOT optimizations")
+                            visible: Qt.platform.os !== "ios"
+                            checked: settings.aotOptimizations
+                            onCheckedChanged: {
+                                settings.aotOptimizations = checked
+                            }
+                        }
+                    }
+                }
+
+                // Misc
                 ScrollView {
                     width: parent.width
                     contentWidth: -1
@@ -337,14 +448,6 @@ TideDialog {
                                 settings.wiggleHints = checked
                             }
                         }
-                        /*Switch {
-                    id: aotSwitch
-                    text: qsTr("AOT optimizations")
-                    checked: settings.aotOptimizations
-                    onCheckedChanged: {
-                        settings.aotOptimizations = checked
-                    }
-                }*/
                         Switch {
                             id: fallbackInterpreterSwitch
                             text: qsTr("Force debug interpeter during regular runs")

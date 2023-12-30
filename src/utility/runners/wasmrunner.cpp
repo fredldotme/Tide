@@ -12,6 +12,7 @@
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
+#include <vector>
 
 #include <unistd.h>
 #include <stdio.h>
@@ -56,7 +57,7 @@ static void* runInThread(void* userdata)
 {
     WasmRunnerSharedData& shared = *static_cast<WasmRunnerSharedData*>(userdata);
 
-    std::vector<std::string> args;
+    std::vector<const std::string> args;
     std::vector<const char*> cargs;
     std::vector<const char*> env;
 
@@ -89,6 +90,11 @@ static void* runInThread(void* userdata)
     return nullptr;
 }
 
+void TideWasmRunnerHost::report(const std::string& msg)
+{
+    emit runner->message(QString::fromStdString(msg));
+}
+
 void TideWasmRunnerHost::reportError(const std::string& err)
 {
     emit runner->errorOccured(QString::fromStdString(err));
@@ -110,6 +116,21 @@ void TideWasmRunnerHost::reportDebugPort(const uint32_t port)
     if (runner->sharedData.debugger) {
         runner->sharedData.debugger->connectToRemote(port);
     }
+}
+
+void WasmRunner::configure(unsigned int stack, unsigned int heap, unsigned int threads, bool aot)
+{
+    sharedData.config.stackSize = stack;
+    sharedData.config.heapSize = heap;
+    sharedData.config.threadCount = threads;
+
+    // Enable certain properties the WasmRunner plugin should attempt to do,
+    // but might fail depending on various reasons (platform capabilities, init failure)
+    // and fall back to a working default. That means plugins might take this as a hint.
+    if (aot)
+        sharedData.config.flags = WasmRunnerConfigFlags::AOT;
+    else
+        sharedData.config.flags = WasmRunnerConfigFlags::None;
 }
 
 void WasmRunner::run(const QString binary, const QStringList args)
@@ -137,17 +158,6 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
     kill();
 
     QString applicationFile = binary;
-    {
-        const QString aotPath = binary + QStringLiteral(".aot");
-        if (QFile::exists(aotPath)) {
-            QFileInfo aot(aotPath);
-            QFileInfo wasm(binary);
-
-            if (aot.lastModified() > wasm.lastModified())
-                applicationFile = aotPath;
-        }
-    }
-
     qDebug() << "Running" << applicationFile << args << debug;
 
     sharedData.binary = applicationFile;
@@ -169,18 +179,17 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
     const auto libsRoot = qApp->applicationDirPath() + "/../lib";
 #endif
 
-
-#ifndef Q_OS_LINUX
-    if (m_forceDebugInterpreter || debug) {
-        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunner.framework/Tide-Wasmrunner").arg(libsRoot).toStdString();
-    } else {
-        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(libsRoot).toStdString();
-    }
-#else
+#ifdef Q_OS_LINUX
     if (m_forceDebugInterpreter || debug) {
         runnerPath = QStringLiteral("%1/libtide-Wasmrunner.so").arg(libsRoot).toStdString();
     } else {
         runnerPath = QStringLiteral("%1/libtide-Wasmrunnerfast.so").arg(libsRoot).toStdString();
+    }
+#else
+    if (m_forceDebugInterpreter || debug) {
+        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunner.framework/Tide-Wasmrunner").arg(libsRoot).toStdString();
+    } else {
+        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(libsRoot).toStdString();
     }
 #endif
 
@@ -188,7 +197,7 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
     std::cout << "Loaded Wasmrunner " << sharedData.lib->handle << " from " << runnerPath << std::endl;
 
     if (sharedData.lib->init) {
-        sharedData.runtime = sharedData.lib->init(m_runnerHost);
+        sharedData.runtime = sharedData.lib->init(m_runnerHost, (WasmRuntimeConfig)&sharedData.config);
         std::cout << "Initialization complete: " << sharedData.runtime << std::endl;
     } else {
         sharedData.runtime = nullptr;

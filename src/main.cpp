@@ -30,7 +30,7 @@
 int main(int argc, char *argv[])
 {
 #if defined(Q_OS_IOS)
-    const auto org = QStringLiteral("fredl.me");
+    const auto orgName = QStringLiteral("fredl.me");
     const auto appName = QStringLiteral("Tide");
 
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
@@ -54,7 +54,8 @@ int main(int argc, char *argv[])
     const auto appName = QStringLiteral("Tide");
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                             QStringLiteral("/Library/wasi-sysroot");
-
+    const QString library = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                            QStringLiteral("/Library");
     const QString runtime = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
                             QStringLiteral("/Runtimes/Linux");
 
@@ -62,7 +63,8 @@ int main(int argc, char *argv[])
 
     QQuickStyle::setStyle("iOS");
 
-    qputenv("CLANG_RESOURCE_DIR", "/Users/alfredneumayer/Library/usr/lib/clang/17");
+    qputenv("CLANG_RESOURCE_DIR",
+            QStringLiteral("%1/usr/lib/clang/17").arg(library).toStdString().c_str());
 #elif defined(Q_OS_LINUX)
     const auto orgName = QStringLiteral("");
     const auto appName = QStringLiteral("tide.fredldotme");
@@ -74,6 +76,11 @@ int main(int argc, char *argv[])
     qputenv("QML_IMPORT_PATH", "./qml");
     qputenv("QT_PLUGIN_PATH", "./plugins");
     qputenv("QT_QPA_PLATFORM", "wayland-egl");
+
+    if (qEnvironmentVariableIsSet("DESKTOP_FILE_HINT")) {
+        qputenv("QT_QPA_FONTDIR", "/usr/share/fonts/truetype");
+        qputenv("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1");
+    }
 #endif
 
     QApplication app(argc, argv);

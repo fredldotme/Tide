@@ -15,7 +15,8 @@ extern "C" {
 
 #import <AppKit/AppKit.h>
 
-MacSystemGlue::MacSystemGlue(QObject* parent) : QObject(parent)
+MacSystemGlue::MacSystemGlue(QObject* parent) :
+    QObject(parent), m_requestBuildStop{false}
 {
 }
 
@@ -118,62 +119,22 @@ static inline std::vector<std::string> split_command(const std::string& cmd)
 // Blocking and hence shouldn't be called from the main or GUI threads
 bool MacSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spec)
 {
-    StdioSpec copy;
-    int status;
-    pid_t childpid, statuspid;
-
-    if (spec.stdin || spec.stdout || spec.stderr) {
-        copy.stdin = fdopen(dup(fileno(spec.stdin)), "r");
-        copy.stdout = fdopen(dup(fileno(spec.stdout)), "w");
-        copy.stderr = fdopen(dup(fileno(spec.stderr)), "w");
-    } else {
-        copy.stdin = fdopen(dup(fileno(m_spec.stdin)), "r");
-        copy.stdout = fdopen(dup(fileno(m_spec.stdout)), "w");
-        copy.stderr = fdopen(dup(fileno(m_spec.stderr)), "w");
-    }
-
     for (const auto& command : cmds) {
-        const auto stdcmd = command.toStdString();
-        const auto cmdcrumbs = command.split(' ', Qt::KeepEmptyParts);
+        if (m_requestBuildStop)
+            break;
 
-        std::vector<std::string> args = split_command(stdcmd);
-        std::vector<const char*> cargs;
+        const auto res = runCommand(command, spec);
 
-        for (const auto& arg : args) {
-            cargs.push_back(arg.c_str());
+        if (res != 0) {
+            qWarning() << "Build step failed with result" << res;
+            return false;
         }
-
-        if (cmdcrumbs.length() == 0)
-            continue;
-
-        posix_spawn_file_actions_t action;
-        posix_spawn_file_actions_init(&action);
-        posix_spawn_file_actions_adddup2(&action, fileno(copy.stdin), 0);
-        posix_spawn_file_actions_adddup2(&action, fileno(copy.stdout), 1);
-        posix_spawn_file_actions_adddup2(&action, fileno(copy.stderr), 2);
-        extern char **environ;
-
-        const auto binpath = qApp->applicationDirPath() + "/" + cmdcrumbs[0];
-        qDebug() << "Run build command:" << binpath;
-
-        status = posix_spawn(&childpid, binpath.toLocal8Bit().data(), &action, NULL, (char**)cargs.data(), environ);
-        statuspid = waitpid(childpid, &status, WUNTRACED | WCONTINUED);
-        posix_spawn_file_actions_destroy(&action);
-
-        if (statuspid == -1)
-            return false;
-        if (WEXITSTATUS(status) != 0)
-            return false;
     }
 
-done:
-    if (copy.stdin)
-        fclose(copy.stdin);
-    if (copy.stdout)
-        fclose(copy.stdout);
-    if (copy.stderr)
-        fclose(copy.stderr);
-
+    if (m_requestBuildStop) {
+        m_requestBuildStop = false;
+        return false;
+    }
     return true;
 }
 
@@ -220,12 +181,14 @@ int MacSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
 
     extern char **environ;
     status = posix_spawn(&childpid, binpath.toLocal8Bit().data(), &action, NULL, (char**)cargs.data(), environ);
-    posix_spawn_file_actions_destroy(&action);
-    statuspid = waitpid(childpid, &status, WUNTRACED | WCONTINUED);
-    if (statuspid == -1) {
-        return ret;
+    if (status == 0) {
+        waitpid(childpid, &status, 0);
     }
+    posix_spawn_file_actions_destroy(&action);
     ret = WEXITSTATUS(status);
+    if (ret != 0) {
+        goto done;
+    }
 
 done:
     if (copy.stdin)
@@ -240,6 +203,7 @@ done:
 
 void MacSystemGlue::killBuildCommands()
 {
+    m_requestBuildStop = true;
 }
 
 void MacSystemGlue::writeToStdIn(const QByteArray data)
@@ -254,7 +218,7 @@ void MacSystemGlue::copyToClipboard(const QString text)
     [[NSPasteboard generalPasteboard] setString:text.toNSString() forType:NSStringPboardType];
 }
 
-void MacSystemGlue::share(const QString text, const QUrl url, const QRect pos) {
-
+void MacSystemGlue::share(const QString text, const QUrl url, const QRect pos)
+{
 }
 

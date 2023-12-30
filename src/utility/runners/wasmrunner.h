@@ -27,12 +27,14 @@ struct WasmRunnerSharedData {
     SystemGlue* system = nullptr;
     Debugger* debugger = nullptr;
     bool killing = false;
+    WasmRunnerConfig config;
 };
 
 class TideWasmRunnerHost : public WasmRunnerHost
 {
 public:
     TideWasmRunnerHost(WasmRunner* runner) : runner(runner) {}
+    virtual void report(const std::string& msg) override;
     virtual void reportError(const std::string& err) override;
     virtual void reportExit(const int code) override;
     virtual void reportDebugPort(const uint32_t debugPort) override;
@@ -58,6 +60,7 @@ public:
     WasmRunnerSharedData sharedData;
 
 public slots:
+    void configure(unsigned int stack, unsigned int heap, unsigned int threads, bool aot);
     void run(const QString binary, const QStringList args);
     void debug(const QString binary, const QStringList args);
     void waitForFinished();
@@ -80,6 +83,7 @@ private:
 
 signals:
     void printfReceived(QString str);
+    void message(QString str);
     void errorOccured(QString str);
     void runningChanged();
     void runEnded(int exitCode);

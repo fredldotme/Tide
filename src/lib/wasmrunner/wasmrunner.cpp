@@ -28,10 +28,6 @@
 //#include "api-bindings/opengles2.h"
 //#include "api-bindings/qmlwindow.h"
 
-constexpr uint32_t stack_size = 16777216;
-constexpr uint32_t heap_size = 16777216;
-constexpr uint32_t max_threads = 64;
-
 struct WasmRunnerImplSharedData {
     WasmRunnerHost* host;
     std::string binary;
@@ -42,13 +38,14 @@ struct WasmRunnerImplSharedData {
     wasm_exec_env_t exec_env = nullptr;
     bool killing;
     bool killed;
+    WasmRunnerConfig configuration;
 };
 
 class WasmRunnerImpl : public WasmRunnerInterface
 {
 public:
     WasmRunnerImpl(WasmRuntimeHost host);
-    virtual void init() override;
+    virtual void init(const WasmRunnerConfig& config) override;
     virtual void destroy() override;
     virtual int exec(const std::string& path, int argc, char** argv, int infd, int outfd, int errfd, const bool debug, const std::string& readableDir) override;
     virtual void stop() override;
@@ -57,15 +54,17 @@ private:
     WasmRunnerImplSharedData shared;
 };
 
-void WasmRunnerImpl::init()
+void WasmRunnerImpl::init(const WasmRunnerConfig& config)
 {
+    shared.configuration = config;
+
     RuntimeInitArgs init_args;
     memset(&init_args, 0, sizeof(RuntimeInitArgs));
 
     strcpy(init_args.ip_addr, "127.0.0.1");
     init_args.instance_port = 0;
     init_args.mem_alloc_type = Alloc_With_System_Allocator;
-    init_args.max_thread_num = 64;
+    init_args.max_thread_num = config.threadCount;
 
     wasm_runtime_full_init(&init_args);
 
@@ -128,7 +127,10 @@ int WasmRunnerImpl::exec(const std::string& path, int argc, char** argv, int std
     wasm_runtime_set_wasi_addr_pool(shared.module, addr_pool, addr_pool_size);
     wasm_runtime_set_wasi_ns_lookup_pool(shared.module, ns_lookup_pool, ns_lookup_pool_size);
 
-    shared.module_inst = wasm_runtime_instantiate(shared.module, stack_size, heap_size, error_buf, sizeof(error_buf));
+    shared.module_inst = wasm_runtime_instantiate(shared.module,
+                                                  shared.configuration.stackSize,
+                                                  shared.configuration.heapSize,
+                                                  error_buf, sizeof(error_buf));
     if (!shared.module_inst) {
         std::string reason; reason = std::string(error_buf);
         std::string err; err = "Failed to create module runtime: " + reason;
@@ -136,7 +138,7 @@ int WasmRunnerImpl::exec(const std::string& path, int argc, char** argv, int std
         goto fail;
     }
 
-    shared.exec_env = wasm_runtime_create_exec_env(shared.module_inst, stack_size);
+    shared.exec_env = wasm_runtime_create_exec_env(shared.module_inst, shared.configuration.stackSize);
     if (!shared.exec_env) {
         const auto reason = std::string(error_buf);
         const auto err = "Create wasm execution environment failed: " + reason;
@@ -205,21 +207,20 @@ void WasmRunnerImpl::stop()
 }
 
 extern "C" {
-WasmRuntime init_wamr_runtime(WasmRuntimeHost host)
+WasmRuntime init_wamr_runtime(WasmRuntimeHost host, const WasmRuntimeConfig config)
 {
     auto runner = new WasmRuntimePrivate();
     if (!runner)
         return 0;
 
     runner->interface = new WasmRunnerImpl(host);
-    runner->interface->init();
+    runner->interface->init(*static_cast<WasmRunnerConfig*>(config));
     return (WasmRuntime)runner;
 }
 
 uint32_t start_wamr_runtime(WasmRuntime instance, const char* binary, int argc, char** argv, int infd, int outfd, int errfd, const bool debug, const char* readableDir)
 {
     WasmRuntimePrivate* priv = (WasmRuntimePrivate*)(instance);
-
     if (!priv)
         return 0;
 

@@ -24,8 +24,8 @@ Item {
         visibility = true
         currentPath = path
         contextFieldSearchText.forceActiveFocus()
-        contextResults.model = searchAndReplace.suggestions(contextFieldSearchText.text,
-                                                            path)
+        contextResultListView.model = searchAndReplace.suggestions(contextFieldSearchText.text,
+                                                                   path)
     }
 
     function hide() {
@@ -95,7 +95,7 @@ Item {
                         leftPadding: paddingMedium * 2
                         placeholderText: qsTr("Find:")
                         onTextChanged: {
-                            contextResults.model = searchAndReplace.suggestions(text,currentPath)
+                            contextResultListView.model = searchAndReplace.suggestions(text,currentPath)
                         }
                         height: parent.height
                         width: 192
@@ -132,27 +132,34 @@ Item {
                 id: searchAndReplace
             }
 
-            ListView {
+            ScrollView {
                 id: contextResults
                 width: parent.width
                 height: parent.height - paddingSmall - toolBar.height
-                clip: true
                 spacing: paddingSmall
-                delegate: ScrollView {
-                    width: parent.width
-                    ContextViewButton {
+
+                ListView {
+                    id: contextResultListView
+                    clip: true
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        leftMargin: paddingMedium
+                    }
+                    height: parent.height
+                    onModelChanged: {
+                        contextResultListView.currentIndex = 0
+                    }
+                    delegate: ContextViewButton {
                         id: contextResultButton
                         text: modelData.name
                         enabled: true
+                        flat: (contextResultListView.currentIndex !== index)
                         replaceEnabled: contextFieldReplaceText.text.length > 0 && modelData.name.length > 0
-                        anchors {
-                            left: parent.left
-                            right: parent.right
-                            leftMargin: paddingMedium
-                        }
-                        color: root.palette.button
                         font.pixelSize: 20
                         isProject: modelData.name.toLowerCase().endsWith(".pro")
+                        width: contextResultListView.width
+                        height: implicitHeight
 
                         onReplaceAll: {
                             let list = []
@@ -164,7 +171,7 @@ Item {
                                                      contextFieldSearchText.text,
                                                      contextFieldReplaceText.text)
                             editor.refreshFromDisk()
-                            contextResults.model =
+                            contextResultListView.model =
                                     searchAndReplace.suggestions(contextFieldSearchText.text,
                                                                  modelData.path)
                         }

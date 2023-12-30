@@ -2,11 +2,9 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Grid {
+Column {
     id: itemRoot
-    spacing: root.paddingMedium
 
-    property var color : root.palette.button
     property alias text: labelControl.text
     property alias font: labelControl.font
     property alias elide: labelControl.elide
@@ -16,6 +14,7 @@ Grid {
     property bool pressAnimation : true
     property bool longPressEnabled: true
     property bool replaceEnabled: true
+    property bool isProject : false
 
     signal replaceAll()
     signal openClicked()
@@ -23,44 +22,61 @@ Grid {
     signal firstOccurance()
     signal shareRequested()
 
-    property bool isProject : false
+    spacing: root.paddingMedium
 
-    Button {
-        id: shareButton
-        icon.source: isProject ? Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
-                               : Qt.resolvedUrl("qrc:/assets/doc@2x.png")
-        icon.width: 48
-        icon.height: 48
-        width: 48
-        height: 48
-        flat: true
-        enabled: false
-    }
+    Row {
+        width: parent.width
+        height: implicitHeight
 
-    ColumnLayout {
-        Layout.alignment: Qt.AlignVCenter
-        Label {
-            id: labelControl
-            color: root.palette.text
+        Button {
+            id: shareButton
+            icon.source: isProject ?
+                             Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
+                           : Qt.resolvedUrl("qrc:/assets/doc@2x.png")
+            icon.width: 48
+            icon.height: 48
+            width: 48
+            height: 48
+            flat: true
+            enabled: false
         }
 
-        Row {
-            spacing: paddingSmall
+        Column {
+            height: parent.height
+            Label {
+                id: labelControl
+                color: root.palette.text
+            }
 
-            Button {
-                id: openButton
-                text: qsTr("Open")
-                onClicked: itemRoot.openClicked()
+            Row {
+                spacing: paddingSmall
+
+                Button {
+                    id: openButton
+                    text: qsTr("Open")
+                    onClicked: itemRoot.openClicked()
+                }
+                Button {
+                    id: firstOccuranceButton
+                    text: qsTr("Copy")
+                    onClicked: itemRoot.copyRequested()
+                }
+                Button {
+                    id: replaceAllButton
+                    text: qsTr("Replace all")
+                    onClicked: itemRoot.replaceAll()
+                }
             }
-            Button {
-                id: firstOccuranceButton
-                text: qsTr("Copy")
-                onClicked: itemRoot.copyRequested()
-            }
-            Button {
-                id: replaceAllButton
-                text: qsTr("Replace all")
-                onClicked: itemRoot.replaceAll()
+        }
+    }
+
+    Column {
+        width: parent.width
+        height: implicitHeight
+
+        Repeater {
+            CodeEditor {
+
             }
         }
     }

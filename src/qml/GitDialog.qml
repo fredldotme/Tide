@@ -3,14 +3,10 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Effects
 
-Item {
+TideDialog {
     id: dialogRoot
-    x: ((parent.width - width - debuggerArea.width) / 2)
-    y: visibility ? ((parent.height - height) / 2) : parent.height
-    opacity: visibility ? 1.0 : 0.0
-    visible: opacity > 0.0
 
-    property bool visibility : false
+    readonly property alias model : commitLogs.model
 
     Behavior on y {
         NumberAnimation {
@@ -26,54 +22,54 @@ Item {
     }
 
     function show() {
-        visibility = true
+        dialogRoot.open()
+        git.refreshStatus()
+        commitLogs.model = git.logs(branchComboBox.model[branchComboBox.currentIndex])
+        branchComboBox.model = git.status.branches
     }
 
     function hide() {
-        visibility = false
+        dialogRoot.close()
     }
 
-    Rectangle {
-        id: dialogMainView
-        anchors.fill: parent
-        color: root.palette.base
-        radius: roundedCornersRadius
+    Row {
+        id: headerRow
+        x: paddingSmall
+        width: parent.width
+        spacing: paddingSmall
 
-        Row {
-            id: headerRow
-            x: paddingSmall
-            width: parent.width
-            spacing: paddingSmall
-
-            TideToolButton {
-                id: closeButton
-                text: qsTr("Close")
-                onClicked: dialogRoot.hide()
-                height: parent.height
-            }
-
-            TabBar {
-                id: bar
-                width: parent.width - closeButton.width - paddingMedium - roundedCornersRadius
-                TabButton {
-                    text: qsTr("Status")
-                }
-                TabButton {
-                    text: qsTr("Commit")
-                }
-                TabButton {
-                    text: qsTr("Logs")
-                }
-            }
+        TideToolButton {
+            id: closeButton
+            text: qsTr("Close")
+            font.bold: true
+            onClicked: dialogRoot.hide()
+            height: parent.height
         }
 
-        StackLayout {
-            y: headerRow.height
-            width: parent.width
-            height: parent.height - headerRow.height
+        TabBar {
+            id: bar
+            width: parent.width - closeButton.width - paddingMedium - roundedCornersRadius
+            background: Rectangle {
+                color: root.palette.base
+            }
+            /*TabButton {
+                    text: qsTr("Status")
+                }*/
+            /*TabButton {
+                    text: qsTr("Commit")
+                }*/
+            TabButton {
+                text: qsTr("Logs")
+            }
+        }
+    }
 
-            currentIndex: bar.currentIndex
-            Item {
+    StackLayout {
+        y: headerRow.height
+        width: parent.width
+        height: parent.height - headerRow.height
+        currentIndex: bar.currentIndex
+        /*Item {
                 id: statusTab
 
                 Column {
@@ -154,81 +150,111 @@ Item {
                         }
                     }
                 }
-            }
-            Item {
+            }*/
+
+        /*Item {
                 id: commitTab
-            }
+                readonly property bool hasCommittable : git.hasCommittable
 
-            Column {
-                id: logsTab
-                spacing: paddingSmall
+                Label {
+                    anchors.fill: parent
+                    text: qsTr("Nothing to commit")
+                    horizontalAlignment: Qt.AlignHCenter
+                    verticalAlignment: Qt.AlignVCenter
+                    visible: !commitTab.hasCommittable
+                }
 
-                Row {
-                    id: branchSelection
-                    width: parent.width
-                    spacing: paddingMedium
-                    Label {
-                        text: qsTr("Branch:")
-                        height: branchComboBox.height
-                        horizontalAlignment: Label.AlignHCenter
-                        verticalAlignment: Label.AlignVCenter
-                    }
-                    ComboBox {
-                        id: branchComboBox
-                        z: paddedOverlayArea.contextMenuZ
-                        height: implicitHeight
-                        model: git.status.branches
-                        editable: false
-                        onCurrentIndexChanged: {
-                            commitLogs.model = git.logs(currentValue)
+                Column {
+                    anchors.fill: parent
+                    spacing: paddingSmall
+                    visible: commitTab.hasCommittable
+
+                    ToolBar {
+                        width: parent.width
+                        height: toolBarHeight
+
+                        TideToolButton {
+                            text: qsTr("Proceed")
+                            enabled: git.hasCommittable
+                            onClicked: git.commit();
+                        }
+                        TideToolButton {
+                            text: qsTr("Reset stage")
+                            enabled: git.hasStagedFiles
+                            onClicked: git.resetStage();
                         }
                     }
                 }
+            }*/
 
-                ListView {
-                    id: commitLogs
-                    width: parent.width
-                    height: parent.height - branchSelection.height
-                    clip: true
-                    spacing: paddingSmall
-                    model: {
-                        return git.logs(git.status.branch)
+        Column {
+            id: logsTab
+            spacing: paddingSmall
+
+            Row {
+                id: branchSelection
+                width: parent.width
+                spacing: paddingMedium
+                Label {
+                    text: qsTr("Branch:")
+                    height: branchComboBox.height
+                    horizontalAlignment: Label.AlignHCenter
+                    verticalAlignment: Label.AlignVCenter
+                }
+                ComboBox {
+                    id: branchComboBox
+                    z: paddedOverlayArea.contextMenuZ
+                    width: implicitWidth
+                    height: implicitHeight
+                    model: git.status.branches
+                    editable: false
+                    onCurrentIndexChanged: {
+                        commitLogs.model = git.logs(currentValue)
                     }
-                    delegate: GitLogEntry {
-                        width: commitLogs.width
-                        height: paddingSmall +
-                                Math.max(label.height, boldLabel.height) +
-                                paddingSmall +
-                                detailControl.font.pixelSize +
-                                paddingSmall +
-                                (expanded ? expandedControl.height + paddingSmall : 0)
+                    popup.background: Rectangle {
+                        implicitWidth: 200
+                        implicitHeight: branchComboBox.contentItem.implicitHeight
+                        color: root.palette.window
                         radius: roundedCornersRadiusSmall
-                        font.pixelSize: 18
-                        outline: true
-                        outlineColor: root.palette.button
-                        boldText: modelData.committer
-                        text: modelData.summary
-                        detailText: modelData.commit
-                        expandedText: expanded ? modelData.message : ""
-                        textColor: expanded ? root.palette.active.buttonText :
-                                              root.palette.text
-                        color: expanded ?
-                                   root.palette.active.button :
-                                   "transparent"
-                        onClicked: {
-                            expanded = !expanded
-                        }
+                    }
+                }
+            }
+
+            ListView {
+                id: commitLogs
+                width: parent.width
+                height: parent.height - branchSelection.height
+                clip: true
+                spacing: paddingSmall
+                model: {
+                    return git.logs(git.status.branch)
+                }
+                delegate: GitLogEntry {
+                    width: commitLogs.width
+                    height: paddingSmall +
+                            Math.max(label.height, boldLabel.height) +
+                            paddingSmall +
+                            detailControl.font.pixelSize +
+                            paddingSmall +
+                            (expanded ? expandedControl.height + paddingSmall : 0)
+                    radius: roundedCornersRadiusSmall
+                    font.pixelSize: 18
+                    outline: true
+                    outlineColor: root.palette.button
+                    boldText: modelData.committer
+                    text: modelData.summary
+                    detailText: modelData.timestamp
+                    expandedText: expanded ? modelData.message : ""
+                    textColor: expanded ? root.palette.active.buttonText :
+                                          root.palette.text
+                    color: expanded ?
+                               root.palette.active.button :
+                               "transparent"
+                    onClicked: {
+                        expanded = !expanded
                     }
                 }
             }
         }
-    }
-
-    MultiEffect {
-        source: dialogMainView
-        anchors.fill: dialogMainView
-        paddingRect: Qt.rect(0, 0, dialogMainView.width, dialogMainView.height)
-        shadowBlur: 1.0
-        shadowEnabled: true
     }
 }

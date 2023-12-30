@@ -104,7 +104,8 @@ Rectangle {
             color: itemRoot.textColor
             width: parent.width
             height: implicitHeight
-            textFormat: Text.StyledText
+            textFormat: Text.MarkdownText
+            wrapMode: Text.WrapAnywhere
 
             Behavior on height {
                 NumberAnimation {

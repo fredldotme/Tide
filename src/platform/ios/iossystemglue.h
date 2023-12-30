@@ -29,6 +29,7 @@ public:
 private:
     StdioSpec m_spec;
     StdioSpec m_consumerSpec;
+    bool m_requestBuildStop;
 
 signals:
     void stdioWritersPrepared(StdioSpec spec);

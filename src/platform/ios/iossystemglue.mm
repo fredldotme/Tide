@@ -14,7 +14,8 @@ extern "C" {
 
 #import <UIKit/UIKit.h>
 
-IosSystemGlue::IosSystemGlue(QObject* parent) : QObject(parent)
+IosSystemGlue::IosSystemGlue(QObject* parent) :
+    QObject(parent), m_requestBuildStop{false}
 {
 }
 
@@ -109,6 +110,10 @@ bool IosSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spe
     nosystem_stderr = copy.stderr;
 
     for (const auto& command : cmds) {
+        if (m_requestBuildStop) {
+            break;
+        }
+
         const auto stdcmd = command.toStdString();
         const int ret = nosystem_system(stdcmd.c_str());
         if (ret != 0)
@@ -121,6 +126,11 @@ bool IosSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spe
         fclose(copy.stdout);
     if (copy.stderr)
         fclose(copy.stderr);
+
+    if (m_requestBuildStop) {
+        m_requestBuildStop = false;
+        return false;
+    }
 
     return true;
 }
@@ -160,6 +170,7 @@ int IosSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
 
 void IosSystemGlue::killBuildCommands()
 {
+    m_requestBuildStop = true;
 }
 
 void IosSystemGlue::writeToStdIn(const QByteArray data)

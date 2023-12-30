@@ -6,6 +6,7 @@ endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set(PROJECT_NAME tide-ide)
+    include(GNUInstallDirs)
 endif()
 
 project(${PROJECT_NAME} VERSION 1.6.0 LANGUAGES C CXX)
@@ -194,6 +195,7 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/AutocompletorFrame.qml
     qml/GitDialog.qml
     qml/GitLogEntry.qml
+    qml/PlatformProperties.qml
 
     NO_LINT
 )
@@ -440,12 +442,9 @@ if(APPLE AND NOT IOS)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    include(GNUInstallDirs)
     set (LIBZ z)
     set (OPENSSL crypto ssl)
     set (DL_LIBRARY dl)
-
-    find_library(LLVM REQUIRED NAMES libLLVM-15.so PATHS /usr/lib/llvm-15/lib)
 
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
@@ -583,6 +582,15 @@ install(TARGETS ${PROJECT_NAME}
 
 # Non-resource bundling on macOS
 if(APPLE AND NOT IOS)
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND mkdir -p "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Frameworks"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LIBCLANG_CPP}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Frameworks/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LLVM}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Frameworks/"
+    )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND cp -a "${LLVM_TOOLS}/clang-17" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
     )

@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QStandardPaths>
@@ -26,10 +27,6 @@
 PyRunner::PyRunner(QObject *parent)
     : QObject{parent}, m_running{false}, m_system{nullptr}, m_runnerHost{new TidePyRunnerHost(this)}
 {
-    const auto interpreterPath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
-                                 QStringLiteral("/Library/Python/bin/python-3.11.4.wasm");
-    m_interpreterPath = interpreterPath;
-    emit interpreterPathChanged();
 }
 
 PyRunner::~PyRunner()
@@ -103,6 +100,11 @@ static void* runInThread(void* userdata)
 
     shared.runner->signalEnd();
     return nullptr;
+}
+
+void TidePyRunnerHost::report(const std::string& msg)
+{
+    emit runner->message(QString::fromStdString(msg));
 }
 
 void TidePyRunnerHost::reportError(const std::string& err)
@@ -187,7 +189,17 @@ void PyRunner::start(const QString binary, const QStringList args, const bool de
     std::cout << "Loaded Python Wasmrunner " << sharedData.lib->handle << " from " << runnerPath << std::endl;
 
     if (sharedData.lib->init) {
-        sharedData.runtime = sharedData.lib->init(m_runnerHost);
+        WasmRunnerConfig config;
+        const auto docs = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation);
+        const auto mapping = QStringLiteral("%1::%2").arg(docs, docs).toStdString();
+        const auto projectDir = QFileInfo(applicationFile).dir().absolutePath();
+        const auto projectDirMapping = QStringLiteral("%1::%2").arg(projectDir, projectDir).toStdString();
+
+        config.flags = WasmRunnerConfigFlags::None;
+        config.mapDirs.push_back(mapping);
+        config.mapDirs.push_back(projectDirMapping);
+
+        sharedData.runtime = sharedData.lib->init(m_runnerHost, (WasmRuntimeConfig)&config);
         std::cout << "Initialization complete: " << sharedData.runtime << std::endl;
     } else {
         sharedData.runtime = nullptr;
@@ -266,7 +278,9 @@ void PyRunner::runRepl()
     std::cout << "Loaded Python Wasmrunner " << sharedData.lib->handle << " from " << runnerPath << std::endl;
 
     if (sharedData.lib->init) {
-        sharedData.runtime = sharedData.lib->init(m_runnerHost);
+        WasmRunnerConfig config;
+        config.flags = WasmRunnerConfigFlags::JIT;
+        sharedData.runtime = sharedData.lib->init(m_runnerHost, (WasmRuntimeConfig)&config);
         std::cout << "Initialization complete: " << sharedData.runtime << std::endl;
     } else {
         sharedData.runtime = nullptr;

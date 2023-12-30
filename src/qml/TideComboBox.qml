@@ -13,6 +13,7 @@ ComboBox {
         shadowEnabled: true
     }
     contentItem: Rectangle {
+        z: comboBox.z + 1
         implicitWidth: 200
         implicitHeight: menuItemListView.height
         color: root.palette.window

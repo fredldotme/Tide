@@ -15,6 +15,7 @@ Item {
     property Debugger dbugger : null
 
     property alias codeField: codeField
+    property alias preview: preview
 
     property bool invalidated : true
     property bool changed : false
@@ -156,16 +157,38 @@ Item {
         return SourceHighliter.CodeMake;
     }
 
+    onInvalidatedChanged: {
+        if (!invalidated)
+            return;
+
+        preview.source = ""
+        text = ""
+    }
+
     onFileChanged: {
-        if (file == null)
+        if (file == null) {
+            preview.source = ""
+            text = ""
             return
+        }
 
         invalidated = false
         loading = true
-        const path = projectPicker.openBookmark(editor.file.bookmark)
-        text = fileIo.readFile(file.path)
+        const bookmarkPath = projectPicker.openBookmark(editor.file.bookmark)
+
+        if (root.fileIsImageFile(file.path)) {
+            preview.source = "file://" + file.path
+            text = ""
+        } else {
+            preview.source = ""
+            if (fileIo.fileIsTextFile(file.path))
+                text = fileIo.readFile(file.path)
+            else
+                text = ""
+        }
+
         loading = false
-        projectPicker.closeFile(path)
+        projectPicker.closeFile(bookmarkPath)
 
         const lang = languageForLowerCaseFileName(file.name.toLowerCase())
         console.log("Language: " + lang)
@@ -296,6 +319,20 @@ Item {
         color: root.palette.base
         clip: true
 
+        Image {
+            id: preview
+            anchors.centerIn: parent
+            width: Math.min(parent.width, implicitWidth)
+            height: Math.min(parent.height, implicitHeight)
+            visible: opacity > 0.0
+            enabled: opacity > 0.0
+            opacity: source !== "" ? 1.0 : 0.0
+            fillMode: Image.PreserveAspectFit
+            Behavior on opacity {
+                NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
+            }
+        }
+
         Column {
             anchors.centerIn: parent
             width: parent.width
@@ -386,7 +423,7 @@ Item {
                 leftMargin: roundedCornersRadius
                 rightMargin: roundedCornersRadius
             }
-
+            visible: !root.fileIsImageFile(file.path)
             opacity: invalidated ? 0.0 : 1.0
             Behavior on opacity {
                 NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
@@ -427,7 +464,7 @@ Item {
                     color: "orange"
                     visible: dbugger.currentLineOfExecution !== ""
                     height: lineNumbersHelper.lineCount[pos()] !== undefined ?
-                        lineNumbersHelper.lineCount[pos()].height : 0
+                                lineNumbersHelper.lineCount[pos()].height : 0
                     x: codeView.x
                     y: contentY()
                     opacity: 0.3
@@ -458,6 +495,7 @@ Item {
                         id: lineNumbersColumn
                         Layout.fillHeight: true
                         Layout.preferredWidth: childrenRect.width
+
                         Repeater {
                             id: lineNumberRepeater
                             model: lineNumbersHelper.lineCount
