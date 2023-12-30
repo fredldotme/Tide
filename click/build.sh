@@ -19,14 +19,14 @@ if [ ! -d build ]; then
 fi
 cd build
 
-ARCH_ARGS="-DQT_FEATURE_opengles2=ON -DQT_FEATURE_opengles3=ON -DQT_FEATURE_opengles31=ON -DQT_FEATURE_opengles32=ON"
+ARCH_ARGS="-DQT_FEATURE_opengl=OFF -DQT_FEATURE_opengles2=ON -DQT_FEATURE_opengles3=ON -DQT_FEATURE_opengles31=ON -DQT_FEATURE_opengles32=ON"
 if [ "$ARCH" = "amd64" ]; then
-    ARCH_ARGS=""
+    ARCH_ARGS="-DQT_FEATURE_opengl=ON -DQT_FEATURE_opengles2=OFF -DQT_FEATURE_opengles3=OFF -DQT_FEATURE_opengles31=OFF -DQT_FEATURE_opengles32=OFF"
 fi
 
-cmake -GNinja -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR $ARCH_ARGS ..
+cmake -GNinja -DCMAKE_INSTALL_PREFIX=/ "$ARCH_ARGS" ..
 ninja
-ninja install
+DESTDIR=$INSTALL_DIR ninja install
 cd ../..
 
 if [ ! -d qt6shadertools ]; then
@@ -38,9 +38,9 @@ if [ ! -d build ]; then
 fi
 cd build
 
-cmake -GNinja -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ..
+cmake -GNinja -DCMAKE_INSTALL_PREFIX=/ ..
 ninja
-ninja install
+DESTDIR=$INSTALL_DIR ninja install
 cd ../..
 
 if [ ! -d qt6declarative ]; then
@@ -52,9 +52,9 @@ if [ ! -d build ]; then
 fi
 cd build
 
-cmake -GNinja -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ..
+cmake -GNinja -DCMAKE_INSTALL_PREFIX=/ ..
 ninja
-ninja install
+DESTDIR=$INSTALL_DIR ninja install
 cd ../..
 
 if [ ! -d qt6wayland ]; then
@@ -66,9 +66,9 @@ if [ ! -d build ]; then
 fi
 cd build
 
-cmake -GNinja -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR ..
+cmake -GNinja -DCMAKE_INSTALL_PREFIX=/ -DQt6_DIR=$INSTALL_DIR/lib/cmake/Qt6 ..
 ninja
-ninja install
+DESTDIR=$INSTALL_DIR ninja install
 cd ../..
 
 # Segue to bootstrap resources and LLVM tooling
@@ -78,14 +78,14 @@ bash bootstrap.sh --linux
 # Back to the build dir
 cd $BUILD_DIR
 
-if [ ! -d build ]; then
-    mkdir build
+if [ ! -d build-click ]; then
+    mkdir build-click
 fi
-cd build
+cd build-click
 
-cmake -GNinja -DBUILD_CLICK_METADATA=ON -DCMAKE_INSTALL_PREFIX=$INSTALL_DIR $SRC_DIR
+cmake -GNinja -DBUILD_CLICK_METADATA=ON -DCMAKE_INSTALL_PREFIX=/ $SRC_DIR
 ninja
-ninja install
+DESTDIR=$INSTALL_DIR ninja install
 
 rm -rf $INSTALL_DIR/{mkspecs,include,libexec}
 

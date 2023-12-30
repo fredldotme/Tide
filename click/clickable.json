@@ -13,7 +13,7 @@
         "libgles-dev",
         "libgles2-mesa-dev",
         "libegl1-mesa-dev",
-        "libhybris-dev"
+        "libfontconfig1-dev"
     ],
     "build": "bash ${ROOT}/click/build.sh",
     "make_jobs": 6,
