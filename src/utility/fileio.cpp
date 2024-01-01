@@ -104,7 +104,7 @@ bool FileIo::fileIsTextFile(const QString path)
     int c;
     std::ifstream stream(path.toStdString());
     while ((c = stream.get()) != EOF) {
-        if (c > 255)
+        if (c > 1279) // As per Unicode U+04C0 - U+04FF
             return false;
     }
     return true;
