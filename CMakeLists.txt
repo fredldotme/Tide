@@ -4,8 +4,8 @@ project(Tide VERSION 0.1 LANGUAGES C)
 project(Tide VERSION 0.1 LANGUAGES CXX)
 set (CMAKE_CXX_STANDARD 17)
 
-option(BUILD_CLICK_METADATA "Build metadata for Ubuntu Touch Click packaging" ON)
-option(SNAP "Snap packaging support" ON)
+option(BUILD_CLICK_METADATA "Build metadata for Ubuntu Touch Click packaging" OFF)
+option(SNAP "Snap packaging support" OFF)
 
 if (SNAP)
     set(LLVM_DIR ${SNAP_STAGE}/usr)
