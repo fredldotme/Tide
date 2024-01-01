@@ -892,7 +892,6 @@ ApplicationWindow {
                 //rightPadding: paddingMedium
                 enabled: !sysrootManager.installing
                 height: headerItemHeight
-                z: debuggerArea.z + 1 // Otherwise the debuggerArea overlaps the contextMenu
                 onClicked: {
                     consoleContextMenu.open()
                 }
@@ -902,6 +901,7 @@ ApplicationWindow {
 
                 TideMenu {
                     id: consoleContextMenu
+                    z: debuggerArea.z + 1 // Otherwise the debuggerArea overlaps the contextMenu
                     MenuItem {
                         text: consoleView.visibility ? qsTr("Hide console") : qsTr("Show console")
                         icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
