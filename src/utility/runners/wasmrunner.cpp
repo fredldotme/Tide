@@ -57,7 +57,7 @@ static void* runInThread(void* userdata)
 {
     WasmRunnerSharedData& shared = *static_cast<WasmRunnerSharedData*>(userdata);
 
-    std::vector<const std::string> args;
+    std::vector<std::string> args;
     std::vector<const char*> cargs;
     std::vector<const char*> env;
 

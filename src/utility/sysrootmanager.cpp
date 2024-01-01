@@ -57,7 +57,7 @@ void SysrootManager::unpackTar(QString archive, QString target)
             mtar_read_data(&tar, tarFileBuffer, tarHeader.size);
 
             QFile temporary(temporaryPath);
-            qDebug() << temporary.fileName();
+            // qDebug() << temporary.fileName();
             if (!temporary.open(QFile::WriteOnly)) {
                 qWarning() << "Failed to open file for writing";
                 goto next;
@@ -86,12 +86,12 @@ void SysrootManager::runInThread()
 #elif defined(Q_OS_MACOS)
     const auto resourcesRoot = qApp->applicationDirPath() + QStringLiteral("/../Resources");
 #else
-    const auto resourcesRoot = qApp->applicationDirPath() + QStringLiteral("/../tide");
+    const auto resourcesRoot = qApp->applicationDirPath() + QStringLiteral("/../../resources");
 #endif
 
     qDebug() << "Resources:" << resourcesRoot;
 
-    const QString temporaries = QStandardPaths::writableLocation(QStandardPaths::TempLocation) +
+    const QString temporaries = QStandardPaths::writableLocation(QStandardPaths::CacheLocation) +
                                 QStringLiteral("/The-Sysroot");
 
     m_installing = true;

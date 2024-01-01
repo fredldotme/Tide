@@ -106,7 +106,7 @@ void* mmap_wamr_file(const char* filename, unsigned int* size, int* fd)
     uint32 file_size, buf_size, read_size;
     struct stat stat_buf;
 
-    if (!filename || !size || !fd) {
+    if (!filename || !size || !fd) {
         printf("Read file to buffer failed: invalid filename, ret size or fd.\n");
         return nullptr;
     }
@@ -128,7 +128,7 @@ void* mmap_wamr_file(const char* filename, unsigned int* size, int* fd)
         return nullptr;
     }
 
-    void* ret = mmap(NULL, file_size, PROT_READ | PROT_EXEC, MAP_PRIVATE, file, 0);
+    void* ret = mmap(NULL, file_size, PROT_READ | PROT_EXEC, MAP_PRIVATE, file, 0);
     if (!ret) {
         close(file);
         return nullptr;

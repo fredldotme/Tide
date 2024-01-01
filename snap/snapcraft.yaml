@@ -20,6 +20,7 @@ apps:
       QML_IMPORT_PATH: ${SNAP}/usr/qml
     command-chain:
       - bin/graphics-core22-wrapper
+      - bin/desktop-launch
     command: usr/bin/tide-ide
     plugs: [ x11, wayland, desktop, desktop-legacy, opengl, alsa, pulseaudio, home, removable-media, network, network-bind ]
 
@@ -38,13 +39,13 @@ layout:
     symlink: $SNAP/graphics/X11/XErrorDB
   /usr/share/X11/locale:
     symlink: $SNAP/graphics/X11/locale
+  /usr/share/X11/xkb:
+    symlink: $SNAP/usr/share/X11/xkb
 
 parts:
-  tide:
+  bootstrap:
     plugin: cmake
-    source: .
-    cmake-parameters:
-      - -DCMAKE_INSTALL_PREFIX=/usr
+    source: 3rdparty
     build-packages:
       - cmake
       - ninja-build
@@ -58,15 +59,36 @@ parts:
       - libpcre2-16-0
     override-build: |
       cd $SNAPCRAFT_PART_SRC
-      bash -x bootstrap.sh --linux
-      snapcraftctl build
-    after: [ qt6wayland ]
+      bash -x bootstrap.sh --linux-snap
+  tide:
+    plugin: cmake
+    source: .
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DSNAP=1
+      - -DSNAP_STAGE=$CRAFT_STAGE
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+      - libssl-dev
+      - libcrypt-dev
+      - curl
+      - clang
+    stage-packages:
+      - libpcre2-16-0
+    after: [ qt6declarative, bootstrap ]
   graphics-core22:
     source: https://github.com/MirServer/graphics-core22.git
     plugin: dump
     override-prime: |
       craftctl default
       ${CRAFT_PART_SRC}/bin/graphics-core22-cleanup mesa-core22 nvidia-core22
+      mkdir -p ${CRAFT_STAGE}/usr/share/doc/libwayland-client0
+    stage-packages:
+      - libwayland-client0
+      - libwayland-cursor0
     prime:
     - bin/graphics-core22-wrapper
     after: [ tide ]
@@ -189,3 +211,9 @@ parts:
     stage:
       - usr/*
     after: [ qt6declarative ]
+  launcher:
+    plugin: dump
+    source: snap/local
+    organize:
+      'desktop-launch': bin/desktop-launch
+    after: [ tide ]
