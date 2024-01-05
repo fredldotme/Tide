@@ -432,10 +432,6 @@ Item {
             id: mainEditorColumn
             anchors.fill: parent
             clip: true
-            anchors {
-                leftMargin: roundedCornersRadius
-                rightMargin: roundedCornersRadius
-            }
             visible: !root.fileIsImageFile(file.path)
             opacity: invalidated ? 0.0 : 1.0
             Behavior on opacity {
@@ -451,31 +447,49 @@ Item {
                 visible: !codeEditor.invalidated
                 width: parent.width
                 height: parent.height - detailArea.height
+                clip: true
 
-                ScrollBar.horizontal: ScrollBar {
+                ScrollBar.horizontal: TideScrollBar {
                     parent: scrollView
-                    hoverEnabled: true
-                    anchors.left: scrollView.left
-                    anchors.right: scrollView.right
-                    anchors.bottom: scrollView.bottom
-                    policy: ScrollBar.AsNeeded
                     size: scrollView.width / codeView.width
+                    leftPadding: 0
+                    rightPadding: 0
+                    orientation: Qt.Horizontal
                     visible: !settings.wrapEditor
                 }
-                ScrollBar.vertical: ScrollBar {
+                ScrollBar.vertical: TideScrollBar {
                     parent: scrollView
-                    hoverEnabled: true
-                    anchors.top: scrollView.top
-                    anchors.right: scrollView.right
-                    anchors.bottom: scrollView.bottom
-                    policy: ScrollBar.AsNeeded
                     size: scrollView.height / codeView.height
+                    bottomPadding: 0
                 }
 
                 Rectangle {
-                    width: codeView.width
+                    id: currentLineIndicator
+                    width: scrollView.width - root.roundedCornersRadiusMedium
+                    color: codeField.selectionColor
+                    visible: !codeField.readOnly
+                    height: lineNumbersHelper.lineCount[codeField.currentLine - 1] !== undefined ?
+                                lineNumbersHelper.lineCount[codeField.currentLine - 1].height : 0
+                    x: codeView.x
+                    y: contentY()
+                    opacity: 0.15
+
+                    function contentY() {
+                        let contentY = 0
+                        for (let currentLine = 0; currentLine < Math.min(codeField.currentLine - 1, lineNumbersHelper.lineCount.length); currentLine++) {
+                            let modelData = lineNumbersHelper.lineCount[currentLine]
+                            contentY += modelData.height
+                        }
+                        return contentY
+                    }
+                }
+
+                Rectangle {
+                    id: currentLineOfExecutionIndicator
+                    width: scrollView.width - root.roundedCornersRadiusMedium
                     color: "orange"
-                    visible: dbugger.currentLineOfExecution !== ""
+                    visible: dbugger.currentLineOfExecution !== "" &&
+                             dbugger.currentLineOfExecution.indexOf(file.path) === 0
                     height: lineNumbersHelper.lineCount[pos()] !== undefined ?
                                 lineNumbersHelper.lineCount[pos()].height : 0
                     x: codeView.x
@@ -502,6 +516,7 @@ Item {
                 RowLayout {
                     id: codeView
                     anchors.fill: parent
+                    anchors.leftMargin: roundedCornersRadius
                     spacing: paddingSmall
 
                     Column {
@@ -719,6 +734,12 @@ Item {
                                         cursorRectangle.x < scrollView.contentItem.contentX) {
                                     scrollView.contentItem.contentX = (cursorRectangle.x - paddingSmall)
                                 }
+                            }
+
+                            if (cursorRectangle.y < scrollView.contentItem.contentY) {
+                                scrollView.contentItem.contentY = cursorRectangle.y
+                            } else if (cursorRectangle.y >= scrollView.contentItem.contentY + scrollView.height) {
+                                scrollView.contentItem.contentY = cursorRectangle.y - scrollView.height + currentLineIndicator.height - 1
                             }
                         }
 
@@ -1053,6 +1074,7 @@ Item {
                 height: implicitHeight
 
                 Label {
+                    Layout.leftMargin: roundedCornersRadiusMedium
                     text: qsTr("Line %1").arg(codeField.currentLine)
                     font.pixelSize: 12
                     color: root.palette.text

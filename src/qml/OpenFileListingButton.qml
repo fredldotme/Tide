@@ -29,8 +29,8 @@ Rectangle {
     scale: pressed ? 0.9 : 1.0
     opacity: pressed || !enabled ? 0.5 : 1.0
 
-    width: mainLayout.width
-    height: mainLayout.height
+    width: mainLayout.width + (root.paddingMid * 2)
+    height: mainLayout.height + (root.paddingMid * 2)
 
     Behavior on scale {
         NumberAnimation {

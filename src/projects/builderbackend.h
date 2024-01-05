@@ -19,6 +19,7 @@ public:
     virtual QString projectBuildRoot() = 0;
     virtual QStringList sourceFiles() = 0;
     virtual bool building() = 0;
+    virtual bool isRunnable() = 0;
 };
 
 #endif // BUILDERBACKEND_H

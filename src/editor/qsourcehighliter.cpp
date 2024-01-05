@@ -311,7 +311,8 @@ void QSourceHighliter::highlightSyntax(const QString &text)
                             }
                             next += 2;
                             setFormat(i, next - i,  formatComment);
-                            i = next;
+                            if (i < next)
+                                i = next;
                             if (i >= textLen) return;
                         }
                     }

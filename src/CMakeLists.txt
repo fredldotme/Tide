@@ -200,6 +200,7 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/GitDialog.qml
     qml/GitLogEntry.qml
     qml/PlatformProperties.qml
+    qml/TideScrollBar.qml
 
     NO_LINT
 )

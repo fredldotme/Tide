@@ -16,6 +16,8 @@ CMakeBuilder::CMakeBuilder(QObject *parent)
     qputenv("CMAKE_ROOT", cmakePath.toUtf8());
     qputenv("CC", "clang");
     qputenv("CXX", "clang++");
+
+    QObject::connect(this, &CMakeBuilder::projectFileChanged, this, &CMakeBuilder::runnableChanged);
 }
 
 void CMakeBuilder::setSysroot(const QString path)
@@ -138,6 +140,11 @@ QStringList CMakeBuilder::sourceFiles()
 bool CMakeBuilder::building()
 {
     return m_building;
+}
+
+bool CMakeBuilder::isRunnable()
+{
+    return false;
 }
 
 QString CMakeBuilder::projectName()

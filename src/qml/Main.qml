@@ -22,14 +22,17 @@ ApplicationWindow {
 
     readonly property alias preview : editor.preview
 
-    readonly property int paddingSmall: 8
-    readonly property int paddingMid: 12
-    readonly property int paddingMedium: 16
-    readonly property int paddingLarge: 24
+    readonly property int paddingSmall: 6
+    readonly property int paddingMid: 10
+    readonly property int paddingMedium: 12
+    readonly property int paddingLarge: 20
     readonly property int roundedCornersRadiusSmall: 8
-    readonly property int roundedCornersRadius: 16
-    readonly property int roundedCornersRadiusMedium: 24
-    readonly property int sideBarExpandedDefault: 324
+    readonly property int roundedCornersRadius: 12
+    readonly property int roundedCornersRadiusMedium: 18
+    readonly property int sideBarStartWidth : (mainView.width / 2)
+    readonly property int sideBarExpandedWidth : 300
+    readonly property int sideBarExpandedDefault: openFiles.files.length === 0 ?
+                                                      sideBarStartWidth : sideBarExpandedWidth
     readonly property bool landscapeMode : width > height
     readonly property int sideBarWidth: landscapeMode ? Math.min(sideBarExpandedDefault, width) : width
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
@@ -38,9 +41,9 @@ ApplicationWindow {
                                                   (dbugger.waitingpoints.length > 0)) && projectBuilder.projectFile !== ""
     readonly property bool padStatusBar : true
     readonly property int headerBarHeight : 48
-    readonly property int headerItemHeight : 28
+    readonly property int headerItemHeight : 24
     readonly property int toolBarHeight : 40
-    readonly property int menuItemIconSize : 24
+    readonly property int menuItemIconSize : 20
     readonly property real defaultRectangleShadow: 0.2
 
     property color headerItemColor : dialogShadow.opacity > 0.0 ?
@@ -79,17 +82,24 @@ ApplicationWindow {
         if (editor.file == null || editor.invalidated)
             return
 
-        if (!fileIo.fileIsTextFile(editor.file.path))
-            return
-
         const file = editor.file
+        console.log("File to save: " + file.path);
+        if (!fileIo.fileIsTextFile(file.path) || root.fileIsImageFile(file.path)) {
+            hud.hudLabel.flashMessage(qsTr("Not saving binary file..."))
+            console.log("Not saving binary file!");
+            return
+        }
+
         const path = projectPicker.openBookmark(file.bookmark)
         editor.loading = true
         fileIo.writeFile(file.path, editor.text)
         editor.loading = false
         editor.changed = false
         projectPicker.closeFile(path);
+
+        // Refresh what's necessary
         editor.reloadAst()
+        projectBuilder.reloadProperties();
 
         fileSaved()
     }
@@ -108,9 +118,9 @@ ApplicationWindow {
         if (projectBuilder.projectFile === "")
             return;
 
-        hud.hudLabel.flashMessage(qsTr("Building project..."))
-
         saveCurrentFile()
+
+        hud.hudLabel.flashMessage(qsTr("Building project..."))
         root.compiling = true
         projectBuilder.clean()
 
@@ -125,6 +135,11 @@ ApplicationWindow {
 
         if (editor.invalidated)
             return;
+
+        if (!projectBuilder.isRunnable()) {
+            hud.hudLabel.flashMessage(qsTr("Not a runnable project..."));
+            return;
+        }
 
         const killOnly = wasmRunner.running;
 
@@ -146,6 +161,11 @@ ApplicationWindow {
 
         if (editor.invalidated)
             return;
+
+        if (!projectBuilder.isRunnable()) {
+            hud.hudLabel.flashMessage(qsTr("Not a runnable project..."));
+            return;
+        }
 
         const killOnly = wasmRunner.running;
 
@@ -459,22 +479,6 @@ ApplicationWindow {
                     }
 
                     MenuItem {
-                        id: releaseButton
-                        text: qsTr("Release")
-                        icon.source: Qt.resolvedUrl("qrc:/assets/briefcase.circle.fill@2x.png")
-                        readonly property bool visibility : projectBuilder.projectFile !== ""
-                        visible: visibility
-                        enabled: visibility
-                        height: visible ? implicitHeight : 0
-                        onVisibilityChanged: contextButton.wiggle()
-
-                        onClicked: {
-                            releaseRequested = true
-                            root.attemptBuild()
-                        }
-                    }
-
-                    MenuItem {
                         id: helpButton
                         icon.source: Qt.resolvedUrl("qrc:/assets/questionmark.circle.fill@2x.png")
                         text: qsTr("Help")
@@ -668,6 +672,7 @@ ApplicationWindow {
             }*/
 
             TideHeaderButton {
+                id: debugHeaderButton
                 //rightPadding: paddingMedium
                 source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
                 color: dbugger.paused && !dbugger.heatingUp ? "orange" : root.headerItemColor
@@ -676,6 +681,42 @@ ApplicationWindow {
 
                 onClicked: debugContextMenu.open()
                 onPressAndHold: debugContextMenu.open()
+
+                function wiggle() {
+                    if (!settings.wiggleHints)
+                        return
+                    debugHeaderButtonWiggleAnimation.restart()
+                }
+
+                ParallelAnimation {
+                    id: debugHeaderButtonWiggleAnimation
+                    SequentialAnimation {
+                        NumberAnimation {
+                            target: debugHeaderButton
+                            property: "rotation"
+                            duration: 50
+                            from: 0
+                            to: -45
+                            easing.type: Easing.Linear
+                        }
+                        NumberAnimation {
+                            target: debugHeaderButton
+                            property: "rotation"
+                            duration: 100
+                            from: -45
+                            to: 45
+                            easing.type: Easing.Linear
+                        }
+                        NumberAnimation {
+                            target: debugHeaderButton
+                            property: "rotation"
+                            duration: 50
+                            from: 45
+                            to: 0
+                            easing.type: Easing.Linear
+                        }
+                    }
+                }
 
                 TideMenu {
                     id: debugContextMenu
@@ -806,6 +847,7 @@ ApplicationWindow {
             }
 
             TideHeaderButton {
+                id: mainPlayButton
                 //rightPadding: paddingMedium
 
                 readonly property bool idle: !projectBuilder.building && !wasmRunner.running && !pyRunner.running && !dbugger.running
@@ -857,7 +899,9 @@ ApplicationWindow {
                         icon.source: !isRunning ?
                                          Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
                                          Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
-                        enabled: !projectBuilder.building && (projectBuilder.projectFile !== "" || isRunnableScript) || pyRunner.running
+                        enabled: !projectBuilder.building &&
+                                 ((projectBuilder.projectFile !== ""  && projectBuilder.runnable) || isRunnableScript) ||
+                                 pyRunner.running
                         onTriggered: {
                             if (!isRunning) {
                                 if (isRunnableScript) {
@@ -873,13 +917,25 @@ ApplicationWindow {
                         }
                     }
                     MenuItem {
-                        property bool visibility: openFiles.files.length > 0 && projectBuilder.projectFile !== ""
+                        property bool visibility: openFiles.files.length > 0 && projectBuilder.projectFile !== "" && projectBuilder.runnable
                         enabled: !projectBuilder.building && !dbugger.running && visibility
                         text: qsTr("Debug")
                         icon.source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
                         onClicked: {
                             root.debugRequested = true
                             root.runRequested = false
+                            root.attemptBuild()
+                        }
+                    }
+
+                    MenuItem {
+                        readonly property bool visibility : projectBuilder.projectFile !== ""
+                        id: releaseButton
+                        enabled: !projectBuilder.building && !dbugger.running && visibility
+                        text: qsTr("Release")
+                        icon.source: Qt.resolvedUrl("qrc:/assets/suitcase.fill@2x.png")
+                        onClicked: {
+                            releaseRequested = true
                             root.attemptBuild()
                         }
                     }
@@ -915,7 +971,7 @@ ApplicationWindow {
                     }
                     MenuItem {
                         text: qsTr("Run Python REPL")
-                        icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
+                        icon.source: Qt.resolvedUrl("qrc:/assets/repeat.circle.fill@2x.png")
                         enabled: !runners.atLeastOneRunning
                         onPressed: {
                             root.attemptReplRun()
@@ -973,6 +1029,7 @@ ApplicationWindow {
 
     property var projectBuilder : ProjectBuilder {
         id: projectBuilder
+
         onProjectFileChanged: {
             if (projectFile === "")
                 return
@@ -1013,8 +1070,8 @@ ApplicationWindow {
 
                 if (releaseRequested) {
                     releaseRequested = false
-                    const coords = contextButton.mapToGlobal(0, 0)
-                    const pos = Qt.rect(coords.x, coords.y, contextButton.width, contextButton.height)
+                    const coords = mainPlayButton.mapToGlobal(0, 0)
+                    const pos = Qt.rect(coords.x, coords.y, mainPlayButton.width, mainPlayButton.height)
                     iosSystem.share("", "file://" + projectBuilder.runnableFile(), pos)
                 }
             }
@@ -1164,6 +1221,7 @@ ApplicationWindow {
         }
         onHintPauseMessage: {
             warningSign.flashPause(qsTr("Breakpoint reached"))
+            debugHeaderButton.wiggle()
         }
 
         onProcessPaused: {
@@ -1224,18 +1282,19 @@ ApplicationWindow {
         return path.toLowerCase().endsWith(".png") ||
                 path.toLowerCase().endsWith(".jpg") ||
                 path.toLowerCase().endsWith(".jpeg") ||
-                path.toLowerCase().endsWith(".gif")
+                path.toLowerCase().endsWith(".gif") ||
+                path.toLowerCase().endsWith(".svg")
     }
 
     function openEditor(modelData) {
-        saveCurrentFile()
-
         if (!fileIo.fileIsTextFile(modelData.path)) {
             if (!fileIsImageFile(modelData.path)) {
                 hud.hudLabel.flashMessage("Not opening binary file...");
                 return;
             }
         }
+
+        saveCurrentFile()
 
         openFiles.push(modelData);
         editor.file = modelData;
@@ -1309,7 +1368,7 @@ ApplicationWindow {
                 Layout.alignment: Qt.AlignHCenter
 
                 TideButton {
-                    icon.source: Qt.resolvedUrl("qrc:/assets/plus.app@2x.png")
+                    icon.source: Qt.resolvedUrl("qrc:/assets/plus.circle@2x.png")
                     font.pixelSize: startPage.sideLength
                     height: parent.height
                     color: root.palette.button
@@ -1500,6 +1559,7 @@ ApplicationWindow {
                                             }
 
                                             ListView {
+                                                id: projectListView
                                                 headerPositioning: ListView.PullBackHeader
                                                 header: Item {
                                                     width: projectNavigationStack.width
@@ -1508,9 +1568,12 @@ ApplicationWindow {
                                                         anchors.fill: parent
                                                         spacing: paddingSmall * 2
                                                         ToolButton {
+                                                            Layout.leftMargin: paddingSmall
                                                             text: qsTr("Create")
-                                                            icon.source: Qt.resolvedUrl("qrc:/assets/plus.app@2x.png")
+                                                            icon.source: Qt.resolvedUrl("qrc:/assets/plus.circle@2x.png")
                                                             icon.color: root.palette.button
+                                                            icon.width: headerItemHeight
+                                                            icon.height: headerItemHeight
                                                             onClicked: {
                                                                 root.showDialog(createProjectDialogComponent)
                                                             }
@@ -1519,17 +1582,26 @@ ApplicationWindow {
                                                             text: qsTr("Clone")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/icloud.and.arrow.down@2x.png")
                                                             icon.color: root.palette.button
+                                                            icon.width: headerItemHeight
+                                                            icon.height: headerItemHeight
                                                             onClicked: {
                                                                 root.showDialog(cloneDialogComponent)
                                                             }
                                                         }
                                                         ToolButton {
+                                                            Layout.rightMargin: paddingSmall
                                                             text: qsTr("Import")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.down.on.square@2x.png")
                                                             icon.color: root.palette.button
+                                                            icon.width: headerItemHeight
+                                                            icon.height: headerItemHeight
                                                             onClicked: projectPicker.startImport()
                                                         }
                                                     }
+                                                }
+
+                                                ScrollBar.vertical: TideScrollBar {
+                                                    parent: projectListView
                                                 }
 
                                                 Connections {
@@ -1660,6 +1732,10 @@ ApplicationWindow {
                                                 spacing: paddingSmall
                                                 clip: true
 
+                                                ScrollBar.vertical: TideScrollBar {
+                                                    parent: directoryListView
+                                                }
+
                                                 property var project : null
                                                 onProjectChanged: {
                                                     projectsArea.project = project
@@ -1786,6 +1862,8 @@ ApplicationWindow {
                                                                               : (isDir ? Qt.resolvedUrl("qrc:/assets/folder@2x.png")
                                                                                        : isProject ? Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
                                                                                                    : Qt.resolvedUrl("qrc:/assets/doc@2x.png"))
+                                                    iconWidth: menuItemIconSize
+                                                    iconHeight: menuItemIconSize
                                                     text: isBackButton ? qsTr("Back") : modelData.name
                                                     detailText: isBackButton ? "" : directoryListView.getDetailText(modelData)
                                                     pressAnimation: !isBackButton
@@ -1954,6 +2032,10 @@ ApplicationWindow {
                                     model: openFiles.files
                                     spacing: paddingSmall
 
+                                    ScrollBar.vertical: TideScrollBar {
+                                        parent: openfilesListView
+                                    }
+
                                     headerPositioning: ListView.PullBackHeader
                                     header: Item {
                                         id: openFilesAreaToolbar
@@ -1993,8 +2075,8 @@ ApplicationWindow {
 
                                                 ToolButton {
                                                     icon.source: Qt.resolvedUrl("qrc:/assets/xmark@2x.png")
-                                                    icon.width: 24
-                                                    icon.height: 24
+                                                    icon.width: menuItemIconSize
+                                                    icon.height: menuItemIconSize
                                                     text: qsTr("Close all")
                                                     font.pixelSize: 16
 
@@ -2220,7 +2302,7 @@ ApplicationWindow {
                     onRunRequested: {
                         if (isRunnableScript) {
                             attemptScriptRun();
-                        } else {
+                        } else if (projectBuilder.runnable) {
                             root.runRequested = true
                             attemptBuild();
                         }
@@ -2391,6 +2473,7 @@ ApplicationWindow {
             opacityOverride: 1.0
             parent: overlayLandingPad.visible ? consoleViewLandingPad : paddedOverlayArea
             z: paddedOverlayArea.consoleZ
+            inputEnabled: wasmRunner.running || pyRunner.running
         }
 
         ContextView {
@@ -2471,6 +2554,7 @@ ApplicationWindow {
                         }
 
                         ListView {
+                            id: waitingPointsListView
                             anchors.fill: parent
                             anchors.margins: paddingSmall
                             clip: true
@@ -2502,12 +2586,18 @@ ApplicationWindow {
                                 }
                             }
 
+                            ScrollBar.vertical: TideScrollBar {
+                                parent: waitingPointsListView
+                            }
+
                             delegate: TideButton {
                                 icon.source: Qt.resolvedUrl("qrc:/assets/circle.fill@2x.png")
                                 icon.color: modelData.type === "break" ? "red" : "purple"
                                 text: getBreakpointText()
                                 width: parent.width
-                                height: headerItemHeight
+                                height: paddingSmall +
+                                        label.implicitHeight +
+                                        paddingSmall
                                 font.pixelSize: 18
                                 color: root.palette.button
                                 onClicked: breakpointContextMenu.open()
@@ -2601,8 +2691,13 @@ ApplicationWindow {
                                 color: root.palette.button
                                 /*onClicked: {
                                 dbugger.getBacktrace();
-                            }*/
+                                }*/
                             }
+
+                            ScrollBar.vertical: TideScrollBar {
+                                parent: backtracesListView
+                            }
+
                             delegate: DebuggerListEntry {
                                 readonly property var dbugger: root.dbugger
                                 readonly property bool frameIndex: modelData.frameIndex
@@ -2694,6 +2789,11 @@ ApplicationWindow {
                                     dbugger.getFrameValues();
                                 }
                             }
+
+                            ScrollBar.vertical: TideScrollBar {
+                                parent: frameValuesListView
+                            }
+
                             delegate: DebuggerListEntry {
                                 id: valueOrInstruction
                                 visible: !modelData.partial
@@ -3241,11 +3341,13 @@ ApplicationWindow {
             anchors.fill: parent
             visible: settings.rubberDuck
             parent: paddedOverlayArea
+            z: paddedOverlayArea.warningZ
 
             Image {
+                id: rubberDuck
                 source: Qt.resolvedUrl("qrc:/assets/RubberDuck.png")
-                width: (implicitWidth / 3) * 2
-                height: (implicitHeight / 3) * 2
+                width: (implicitWidth / 2)
+                height: (implicitHeight / 2)
                 smooth: true
 
                 Drag.active: dragArea.drag.active
@@ -3257,6 +3359,32 @@ ApplicationWindow {
                     drag.target: parent
                     anchors.fill: parent
                 }
+            }
+
+            property real saturation : dragArea.pressed ? 0.5 : 0.0
+            Behavior on saturation {
+                NumberAnimation {
+                    duration: 500
+                }
+            }
+            property color colorization : dragArea.pressed ? "mediumspringgreen" : "transparent"
+            Behavior on colorization {
+                ColorAnimation {
+                    duration: 500
+                    loops: Animation.Infinite
+                }
+            }
+
+            MultiEffect {
+                source: rubberDuck
+                anchors.fill: rubberDuck
+                saturation: parent.saturation
+                brightness: parent.saturation
+                blurEnabled: dragArea.pressed
+                blur: 1.0
+                blurMax: 64
+                colorization: dragArea.pressed ? 0.5 : 0.0
+                colorizationColor: parent.colorization
             }
         }
 
