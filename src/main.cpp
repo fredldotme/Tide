@@ -6,6 +6,7 @@
 #include <QQuickStyle>
 #include <QStyleHints>
 #include <QStandardPaths>
+#include <QLoggingCategory>
 
 #include "linenumbershelper.h"
 #include "syntaxhighlighter.h"
@@ -87,6 +88,8 @@ int main(int argc, char *argv[])
     app.setAutoSipEnabled(true);
     app.setOrganizationDomain(orgName);
     app.setApplicationName(appName);
+
+    QLoggingCategory::setFilterRules("*=false");
 
     // Set up PATH for macOS here
 #if defined(Q_OS_MACOS)

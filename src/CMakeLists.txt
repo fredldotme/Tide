@@ -9,7 +9,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     include(GNUInstallDirs)
 endif()
 
-project(${PROJECT_NAME} VERSION 1.6.0 LANGUAGES C CXX)
+project(${PROJECT_NAME} VERSION 1.7.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTORCC ON)
@@ -200,6 +200,7 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/GitDialog.qml
     qml/GitLogEntry.qml
     qml/PlatformProperties.qml
+    qml/TideScrollBar.qml
 
     NO_LINT
 )

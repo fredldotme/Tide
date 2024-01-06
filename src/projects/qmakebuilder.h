@@ -16,6 +16,7 @@ class QMakeBuilder : public QObject, public BuilderBackend
     Q_PROPERTY(SystemGlue* commandRunner MEMBER iosSystem NOTIFY commandRunnerChanged)
     Q_PROPERTY(bool building READ building NOTIFY buildingChanged)
     Q_PROPERTY(QString projectFile MEMBER m_projectFile NOTIFY projectFileChanged)
+    Q_PROPERTY(bool runnable READ isRunnable NOTIFY runnableChanged)
 
 public:
     explicit QMakeBuilder(QObject *parent = nullptr);
@@ -35,6 +36,7 @@ public slots:
     QString projectBuildRoot() override;
     QStringList sourceFiles() override;
     bool building() override;
+    bool isRunnable() override;
 
 private:
     QString m_sysroot;
@@ -48,6 +50,7 @@ signals:
     void buildSuccess(bool debug, bool aot);
     void buildError(QString str);
     void cleaned();
+    void runnableChanged();
 };
 
 #endif // QMAKEBUILDER_H

@@ -19,6 +19,9 @@ class ProjectBuilder : public QObject
     Q_PROPERTY(QStringList sourceFiles READ sourceFiles NOTIFY sourceFilesChanged)
     Q_PROPERTY(bool building READ building NOTIFY buildingChanged)
 
+    // Refreshable properties
+    Q_PROPERTY(bool runnable READ isRunnable NOTIFY runnableChanged)
+
 public:
     explicit ProjectBuilder(QObject *parent = nullptr);
 
@@ -26,6 +29,8 @@ public slots:
     void setSysroot(const QString path);
     bool loadProject(const QString path);
     void unloadProject();
+
+    void reloadProperties();
 
     void clean();
     void build(const bool debug, const bool aot);
@@ -37,6 +42,7 @@ public slots:
     QString sourceRoot();
 
     bool building();
+    bool isRunnable();
 
 private:
     QString projectBuildRoot();
@@ -58,6 +64,8 @@ signals:
     void buildError(QString str);
     void cleaned();
     void sourceFilesChanged();
+    void runnableChanged();
+    void refreshingProperties();
 };
 
 #endif // PROJECTBUILDER_H

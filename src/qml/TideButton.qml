@@ -6,6 +6,7 @@ RowLayout {
     id: itemRoot
     spacing: root.paddingSmall
 
+    property alias label: labelControl
     property alias color: labelControl.color
     property alias text: labelControl.text
     property alias font: labelControl.font

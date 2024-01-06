@@ -10,6 +10,8 @@ Item {
     property alias font: labelControl.font
     property alias elide: labelControl.elide
     property alias icon: iconControl.icon
+    property alias iconWidth: iconControl.icon.width
+    property alias iconHeight: iconControl.icon.height
     property alias detailText: detailControl.text
     property alias detailControl: detailControl
     property bool flat: true

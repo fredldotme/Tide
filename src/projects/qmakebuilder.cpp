@@ -33,6 +33,7 @@ inline static QString resolveDefaultVariables(const QString& line,
 QMakeBuilder::QMakeBuilder(QObject *parent)
     : QObject{parent}, iosSystem{nullptr}, m_building(false)
 {
+    QObject::connect(this, &QMakeBuilder::projectFileChanged, this, &QMakeBuilder::runnableChanged);
 }
 
 void QMakeBuilder::setSysroot(const QString path)
@@ -241,7 +242,6 @@ void QMakeBuilder::build(const bool debug, const bool aot)
             QStringLiteral("%1/share/wasm32-wasi/undefined-symbols.txt").arg(m_sysroot);
     const auto undefinedSymbolsLinkFlags =
         QStringLiteral(" -Wl,--allow-undefined-file=%1 ").arg(undefinedSymbolsFile);
-
     const QString linkCommand = QStringLiteral("clang++") +
                                 (debug ? QStringLiteral(" -g ") : QString()) +
                                 QStringLiteral(" --sysroot=") + m_sysroot +
@@ -305,7 +305,11 @@ QString QMakeBuilder::runnableFile()
         return QString();
     }
 
-    const auto runnableFilePath = buildDirPath + QDir::separator() + target.values.front();
+    const QString binPrefix = (!isRunnable() ? QStringLiteral("lib") : QString());
+    const QString binSuffix = (!isRunnable() ? QStringLiteral(".a") : QString());
+
+    const auto runnableFilePath = buildDirPath + QDir::separator() +
+                                  binPrefix + target.values.front() + binSuffix;
     return runnableFilePath;
 }
 
@@ -406,4 +410,24 @@ QStringList QMakeBuilder::sourceFiles()
 bool QMakeBuilder::building()
 {
     return m_building;
+}
+
+bool QMakeBuilder::isRunnable()
+{
+    // Defaults to true or rather TEMPLATE=app if not provided otherwise
+
+    QMakeParser projectParser;
+    projectParser.setProjectFile(m_projectFile);
+
+    const auto sourceDirPath = QFileInfo(m_projectFile).absolutePath();
+    const auto variables = projectParser.getVariables();
+
+    if (variables.find("TEMPLATE") == variables.end()) {
+        const auto err = "No TEMPLATE found in project file, assuming 'app'.";
+        qWarning() << err;
+        return true;
+    }
+
+    const auto templ = variables.at("TEMPLATE");
+    return (templ.values.front() == QStringLiteral("app"));
 }

@@ -8,6 +8,7 @@
 ProjectBuilder::ProjectBuilder(QObject *parent)
     : QObject{parent}, m_iosSystem{nullptr}, m_building(false), m_activeBuilder{nullptr}
 {
+    QObject::connect(this, &ProjectBuilder::refreshingProperties, this, &ProjectBuilder::runnableChanged);
 }
 
 void ProjectBuilder::setSysroot(const QString path)
@@ -45,6 +46,7 @@ bool ProjectBuilder::loadProject(const QString path)
         QObject::connect(&m_qmakeBuilder, &QMakeBuilder::projectFileChanged, this, &ProjectBuilder::projectFileChanged, Qt::DirectConnection);
         QObject::connect(&m_qmakeBuilder, &QMakeBuilder::cleaned, this, &ProjectBuilder::cleaned, Qt::DirectConnection);
         QObject::connect(&m_qmakeBuilder, &QMakeBuilder::commandRunnerChanged, this, &ProjectBuilder::commandRunnerChanged, Qt::DirectConnection);
+        QObject::connect(&m_qmakeBuilder, &QMakeBuilder::runnableChanged, this, &ProjectBuilder::runnableChanged, Qt::DirectConnection);
     } else if (path.endsWith("/CMakeLists.txt")) {
         m_activeBuilder = &m_cmakeBuilder;
         m_cmakeBuilder.iosSystem = m_iosSystem;
@@ -55,6 +57,7 @@ bool ProjectBuilder::loadProject(const QString path)
         QObject::connect(&m_cmakeBuilder, &CMakeBuilder::projectFileChanged, this, &ProjectBuilder::projectFileChanged, Qt::DirectConnection);
         QObject::connect(&m_cmakeBuilder, &CMakeBuilder::cleaned, this, &ProjectBuilder::cleaned, Qt::DirectConnection);
         QObject::connect(&m_cmakeBuilder, &CMakeBuilder::commandRunnerChanged, this, &ProjectBuilder::commandRunnerChanged, Qt::DirectConnection);
+        QObject::connect(&m_cmakeBuilder, &CMakeBuilder::runnableChanged, this, &ProjectBuilder::runnableChanged, Qt::DirectConnection);
     }
 
     if (!m_activeBuilder) {
@@ -117,7 +120,8 @@ QString ProjectBuilder::runnableFile()
         return QString();
     }
 
-    return m_activeBuilder->runnableFile();
+    const auto ret = m_activeBuilder->runnableFile();
+    return ret;
 }
 
 QStringList ProjectBuilder::includePaths()
@@ -171,4 +175,24 @@ bool ProjectBuilder::building()
     }
 
     return m_activeBuilder->building();
+}
+
+bool ProjectBuilder::isRunnable()
+{
+    if (!m_activeBuilder) {
+        qWarning() << "No active builder!";
+        return false;
+    }
+
+    return m_activeBuilder->isRunnable();
+}
+
+void ProjectBuilder::reloadProperties()
+{
+    if (!m_activeBuilder) {
+        qWarning() << "No active builder";
+        return;
+    }
+
+    emit refreshingProperties();
 }

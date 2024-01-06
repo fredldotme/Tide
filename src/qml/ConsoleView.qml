@@ -20,6 +20,8 @@ Item {
     property bool hideStdOut: false
     property bool visibility : false
     property real opacityOverride : 1.0
+    property bool inputEnabled : false
+    property bool fullScreenMode : false
 
     readonly property bool modal : true
 
@@ -35,7 +37,7 @@ Item {
     ListModel {
         id: consoleOutput
         onCountChanged: {
-            if (consoleView.visibility) {
+            if (consoleView.visibility && inputEnabled) {
                 consoleInputField.focus = true
             }
         }
@@ -43,10 +45,10 @@ Item {
 
     Timer {
         id: delayedRefocus
-        interval: 100
+        interval: 50
         repeat: false
         onTriggered: {
-            if (consoleView.visibility) {
+            if (consoleView.visibility && inputEnabled) {
                 consoleInputField.focus = true
             }
         }
@@ -187,10 +189,19 @@ Item {
                 id: consoleInputField
                 font: fixedFont
                 width: parent.width
-                height: font.pixelSize + (paddingSmall*2)
+                enabled: consoleView.inputEnabled
+                height: enabled ? font.pixelSize + (paddingMid * 2) : 0
+                visible: height > 0
                 background: Item { }
                 placeholderText: qsTr("Input:")
-                focus: consoleView.visibility
+                focus: consoleView.visibility && enabled
+
+                Behavior on height {
+                    NumberAnimation {
+                        easing.type: Easing.OutQuint
+                        duration: 100
+                    }
+                }
 
                 onAccepted: {
                     consoleHandler.write(text + "\n")
@@ -206,6 +217,17 @@ Item {
                     imFixer.setupImEventFilter(consoleInputField)
                 }
             }
+        }
+
+        Label {
+            font: fixedFont
+            text: !inputEnabled ? qsTr("Nothing running in the console yet.") :
+                                  qsTr("Waiting for output...")
+            visible: consoleOutput.count === 0
+            anchors.fill: parent
+            horizontalAlignment: Label.AlignHCenter
+            verticalAlignment: Label.AlignVCenter
+            wrapMode: Label.WrapAnywhere
         }
     }
 

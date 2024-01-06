@@ -109,6 +109,7 @@ if(APPLE OR IOS)
     include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
     include(${WAMR_DIR}/core/shared/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
     include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
+    include(${WAMR_DIR}/core/iwasm/aot/iwasm_aot.cmake)
     include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
     include(${WAMR_DIR}/core/shared/platform/common/libc-util/platform_common_libc_util.cmake)
 
