@@ -10,10 +10,29 @@ enum TidePluginFeatures {
     IDEAutoComplete = (1 << 5),
 };
 
+class TidePluginHostInterface {
+};
+typedef void* TidePluginInterface;
+
+// Specializations
+typedef void* TideAutoCompleterResult;
+typedef void* TideAutoCompleter;
+
+// Plugins define publicly available functions
 #define PUBLIC __attribute__((visibility("default")))
 
+// Main entry points
 TidePluginFeatures PUBLIC tide_plugin_features();
 const char* PUBLIC tide_plugin_name();
 const char* PUBLIC tide_plugin_description();
+TidePluginInterface PUBLIC tide_plugin_get_interface(const TidePluginFeatures& feature);
+
+// AutoCompleter interface
+TideAutoCompleterResult PUBLIC tide_plugin_autocompletor_find(TideAutoCompleter completer,
+                                                               const char* hint);
+TideAutoCompleterResult PUBLIC tide_plugin_autocompletor_next(TideAutoCompleterResult result);
+void PUBLIC tide_plugin_autocompletorresult_destroy(TideAutoCompleterResult result);
+const char* PUBLIC tide_plugin_autocompletorresult_type(TideAutoCompleterResult result);
+const char* PUBLIC tide_plugin_autocompletorresult_identifier(TideAutoCompleterResult result);
 
 #endif
