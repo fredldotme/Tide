@@ -2,6 +2,8 @@
 
 #include <string>
 
+class TidePluginHostInterface {};
+
 struct TidePluginAutoCompleterResult {
     std::string type;
     std::string identifier;
@@ -48,7 +50,10 @@ TidePluginInterface tide_plugin_get_interface(const TidePluginFeatures& feature)
 TideAutoCompleterResult tide_plugin_autocompletor_find(TideAutoCompleter completer, const char* hint)
 {
     auto autoCompleter = static_cast<TidePluginAutoCompleter*>(completer);
-    auto result = autoCompleter->find(std::string(hint));
+    if (!autoCompleter)
+        return nullptr;
+
+    const auto result = autoCompleter->find(std::string(hint));
     return static_cast<TideAutoCompleterResult>(result);
 }
 

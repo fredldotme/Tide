@@ -10,11 +10,8 @@ enum TidePluginFeatures {
     IDEAutoComplete = (1 << 5),
 };
 
-class TidePluginHostInterface {
-};
-typedef void* TidePluginInterface;
-
 // Specializations
+typedef void* TidePluginInterface;
 typedef void* TideAutoCompleterResult;
 typedef void* TideAutoCompleter;
 
