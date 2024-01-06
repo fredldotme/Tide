@@ -2,6 +2,8 @@
 
 #include <string>
 
+extern "C" {
+
 class TidePluginHostInterface {};
 
 struct TidePluginAutoCompleterResult {
@@ -47,7 +49,8 @@ TidePluginInterface tide_plugin_get_interface(const TidePluginFeatures& feature)
     }
 }
 
-TideAutoCompleterResult tide_plugin_autocompletor_find(TideAutoCompleter completer, const char* hint)
+TideAutoCompleterResult tide_plugin_autocompletor_find(TideAutoCompleter completer,
+                                                       const char* hint)
 {
     auto autoCompleter = static_cast<TidePluginAutoCompleter*>(completer);
     if (!autoCompleter)
@@ -82,4 +85,6 @@ const char* tide_plugin_autocompletorresult_identifier(TideAutoCompleterResult r
 
     const auto res = static_cast<TidePluginAutoCompleterResult*>(result);
     return res->identifier.c_str();
+}
+
 }
