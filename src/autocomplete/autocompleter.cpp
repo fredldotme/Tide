@@ -101,75 +101,109 @@ void AutoCompleter::run()
                 continue;
             }
 
-            char * buffer = NULL;
-            uint32_t buffer_for_wasm = plugin->loadable()->make_buffer(hint.length() + 1, (void**)&buffer);
-            if (buffer_for_wasm == 0)
-                continue;
+            for (const auto& sourceFile : this->sourceFiles) {
+                char * buffer = NULL;
 
-            strncpy(buffer, hint.toStdString().c_str(), hint.length());
-            buffer[hint.length()] = '\0';
-
-            std::vector<wasm_val_t> args = {
-                {
-                    .kind = WASM_I32,
-                    .of.i32 = interface
-                },{
-                    .kind = WASM_I32,
-                    .of.i32 = (int32_t)buffer_for_wasm
+                QFile source(sourceFile);
+                if (!source.open(QFile::ReadOnly)) {
+                    continue;
                 }
-            };
-            const auto finder = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_find", args);
-            plugin->loadable()->free_buffer(buffer_for_wasm);
 
-            if (finder.of.i32) {
-                wasm_val_t next;
-                do {
-                    std::vector<wasm_val_t> typeArgs = {
+                QByteArray contents = source.readAll();
+
+                {
+                    uint32_t buffer_for_wasm = plugin->loadable()->make_buffer(contents.length() + 1, (void**)&buffer);
+                    if (buffer_for_wasm == 0)
+                        continue;
+
+                    strncpy(buffer, contents.toStdString().c_str(), hint.length());
+                    buffer[hint.length()] = '\0';
+
+                    std::vector<wasm_val_t> setupArgs = {
                         {
                             .kind = WASM_I32,
-                            .of.i32 = finder.of.i32
+                            .of.i32 = interface
+                        },{
+                            .kind = WASM_I32,
+                            .of.i32 = (int32_t)buffer_for_wasm
                         }
                     };
-                    const auto typeRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_type", typeArgs);
-                    const auto prefix = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(typeRet.of.i32));
+                    const auto setup = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_setup", setupArgs);
+                    plugin->loadable()->free_buffer(buffer_for_wasm);
+                }
 
-                    std::vector<wasm_val_t> idArgs = {
+                {
+                    uint32_t buffer_for_wasm = plugin->loadable()->make_buffer(hint.length() + 1, (void**)&buffer);
+                    if (buffer_for_wasm == 0)
+                        continue;
+
+                    strncpy(buffer, hint.toStdString().c_str(), hint.length());
+                    buffer[hint.length()] = '\0';
+
+                    std::vector<wasm_val_t> args = {
                         {
                             .kind = WASM_I32,
-                            .of.i32 = finder.of.i32
-                        }
-                    };
-                    const auto idRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_identifier", idArgs);
-                    const auto id = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(idRet.of.i32));
-
-                    std::vector<wasm_val_t> detailArgs = {
-                        {
+                            .of.i32 = interface
+                        },{
                             .kind = WASM_I32,
-                            .of.i32 = finder.of.i32
+                            .of.i32 = (int32_t)buffer_for_wasm
                         }
                     };
-                    const auto detailRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_detail", detailArgs);
-                    const auto detail = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(detailRet.of.i32));
+                    const auto finder = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_find", args);
+                    plugin->loadable()->free_buffer(buffer_for_wasm);
 
-                    std::vector<wasm_val_t> kindArgs = {
-                        {
-                            .kind = WASM_I32,
-                            .of.i32 = finder.of.i32
-                        }
-                    };
-                    const auto kindRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_kind", kindArgs);
-                    const auto kind = static_cast<CompletionKind>(kindRet.of.i32);
+                    if (!finder.of.i32)
+                        continue;
 
-                    foundKind(kind, prefix, id, detail);
+                    wasm_val_t next;
+                    do {
+                        std::vector<wasm_val_t> typeArgs = {
+                            {
+                                .kind = WASM_I32,
+                                .of.i32 = finder.of.i32
+                            }
+                        };
+                        const auto typeRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_type", typeArgs);
+                        const auto prefix = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(typeRet.of.i32));
 
-                    std::vector<wasm_val_t> nextArgs = {
-                        {
-                            .kind = WASM_I32,
-                            .of.i32 = finder.of.i32
-                        }
-                    };
-                    next = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_next", nextArgs);
-                } while (next.of.i32 != 0);
+                        std::vector<wasm_val_t> idArgs = {
+                            {
+                                .kind = WASM_I32,
+                                .of.i32 = finder.of.i32
+                            }
+                        };
+                        const auto idRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_identifier", idArgs);
+                        const auto id = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(idRet.of.i32));
+
+                        std::vector<wasm_val_t> detailArgs = {
+                            {
+                                .kind = WASM_I32,
+                                .of.i32 = finder.of.i32
+                            }
+                        };
+                        const auto detailRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_detail", detailArgs);
+                        const auto detail = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(detailRet.of.i32));
+
+                        std::vector<wasm_val_t> kindArgs = {
+                            {
+                                .kind = WASM_I32,
+                                .of.i32 = finder.of.i32
+                            }
+                        };
+                        const auto kindRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_kind", kindArgs);
+                        const auto kind = static_cast<CompletionKind>(kindRet.of.i32);
+
+                        foundKind(kind, prefix, id, detail);
+
+                        std::vector<wasm_val_t> nextArgs = {
+                            {
+                                .kind = WASM_I32,
+                                .of.i32 = finder.of.i32
+                            }
+                        };
+                        next = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_next", nextArgs);
+                    } while (next.of.i32 != 0);
+                }
             }
         }
     }
