@@ -8,8 +8,10 @@ extern "C" {
 class TidePluginHostInterface {};
 
 struct TidePluginAutoCompleterResult {
+    AutoCompletorKind kind;
     std::string type;
     std::string identifier;
+    std::string detail;
     TidePluginAutoCompleterResult* next;
 };
 
@@ -19,12 +21,14 @@ public:
 };
 
 static TidePluginAutoCompleterResult workingHint;
-static TidePluginAutoCompleter globalAutoCompleter;
+ystatic TidePluginAutoCompleter globalAutoCompleter;
 
 TidePluginAutoCompleterResult* TidePluginAutoCompleter::find(const std::string& hint)
 {
-    workingHint.type = "void";
+    workingHint.kind = AutoCompletorKind::Variable;
+    workingHint.type = "int";
     workingHint.identifier = "PluginWorking";
+    workingHint.detail = "ExamplePlugin";
     workingHint.next = nullptr;
     return &workingHint;
 }
@@ -74,6 +78,15 @@ TideAutoCompleterResult tide_plugin_autocompletor_next(TideAutoCompleterResult r
     return static_cast<TideAutoCompleterResult>(res);
 }
 
+const AutoCompletorKind tide_plugin_autocompletorresult_kind(TideAutoCompleterResult result)
+{
+    if (!result)
+        return nullptr;
+
+    const auto res = static_cast<TidePluginAutoCompleterResult*>(result);
+    return res->kind;
+}
+
 const char* tide_plugin_autocompletorresult_type(TideAutoCompleterResult result)
 {
     if (!result)
@@ -90,6 +103,15 @@ const char* tide_plugin_autocompletorresult_identifier(TideAutoCompleterResult r
 
     const auto res = static_cast<TidePluginAutoCompleterResult*>(result);
     return res->identifier.c_str();
+}
+
+const char* tide_plugin_autocompletorresult_detail(TideAutoCompleterResult result)
+{
+    if (!result)
+        return nullptr;
+
+    const auto res = static_cast<TidePluginAutoCompleterResult*>(result);
+    return res->detail.c_str();
 }
 
 }

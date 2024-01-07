@@ -14,6 +14,19 @@ enum TidePluginFeatures {
     IDEAutoComplete = (1 << 5),
 };
 
+enum AutoCompletorKind {
+    Unspecified = 0,
+    Variable,
+    Function,
+    Struct,
+    Union,
+    Class,
+    Enum,
+    Field,
+    Constant,
+    Parameter
+};
+
 // Specializations
 typedef void* TidePluginInterface;
 typedef void* TideAutoCompleterResult;
@@ -33,8 +46,11 @@ TideAutoCompleterResult PUBLIC tide_plugin_autocompletor_find(TideAutoCompleter 
                                                               const char* hint);
 TideAutoCompleterResult PUBLIC tide_plugin_autocompletor_next(TideAutoCompleterResult result);
 void PUBLIC tide_plugin_autocompletorresult_destroy(TideAutoCompleterResult result);
+
+const AutoCompletorKind PUBLIC tide_plugin_autocompletorresult_kind(TideAutoCompleterResult result);
 const char* PUBLIC tide_plugin_autocompletorresult_type(TideAutoCompleterResult result);
 const char* PUBLIC tide_plugin_autocompletorresult_identifier(TideAutoCompleterResult result);
+const char* PUBLIC tide_plugin_autocompletorresult_detail(TideAutoCompleterResult result);
 
 #ifdef __cplusplus
 }
