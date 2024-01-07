@@ -1,6 +1,7 @@
 #include <tideplugin.h>
 
 #include <string>
+#include <iostream>
 
 extern "C" {
 
@@ -17,11 +18,15 @@ public:
     TidePluginAutoCompleterResult* find(const std::string& hint);    
 };
 
+static TidePluginAutoCompleterResult workingHint;
 static TidePluginAutoCompleter globalAutoCompleter;
 
 TidePluginAutoCompleterResult* TidePluginAutoCompleter::find(const std::string& hint)
 {
-    return nullptr;
+    workingHint.type = "void";
+    workingHint.identifier = "PluginWorking";
+    workingHint.next = nullptr;
+    return &workingHint;
 }
 
 TidePluginFeatures tide_plugin_features()
@@ -39,7 +44,7 @@ const char* tide_plugin_description()
     return "Showcasing plugin integration into Tide";
 }
 
-TidePluginInterface tide_plugin_get_interface(const TidePluginFeatures& feature)
+TidePluginInterface tide_plugin_get_interface(const TidePluginFeatures feature)
 {
     switch (feature) {
     case TidePluginFeatures::IDEAutoComplete:

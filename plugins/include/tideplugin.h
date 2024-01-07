@@ -26,7 +26,7 @@ typedef void* TideAutoCompleter;
 TidePluginFeatures PUBLIC tide_plugin_features();
 const char* PUBLIC tide_plugin_name();
 const char* PUBLIC tide_plugin_description();
-TidePluginInterface PUBLIC tide_plugin_get_interface(const TidePluginFeatures& feature);
+TidePluginInterface PUBLIC tide_plugin_get_interface(const TidePluginFeatures feature);
 
 // AutoCompleter interface
 TideAutoCompleterResult PUBLIC tide_plugin_autocompletor_find(TideAutoCompleter completer,
