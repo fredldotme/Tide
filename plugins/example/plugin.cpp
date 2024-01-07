@@ -21,7 +21,7 @@ public:
 };
 
 static TidePluginAutoCompleterResult workingHint;
-ystatic TidePluginAutoCompleter globalAutoCompleter;
+static TidePluginAutoCompleter globalAutoCompleter;
 
 TidePluginAutoCompleterResult* TidePluginAutoCompleter::find(const std::string& hint)
 {
@@ -81,7 +81,7 @@ TideAutoCompleterResult tide_plugin_autocompletor_next(TideAutoCompleterResult r
 const AutoCompletorKind tide_plugin_autocompletorresult_kind(TideAutoCompleterResult result)
 {
     if (!result)
-        return nullptr;
+        return AutoCompletorKind::Unspecified;
 
     const auto res = static_cast<TidePluginAutoCompleterResult*>(result);
     return res->kind;
