@@ -22,6 +22,7 @@ ApplicationWindow {
 
     readonly property alias preview : editor.preview
 
+    readonly property int paddingTiny: 4
     readonly property int paddingSmall: 6
     readonly property int paddingMid: 10
     readonly property int paddingMedium: 12
@@ -1474,7 +1475,7 @@ ApplicationWindow {
 
             Item {
                 id: leftSideBar
-                readonly property int rightPadding: showLeftSideBar && sideBarWidth == root.width ? paddingMedium : 0
+                readonly property int rightPadding: showLeftSideBar && sideBarWidth == root.width ? paddingTiny : 0
                 width: showLeftSideBar ? sideBarWidth - rightPadding : 0
                 height: parent.height
 
@@ -1487,7 +1488,7 @@ ApplicationWindow {
                     x: paddingMedium
                     width: parent.width - paddingMedium
                     height: parent.height - (paddingMedium * 2)
-                    readonly property int spaceBetweenSections : openFiles.files.length > 0 ? paddingSmall : 0
+                    readonly property int spaceBetweenSections : openFiles.files.length > 0 ? paddingTiny : 0
 
                     property var project : null
                     onProjectChanged: {

@@ -83,7 +83,7 @@ function cmake_wasi_build {
 }
 
 # LLVM
-cd llvm/
+cd llvm
 if [ "$BUILD_LINUX" = "0" ]; then
     ./bootstrap.sh
 else

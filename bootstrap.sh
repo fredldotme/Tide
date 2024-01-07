@@ -1,3 +1,3 @@
 #!/bin/bash
-
-bash 3rdparty/boostrap.sh
+cd 3rdparty
+bash bootstrap.sh
