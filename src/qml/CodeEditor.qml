@@ -289,6 +289,7 @@ Item {
     }
 
     property var autoCompleter : AutoCompleter {
+        pluginManager: root.pluginManager
         onDeclsChanged: {
             console.log("Autocompleter decls changed");
         }
@@ -465,7 +466,7 @@ Item {
 
                 Rectangle {
                     id: currentLineIndicator
-                    width: scrollView.width - root.roundedCornersRadiusMedium
+                    width: Math.max(codeView.implicitWidth, codeField.width)
                     color: codeField.selectionColor
                     visible: !codeField.readOnly
                     height: lineNumbersHelper.lineCount[codeField.currentLine - 1] !== undefined ?
@@ -486,7 +487,7 @@ Item {
 
                 Rectangle {
                     id: currentLineOfExecutionIndicator
-                    width: scrollView.width - root.roundedCornersRadiusMedium
+                    width: Math.max(codeView.implicitWidth, codeField.width)
                     color: "orange"
                     visible: dbugger.currentLineOfExecution !== "" &&
                              dbugger.currentLineOfExecution.indexOf(file.path) === 0

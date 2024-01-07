@@ -8,6 +8,8 @@
 
 #include <vector>
 
+#include "plugins/tidepluginmanager.h"
+
 #include "clangwrapper.h"
 
 class AutoCompleter : public QObject
@@ -15,6 +17,7 @@ class AutoCompleter : public QObject
     Q_OBJECT
 
     Q_PROPERTY(QVariantList decls MEMBER m_decls NOTIFY declsChanged)
+    Q_PROPERTY(TidePluginManager* pluginManager MEMBER m_pluginManager NOTIFY pluginManagerChanged)
 
 public:
     enum CompletionKind {
@@ -55,6 +58,7 @@ public:
     QList<CXCursor> anchorTrail;
     QList<QList<CXCursor>> anchorTrails;
     QStringList referenceHints;
+    QString hint;
     CompletionKind typeFilter;
 
 public slots:
@@ -72,9 +76,11 @@ private:
     QString m_sysroot;
     QStringList m_includePaths;
     QList<CompletionHint> m_anchorDecls;
+    TidePluginManager* m_pluginManager;
 
 signals:
     void declsChanged();
+    void pluginManagerChanged();
 };
 
 Q_DECLARE_METATYPE(AutoCompleter::CompletionHint)

@@ -6,7 +6,7 @@
 #include <QTimer>
 
 AutoCompleter::AutoCompleter(QObject *parent)
-    : QObject{parent}, clang{nullptr}
+    : QObject{parent}, clang{nullptr}, m_pluginManager{nullptr}
 {
     QObject::connect(&m_thread, &QThread::started, this, &AutoCompleter::run, Qt::DirectConnection);
 }
@@ -79,10 +79,84 @@ inline static AutoCompleter::CompletionKind getAutoCompleterKind(const CXCursorK
 
 void AutoCompleter::run()
 {
+    m_decls.clear();
+
+    // First from the associated plugins
+    if (m_pluginManager) {
+        auto plugins = m_pluginManager->pluginRefs();
+        for (auto& plugin : plugins) {
+            if (!plugin->isValid()) {
+                qDebug() << "Plugin is invalid";
+                continue;
+            }
+
+            if (!(plugin->features() & WasmLoadable::IDEAutoComplete)) {
+                qDebug() << "Not a AutoComplete plugin";
+                continue;
+            }
+
+            const auto interface = plugin->interface(WasmLoadable::IDEAutoComplete);
+            if (interface == 0) {
+                qDebug() << "No interface returned";
+                continue;
+            }
+
+            char * buffer = NULL;
+            uint32_t buffer_for_wasm = plugin->loadable()->make_buffer(hint.length() + 1, (void**)&buffer);
+            if (buffer_for_wasm == 0)
+                continue;
+
+            strncpy(buffer, hint.toStdString().c_str(), hint.length());
+            buffer[hint.length()] = '\0';
+
+            std::vector<wasm_val_t> args = {
+                {
+                    .kind = WASM_I32,
+                    .of.i32 = interface
+                },{
+                    .kind = WASM_I32,
+                    .of.i32 = (int32_t)buffer_for_wasm
+                }
+            };
+            const auto finder = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_find", args);
+            plugin->loadable()->free_buffer(buffer_for_wasm);
+
+            wasm_val_t next;
+            do {
+                std::vector<wasm_val_t> typeArgs = {
+                    {
+                        .kind = WASM_I32,
+                        .of.i32 = finder.of.i32
+                    }
+                };
+                const auto typeRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_type", typeArgs);
+                const auto prefix = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(typeRet.of.i32));
+
+                std::vector<wasm_val_t> idArgs = {
+                    {
+                        .kind = WASM_I32,
+                        .of.i32 = finder.of.i32
+                    }
+                };
+                const auto idRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_identifier", idArgs);
+                const auto id = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(idRet.of.i32));
+
+                foundKind(CompletionKind::Function, prefix, id, "");
+
+                std::vector<wasm_val_t> nextArgs = {
+                    {
+                        .kind = WASM_I32,
+                        .of.i32 = finder.of.i32
+                    }
+                };
+                next = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_next", nextArgs);
+            } while (next.of.i32 != 0);
+        }
+    }
+
+    // Then using Clang
     ClangWrapper clang;
     this->clang = &clang;
-
-    m_decls.clear();
 
     for (const auto& sourceFile : this->sourceFiles) {
         CXIndex index = this->clang->createIndex(0, 0);
@@ -193,6 +267,7 @@ void AutoCompleter::addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang)
 void AutoCompleter::reloadAst(const QStringList paths, const QString hint, const CompletionKind filter, const int line, const int column)
 {
     this->sourceFiles = paths;
+    this->hint = hint;
     this->referenceHints = createHints(hint.toLower());
     this->line = line;
     this->column = column;

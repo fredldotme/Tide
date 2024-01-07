@@ -19,6 +19,7 @@ ApplicationWindow {
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
     property alias tidePalette : tidePalette
     property alias dbugger: dbugger
+    property alias pluginManager: pluginManager
 
     readonly property alias preview : editor.preview
 
@@ -1242,6 +1243,10 @@ ApplicationWindow {
         }
     }
 
+    TidePluginManager {
+        id: pluginManager
+    }
+
     Timer {
         id: delayedDebugContinue
         repeat: false
@@ -1475,8 +1480,7 @@ ApplicationWindow {
 
             Item {
                 id: leftSideBar
-                readonly property int rightPadding: showLeftSideBar && sideBarWidth == root.width ? paddingTiny : 0
-                width: showLeftSideBar ? sideBarWidth - rightPadding : 0
+                width: showLeftSideBar ? sideBarWidth : 0
                 height: parent.height
 
                 Behavior on width {
@@ -1486,7 +1490,7 @@ ApplicationWindow {
                 Item {
                     id: projectsArea
                     x: paddingMedium
-                    width: parent.width - paddingMedium
+                    width: parent.width - paddingMid
                     height: parent.height - (paddingMedium * 2)
                     readonly property int spaceBetweenSections : openFiles.files.length > 0 ? paddingTiny : 0
 

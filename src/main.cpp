@@ -25,6 +25,7 @@
 #include "searchandreplace.h"
 #include "debugger.h"
 #include "gitclient.h"
+#include "plugins/tidepluginmanager.h"
 
 #include <signal.h>
 
@@ -89,8 +90,6 @@ int main(int argc, char *argv[])
     app.setOrganizationDomain(orgName);
     app.setApplicationName(appName);
 
-    QLoggingCategory::setFilterRules("*=false");
-
     // Set up PATH for macOS here
 #if defined(Q_OS_MACOS)
     {
@@ -125,12 +124,14 @@ int main(int argc, char *argv[])
     qmlRegisterType<Debugger>("Tide", 1, 0, "Debugger");
     qmlRegisterType<GitClient>("Tide", 1, 0, "GitClient");
     qmlRegisterType<PlatformIntegrationDelegate>("Tide", 1, 0, "PlatformIntegrationDelegate");
+    qmlRegisterType<TidePluginManager>("Tide", 1, 0, "TidePluginManager");
 
     qmlRegisterUncreatableType<SystemGlue>("Tide", 1, 0, "IosSystemGlue", "Created in main() as 'iosSystem'.");
     qmlRegisterUncreatableType<StdioSpec>("Tide", 1, 0, "ProgramSpec", "StdioSpec is protocol between 'iosSystem' and 'Console'.");
     qmlRegisterUncreatableType<QSourceHighliter>("Tide", 1, 0, "SourceHighliter", "Use 'SyntaxHighlighter' instead.");
     qmlRegisterUncreatableType<InputMethodFixerInstaller>("Tide", 1, 0, "ImFixerInstaller", "Instantiated in main() as 'imFixer'.");
     qmlRegisterUncreatableType<SearchResult>("Tide", 1, 0, "SearchResult", "Created 'searchAndReplace'.");
+    qmlRegisterUncreatableType<TidePlugin>("Tide", 1, 0, "TidePlugin", "TidePlugin is created by 'TidePluginManager'");
 
     int ret;
     {

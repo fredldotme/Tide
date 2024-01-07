@@ -71,5 +71,7 @@
         <file>assets/repeat@2x.png</file>
         <file>assets/repeat.circle.fill@2x.png</file>
         <file>assets/plus.circle@2x.png</file>
+        <file>assets/pencil.circle@2x.png</file>
+        <file>assets/powerplug@2x.png</file>
     </qresource>
 </RCC>

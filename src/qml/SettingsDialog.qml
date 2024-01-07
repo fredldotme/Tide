@@ -109,6 +109,10 @@ TideDialog {
                         categoryIcon: "qrc:/assets/figure.run@2x.png"
                     }
                     ListElement {
+                        category: qsTr("Plugins")
+                        categoryIcon: "qrc:/assets/powerplug@2x.png"
+                    }
+                    ListElement {
                         category: qsTr("Misc")
                         categoryIcon: "qrc:/assets/shippingbox@2x.png"
                     }
@@ -428,6 +432,36 @@ TideDialog {
                             onCheckedChanged: {
                                 settings.aotOptimizations = checked
                             }
+                        }
+                    }
+                }
+
+                // Plugins
+                ScrollView {
+                    width: parent.width
+                    contentWidth: -1
+
+                    ListView {
+                        anchors.fill: parent
+                        model: pluginManager.plugins
+                        delegate: Column {
+                            width: parent.width
+                            height: implicitHeight
+                            Text {
+                                text: qsTr("Name: ") + modelData.name
+                            }
+                            Text {
+                                text: qsTr("Description: ") + modelData.description
+                            }
+                        }
+                    }
+
+                    ToolButton {
+                        text: qsTr("Reload plugins")
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        onClicked: {
+                            pluginManager.reloadPlugins()
                         }
                     }
                 }

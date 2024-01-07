@@ -35,6 +35,7 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
         set(OS "iphoneos")
     endif()
     set(LLVM_TOOLS ${LLVM_DIR}/ios/${LLVM_BUILD_DIR}/Debug-${OS})
+    set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
 elseif(APPLE)
     set(LLVM_BUILD_DIR "build_osx")
     set(LLVM_MODE "Release-macos")
@@ -94,6 +95,98 @@ if(APPLE)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
 endif()
 
+# WebAssembly-based plugin support
+
+if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphoneos)
+    set (WAMR_BUILD_PLATFORM "darwin")
+    set (WAMR_BUILD_TARGET "AARCH64")
+    set (WAMR_BUILD_INTERP 1)
+    set (WAMR_BUILD_FAST_INTERP 0)
+    set (WAMR_BUILD_AOT 0)
+    set (WAMR_BUILD_JIT 0)
+    set (WAMR_BUILD_LIBC_BUILTIN 0)
+    set (WAMR_BUILD_LIBC_WASI 1)
+    set (WAMR_BUILD_LIB_WASI_THREADS 1)
+    set (WAMR_BUILD_SHARED_MEMORY 1)
+    set (WAMR_BUILD_TAIL_CALL 1)
+    set (WAMR_BUILD_LIBC_UVWASI 0)
+    set (WAMR_BUILD_SIMD 1)
+    set (WAMR_DISABLE_HW_BOUND_CHECK 1)
+    set (WAMR_BUILD_DEBUG_AOT 0)
+    set (WAMR_BUILD_THREAD_MGR 1)
+    set (WAMR_BUILD_MINI_LOADER 0)
+    set (WAMR_BUILD_DEBUG_INTERP 0)
+    set (WAMR_BUILD_REF_TYPES 1)
+    set (WAMR_BUILD_MULTI_MODULE 1)
+    set (WAMR_BUILD_EXCE_HANDLING 0)
+    set (WAMR_ROOT_DIR ${WAMR_DIR})
+    add_definitions(-DWASM_UINT32_IS_ATOMIC=1)
+endif()
+
+if(APPLE AND NOT IOS)
+    set (WAMR_BUILD_PLATFORM "darwin")
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES arm64)
+        set (WAMR_BUILD_TARGET "AARCH64")
+    else()
+        set (WAMR_BUILD_TARGET "X86_64")
+    endif()
+    set (WAMR_BUILD_INTERP 1)
+    set (WAMR_BUILD_FAST_INTERP 1)
+    set (WAMR_BUILD_AOT 0)
+    set (WAMR_BUILD_JIT 0)
+    set (WAMR_BUILD_LAZY_JIT 0)
+    set (WAMR_BUILD_LIBC_BUILTIN 0)
+    set (WAMR_BUILD_LIBC_WASI 1)
+    set (WAMR_BUILD_LIB_WASI_THREADS 1)
+    set (WAMR_BUILD_SHARED_MEMORY 1)
+    set (WAMR_BUILD_TAIL_CALL 1)
+    set (WAMR_BUILD_LIBC_UVWASI 0)
+    set (WAMR_BUILD_SIMD 1)
+    set (WAMR_DISABLE_HW_BOUND_CHECK 1)
+    set (WAMR_BUILD_DEBUG_AOT 0)
+    set (WAMR_BUILD_THREAD_MGR 1)
+    set (WAMR_BUILD_MINI_LOADER 0)
+    set (WAMR_BUILD_DEBUG_INTERP 0)
+    set (WAMR_BUILD_REF_TYPES 1)
+    set (WAMR_BUILD_MULTI_MODULE 1)
+    set (WAMR_BUILD_EXCE_HANDLING 0)
+    set (WAMR_ROOT_DIR ${WAMR_DIR})
+    add_definitions(-DWASM_UINT32_IS_ATOMIC=1)
+endif()
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    set (WAMR_BUILD_PLATFORM "linux")
+    if(CMAKE_SYSTEM_PROCESSOR MATCHES aarch64)
+        set (WAMR_BUILD_TARGET "AARCH64")
+    else()
+        set (WAMR_BUILD_TARGET "X86_64")
+    endif()
+    set (WAMR_BUILD_INTERP 1)
+    set (WAMR_BUILD_AOT 0)
+    set (WAMR_BUILD_JIT 1)
+    set (WAMR_BUILD_LIBC_BUILTIN 0)
+    set (WAMR_BUILD_LIBC_WASI 1)
+    set (WAMR_BUILD_LIB_WASI_THREADS 1)
+    set (WAMR_BUILD_SHARED_MEMORY 1)
+    set (WAMR_BUILD_TAIL_CALL 1)
+    set (WAMR_BUILD_LIBC_UVWASI 0)
+    set (WAMR_BUILD_SIMD 1)
+    set (WAMR_DISABLE_HW_BOUND_CHECK 1)
+    set (WAMR_BUILD_DEBUG_AOT 0)
+    set (WAMR_BUILD_THREAD_MGR 1)
+    set (WAMR_BUILD_MINI_LOADER 0)
+    set (WAMR_BUILD_DEBUG_INTERP 1)
+    set (WAMR_BUILD_REF_TYPES 1)
+    set (WAMR_BUILD_MULTI_MODULE 1)
+    set (WAMR_BUILD_EXCE_HANDLING 0)
+    set (WAMR_BUILD_WAMR_COMPILER 0)
+    set (WAMR_ROOT_DIR ${WAMR_DIR})
+    add_definitions(-DWASM_UINT32_IS_ATOMIC=1)
+endif()
+
+# WAMR + AOT
+list(APPEND CMAKE_PREFIX_PATH "${LLVM_DIR}/${LLVM_BUILD_DIR}")
+
 # Qt6
 find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Sql QuickControls2)
 
@@ -140,6 +233,10 @@ qt_add_executable(${PROJECT_NAME}
     projects/cmakebuilder.cpp
     projects/qmakebuilder.cpp
     projects/builderbackend.h
+    plugins/tidepluginmanager.cpp
+    plugins/tideplugin.cpp
+    plugins/wasmloadable.cpp
+    plugins/plugininterface.cpp
 
     # Header-only code
     common/stdiospec.h
@@ -466,6 +563,7 @@ endif()
 include_directories(${PROJECT_NAME}
     # Wasm3 runtime
     ${WAMR_DIR}/core/iwasm/include
+    ${UTILS_SHARED_DIR}
 
     # Angle headers
     ${ANGLE_HEADERS}
@@ -505,6 +603,18 @@ target_link_libraries(${PROJECT_NAME}-platform
     ${NINJAFW}
 )
 
+if(APPLE OR IOS)
+    include (${WAMR_DIR}/build-scripts/runtime_lib.cmake)
+    add_library(vmlibforplugins STATIC ${WAMR_RUNTIME_LIB_SOURCE})
+    target_link_libraries (vmlibforplugins ${LLVM_AVAILABLE_LIBS})
+endif()
+
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
+    include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
+    add_library(vmlibforplugins STATIC ${WAMR_RUNTIME_LIB_SOURCE})
+endif()
+
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
     Qt6::Core
@@ -523,6 +633,9 @@ target_link_libraries(${PROJECT_NAME}
     ${UIKITLIBRARY}
     ${LIBZ}
     ${OPENSSL}
+
+    # WAMR-based plugins
+    vmlibforplugins
 
     # Wasm APIs and other enhancements
     ${ANGLE_A}
