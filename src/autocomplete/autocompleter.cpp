@@ -121,36 +121,56 @@ void AutoCompleter::run()
             const auto finder = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_find", args);
             plugin->loadable()->free_buffer(buffer_for_wasm);
 
-            wasm_val_t next;
-            do {
-                std::vector<wasm_val_t> typeArgs = {
-                    {
-                        .kind = WASM_I32,
-                        .of.i32 = finder.of.i32
-                    }
-                };
-                const auto typeRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_type", typeArgs);
-                const auto prefix = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(typeRet.of.i32));
+            if (finder.of.i32) {
+                wasm_val_t next;
+                do {
+                    std::vector<wasm_val_t> typeArgs = {
+                        {
+                            .kind = WASM_I32,
+                            .of.i32 = finder.of.i32
+                        }
+                    };
+                    const auto typeRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_type", typeArgs);
+                    const auto prefix = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(typeRet.of.i32));
 
-                std::vector<wasm_val_t> idArgs = {
-                    {
-                        .kind = WASM_I32,
-                        .of.i32 = finder.of.i32
-                    }
-                };
-                const auto idRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_identifier", idArgs);
-                const auto id = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(idRet.of.i32));
+                    std::vector<wasm_val_t> idArgs = {
+                        {
+                            .kind = WASM_I32,
+                            .of.i32 = finder.of.i32
+                        }
+                    };
+                    const auto idRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_identifier", idArgs);
+                    const auto id = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(idRet.of.i32));
 
-                foundKind(CompletionKind::Function, prefix, id, "");
+                    std::vector<wasm_val_t> detailArgs = {
+                        {
+                            .kind = WASM_I32,
+                            .of.i32 = finder.of.i32
+                        }
+                    };
+                    const auto detailRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_detail", detailArgs);
+                    const auto detail = QString::fromUtf8(plugin->loadable()->wasm_memory<char*>(detailRet.of.i32));
 
-                std::vector<wasm_val_t> nextArgs = {
-                    {
-                        .kind = WASM_I32,
-                        .of.i32 = finder.of.i32
-                    }
-                };
-                next = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_next", nextArgs);
-            } while (next.of.i32 != 0);
+                    std::vector<wasm_val_t> kindArgs = {
+                        {
+                            .kind = WASM_I32,
+                            .of.i32 = finder.of.i32
+                        }
+                    };
+                    const auto kindRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_kind", kindArgs);
+                    const auto kind = static_cast<CompletionKind>(kindRet.of.i32);
+
+                    foundKind(kind, prefix, id, detail);
+
+                    std::vector<wasm_val_t> nextArgs = {
+                        {
+                            .kind = WASM_I32,
+                            .of.i32 = finder.of.i32
+                        }
+                    };
+                    next = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_next", nextArgs);
+                } while (next.of.i32 != 0);
+            }
         }
     }
 
