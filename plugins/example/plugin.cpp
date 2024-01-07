@@ -17,11 +17,17 @@ struct TidePluginAutoCompleterResult {
 
 class TidePluginAutoCompleter : public TidePluginHostInterface {
 public:
+    bool setup(const std::string& contents);
     TidePluginAutoCompleterResult* find(const std::string& hint);    
 };
 
 static TidePluginAutoCompleterResult workingHint;
 static TidePluginAutoCompleter globalAutoCompleter;
+
+bool TidePluginAutoCompleter::setup(const std::string& contents)
+{
+    return true;
+}
 
 TidePluginAutoCompleterResult* TidePluginAutoCompleter::find(const std::string& hint)
 {
@@ -56,6 +62,16 @@ TidePluginInterface tide_plugin_get_interface(const TidePluginFeatures feature)
     default:
         return nullptr;
     }
+}
+
+bool tide_plugin_autocompletor_setup(TideAutoCompleter completer, const char* contents)
+{
+    auto autoCompleter = static_cast<TidePluginAutoCompleter*>(completer);
+    if (!autoCompleter)
+        return false;
+
+    const auto result = autoCompleter->setup(std::string(contents));
+    return result;
 }
 
 TideAutoCompleterResult tide_plugin_autocompletor_find(TideAutoCompleter completer,

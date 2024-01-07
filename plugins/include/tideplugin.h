@@ -42,10 +42,11 @@ const char* PUBLIC tide_plugin_description();
 TidePluginInterface PUBLIC tide_plugin_get_interface(const TidePluginFeatures feature);
 
 // AutoCompleter interface
+bool PUBLIC tide_plugin_autocompletor_setup(TideAutoCompleter completer,
+                                            const char* contents);
 TideAutoCompleterResult PUBLIC tide_plugin_autocompletor_find(TideAutoCompleter completer,
                                                               const char* hint);
 TideAutoCompleterResult PUBLIC tide_plugin_autocompletor_next(TideAutoCompleterResult result);
-void PUBLIC tide_plugin_autocompletorresult_destroy(TideAutoCompleterResult result);
 
 const AutoCompletorKind PUBLIC tide_plugin_autocompletorresult_kind(TideAutoCompleterResult result);
 const char* PUBLIC tide_plugin_autocompletorresult_type(TideAutoCompleterResult result);
