@@ -2,6 +2,7 @@
 
 #include <string>
 #include <iostream>
+#include <vector>
 
 extern "C" {
 
@@ -12,31 +13,47 @@ struct TidePluginAutoCompleterResult {
     std::string type;
     std::string identifier;
     std::string detail;
-    TidePluginAutoCompleterResult* next;
 };
 
 class TidePluginAutoCompleter : public TidePluginHostInterface {
 public:
     bool setup(const std::string& contents);
-    TidePluginAutoCompleterResult* find(const std::string& hint);    
+    TidePluginAutoCompleterResult* find(const std::string& hint);
+    TidePluginAutoCompleterResult* next();
+private:
+    std::vector<TidePluginAutoCompleterResult> completionResults;
+    std::vector<TidePluginAutoCompleterResult>::iterator cit;
 };
 
-static TidePluginAutoCompleterResult workingHint;
 static TidePluginAutoCompleter globalAutoCompleter;
 
 bool TidePluginAutoCompleter::setup(const std::string& contents)
 {
+    completionResults.clear();
+    for (int i = 0; i < 3; i++) {
+        TidePluginAutoCompleterResult res;
+        res.kind = AutoCompletorKind::Variable;
+        res.type = "int";
+        res.identifier = "PluginWorking_" + std::to_string(i);
+        res.detail = "ExamplePlugin";
+        completionResults.push_back(res);
+    }
+    cit = completionResults.begin();
     return true;
 }
 
 TidePluginAutoCompleterResult* TidePluginAutoCompleter::find(const std::string& hint)
 {
-    workingHint.kind = AutoCompletorKind::Variable;
-    workingHint.type = "int";
-    workingHint.identifier = "PluginWorking";
-    workingHint.detail = "ExamplePlugin";
-    workingHint.next = nullptr;
-    return &workingHint;
+    return &(*cit);
+}
+
+TidePluginAutoCompleterResult* TidePluginAutoCompleter::next()
+{
+    auto it = (cit + 1);
+    if (it == completionResults.end())
+        return nullptr;
+    cit = it;
+    return &(*it);
 }
 
 TidePluginFeatures tide_plugin_features()
@@ -85,13 +102,13 @@ TideAutoCompleterResult tide_plugin_autocompletor_find(TideAutoCompleter complet
     return static_cast<TideAutoCompleterResult>(result);
 }
 
-TideAutoCompleterResult tide_plugin_autocompletor_next(TideAutoCompleterResult result)
+TideAutoCompleterResult tide_plugin_autocompletor_next(TideAutoCompleter completer)
 {
-    if (!result)
+    if (!completer)
         return nullptr;
 
-    const auto res = static_cast<TidePluginAutoCompleterResult*>(result)->next;
-    return static_cast<TideAutoCompleterResult>(res);
+    const auto comp = static_cast<TidePluginAutoCompleter*>(completer);
+    return comp->next();
 }
 
 const AutoCompletorKind tide_plugin_autocompletorresult_kind(TideAutoCompleterResult result)

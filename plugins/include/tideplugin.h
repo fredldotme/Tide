@@ -46,7 +46,7 @@ bool PUBLIC tide_plugin_autocompletor_setup(TideAutoCompleter completer,
                                             const char* contents);
 TideAutoCompleterResult PUBLIC tide_plugin_autocompletor_find(TideAutoCompleter completer,
                                                               const char* hint);
-TideAutoCompleterResult PUBLIC tide_plugin_autocompletor_next(TideAutoCompleterResult result);
+TideAutoCompleterResult PUBLIC tide_plugin_autocompletor_next(TideAutoCompleter completer);
 
 const AutoCompletorKind PUBLIC tide_plugin_autocompletorresult_kind(TideAutoCompleterResult result);
 const char* PUBLIC tide_plugin_autocompletorresult_type(TideAutoCompleterResult result);
