@@ -437,31 +437,59 @@ TideDialog {
                 }
 
                 // Plugins
-                ScrollView {
+                Item {
                     width: parent.width
-                    contentWidth: -1
+                    height: parent.height
 
-                    ListView {
-                        anchors.fill: parent
-                        model: pluginManager.plugins
-                        delegate: Column {
+                    Column {
+                        width: parent.width
+                        anchors.centerIn: parent
+                        visible: pluginManager.plugins.length === 0
+                        Label {
+                            text: qsTr("No plugins found")
                             width: parent.width
-                            height: implicitHeight
-                            Text {
-                                text: qsTr("Name: ") + modelData.name
-                            }
-                            Text {
-                                text: qsTr("Description: ") + modelData.description
+                            horizontalAlignment: Qt.AlignHCenter
+                            verticalAlignment: Qt.AlignVCenter
+                        }
+                        ToolButton {
+                            text: qsTr("Reload plugins")
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            onClicked: {
+                                pluginManager.reloadPlugins()
                             }
                         }
                     }
 
-                    ToolButton {
-                        text: qsTr("Reload plugins")
-                        anchors.top: parent.top
-                        anchors.right: parent.right
-                        onClicked: {
-                            pluginManager.reloadPlugins()
+                    Column {
+                        width: parent.width
+                        height: parent.height
+                        spacing: 0
+                        visible: pluginManager.plugins.length !== 0
+
+                        ToolButton {
+                            id: reloadPluginsButton
+                            text: qsTr("Reload plugins")
+                            visible: pluginManager.plugins.length !== 0
+                            onClicked: {
+                                pluginManager.reloadPlugins()
+                            }
+                        }
+
+                        ListView {
+                            model: pluginManager.plugins
+                            width: parent.width
+                            height: parent.height - reloadPluginsButton.height
+                            clip: true
+                            delegate: Column {
+                                width: parent.width
+                                height: implicitHeight
+                                Label {
+                                    text: qsTr("<b>Name:</b> ") + modelData.name
+                                }
+                                Label {
+                                    text: qsTr("<b>Description:</b> ") + modelData.description
+                                }
+                            }
                         }
                     }
                 }

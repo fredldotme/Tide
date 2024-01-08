@@ -3412,7 +3412,7 @@ ApplicationWindow {
                 id: preparationHint
                 anchors.centerIn: parent
                 width: parent.width - (paddingSmall * 2)
-                font.pixelSize: 30
+                font.pixelSize: 24
                 text: qsTr("Preparing environment, hold on...")
                 color: "white"
                 wrapMode: Label.WrapAtWordBoundaryOrAnywhere
