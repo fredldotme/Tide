@@ -36,6 +36,7 @@ struct WasmRunnerImplSharedData {
     wasm_module_t module = nullptr;
     wasm_module_inst_t module_inst = nullptr;
     wasm_exec_env_t exec_env = nullptr;
+    char* memoryPool = nullptr;
     bool killing;
     bool killed;
     WasmRunnerConfig configuration;
@@ -62,9 +63,13 @@ void WasmRunnerImpl::init(const WasmRunnerConfig& config)
     memset(&init_args, 0, sizeof(RuntimeInitArgs));
 
     strcpy(init_args.ip_addr, "127.0.0.1");
-    init_args.instance_port = 0;
-    init_args.mem_alloc_type = Alloc_With_System_Allocator;
+    init_args.instance_port = 0
     init_args.max_thread_num = config.threadCount;
+
+    shared.memoryPool = new char[config.heapSize + config.stackSize];
+    init_args.mem_alloc_type = Alloc_With_Pool;
+    init_args.mem_alloc_option.pool.heap_buf = shared.memoryPool;
+    init_args.mem_alloc_option.pool.heap_size = sizeof(shared.memoryPool);
 
     wasm_runtime_full_init(&init_args);
 
@@ -192,6 +197,10 @@ fail:
 void WasmRunnerImpl::destroy()
 {
     wasm_runtime_destroy();
+    if (shared.memoryPool) {
+        delete[] shared.memoryPool;
+        shared.memoryPool = nullptr;
+    }
 }
 
 void WasmRunnerImpl::stop()
