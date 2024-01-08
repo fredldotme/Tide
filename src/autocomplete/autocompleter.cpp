@@ -144,18 +144,18 @@ void AutoCompleter::run()
                         {
                             .kind = WASM_I32,
                             .of.i32 = interface
-                        },{
+                        },
+                        {
                             .kind = WASM_I32,
                             .of.i32 = (int32_t)buffer_for_wasm
                         }
                     };
-                    const auto finder = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_find", args);
+                    auto finder = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_find", args);
                     plugin->loadable()->free_buffer(buffer_for_wasm);
 
                     if (!finder.of.i32)
                         continue;
 
-                    wasm_val_t next;
                     do {
                         std::vector<wasm_val_t> typeArgs = {
                             {
@@ -198,11 +198,17 @@ void AutoCompleter::run()
                         std::vector<wasm_val_t> nextArgs = {
                             {
                                 .kind = WASM_I32,
-                                .of.i32 = finder.of.i32
+                                .of.i32 = interface
                             }
                         };
-                        next = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_next", nextArgs);
-                    } while (next.of.i32 != 0);
+                        const auto next = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_next", nextArgs);
+                        if (next.of.i32 == finder.of.i32) {
+                            qWarning() << "No new autocompletion result fetched, breaking loop";
+                            break;
+                        } else {
+                            finder = next;
+                        }
+                    } while (finder.of.i32 != 0);
                 }
             }
         }
