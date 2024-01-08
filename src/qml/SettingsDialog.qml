@@ -480,6 +480,7 @@ TideDialog {
                             width: parent.width
                             height: parent.height - reloadPluginsButton.height
                             clip: true
+                            spacing: paddingSmall
                             delegate: Column {
                                 width: parent.width
                                 height: implicitHeight

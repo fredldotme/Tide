@@ -468,7 +468,7 @@ Item {
                     id: currentLineIndicator
                     width: Math.max(codeView.implicitWidth, codeField.width)
                     color: codeField.selectionColor
-                    visible: !codeField.readOnly
+                    visible: codeField.focus && !codeField.readOnly
                     height: lineNumbersHelper.lineCount[codeField.currentLine - 1] !== undefined ?
                                 lineNumbersHelper.lineCount[codeField.currentLine - 1].height : 0
                     x: codeView.x
@@ -618,7 +618,7 @@ Item {
                                 Timer {
                                     id: cursorBlinkTimer
                                     repeat: true
-                                    running: settings.blinkingCursor
+                                    running: settings.blinkingCursor && codeField.focus
                                     interval: 500
                                     onTriggered: {
                                         cursor.visible = !cursor.visible

@@ -3064,18 +3064,35 @@ ApplicationWindow {
 
                 signal done()
 
-                TextField {
-                    id: projectName
+                Column {
                     width: parent.width
-                    placeholderText: qsTr("Name:")
-                    focus: true
-                    validator: RegularExpressionValidator {
-                        regularExpression: /^[a-zA-Z0-9_.-]*$/
+                    height: implicitHeight
+                    spacing: paddingSmall
+
+                    TextField {
+                        id: projectName
+                        width: parent.width
+                        placeholderText: qsTr("Name:")
+                        focus: true
+                        validator: RegularExpressionValidator {
+                            regularExpression: /^[a-zA-Z0-9_.-]*$/
+                        }
+                    }
+
+                    ComboBox {
+                        id: projectTypeComboBox
+                        model: ["Application", "Library", "Tide plugin"]
+                        width: parent.width
+                        editable: false
                     }
                 }
 
                 onAccepted: {
-                    projectCreator.createProject(projectName.text)
+                    if (projectName.text === "")
+                        return
+
+                    projectCreator.createProject(projectName.text,
+                                                 projectTypeComboBox.currentIndex)
                     done()
                 }
 
