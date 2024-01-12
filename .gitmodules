@@ -79,3 +79,6 @@
 [submodule "3rdparty/threadweaver"]
 	path = 3rdparty/threadweaver
 	url = https://invent.kde.org/frameworks/threadweaver.git
+[submodule "3rdparty/unixy"]
+	path = 3rdparty/unixy
+	url = https://github.com/fredldotme/unixy.git
