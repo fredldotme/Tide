@@ -19,7 +19,6 @@ ApplicationWindow {
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
     property alias tidePalette : tidePalette
     property alias dbugger: dbugger
-    property alias pluginManager: pluginManager
 
     readonly property alias preview : editor.preview
 
@@ -40,7 +39,8 @@ ApplicationWindow {
     readonly property bool shouldAllowSidebar: (projectList.projects.length > 0 &&
                                                 openFiles.files.length > 0)
     readonly property bool shouldAllowDebugArea: ((dbugger.running || dbugger.paused) ||
-                                                  (dbugger.waitingpoints.length > 0)) && projectBuilder.projectFile !== ""
+                                                  (dbugger.waitingpoints.length > 0)) &&
+                                                 (projectBuilder.projectFile !== "" && projectBuilder.isRunnable())
     readonly property bool padStatusBar : true
     readonly property int headerBarHeight : 48
     readonly property int headerItemHeight : 24
@@ -48,10 +48,10 @@ ApplicationWindow {
     readonly property int menuItemIconSize : 20
     readonly property real defaultRectangleShadow: 0.2
 
+    readonly property color borderColor : Qt.tint(root.palette.window, "#10FF0000")
     property color headerItemColor : dialogShadow.opacity > 0.0 ?
                                          root.palette.buttonText :
                                          root.palette.button
-
     Behavior on headerItemColor {
         ColorAnimation {
             duration: 300
@@ -678,7 +678,7 @@ ApplicationWindow {
                 //rightPadding: paddingMedium
                 source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
                 color: dbugger.paused && !dbugger.heatingUp ? "orange" : root.headerItemColor
-                visible: projectBuilder.projectFile !== ""
+                visible: projectBuilder.projectFile !== "" && projectBuilder.isRunnable()
                 height: headerItemHeight
 
                 onClicked: debugContextMenu.open()
@@ -1033,6 +1033,8 @@ ApplicationWindow {
         id: projectBuilder
 
         onProjectFileChanged: {
+            reevaluateDebuggerVisibility()
+
             if (projectFile === "")
                 return
 
@@ -1241,10 +1243,6 @@ ApplicationWindow {
         onAttachedToProcess: {
             delayedDebugContinue.start()
         }
-    }
-
-    TidePluginManager {
-        id: pluginManager
     }
 
     Timer {
@@ -1480,7 +1478,9 @@ ApplicationWindow {
 
             Item {
                 id: leftSideBar
-                width: showLeftSideBar ? sideBarWidth : 0
+                width: showLeftSideBar ?
+                           (sideBarWidth - (root.landscapeMode ? 0 : paddingMedium)) :
+                           0
                 height: parent.height
 
                 Behavior on width {
@@ -1490,7 +1490,7 @@ ApplicationWindow {
                 Item {
                     id: projectsArea
                     x: paddingMedium
-                    width: parent.width - paddingMid
+                    width: parent.width - paddingMedium
                     height: parent.height - (paddingMedium * 2)
                     readonly property int spaceBetweenSections : openFiles.files.length > 0 ? paddingTiny : 0
 
@@ -1525,6 +1525,8 @@ ApplicationWindow {
 
                                 color: root.palette.base
                                 radius: roundedCornersRadiusMedium
+                                border.color: root.borderColor
+                                border.width: 1
 
                                 StackView {
                                     id: projectNavigationStack
@@ -1555,6 +1557,8 @@ ApplicationWindow {
                                         Rectangle {
                                             width: parent.width
                                             radius: roundedCornersRadiusMedium
+                                            border.color: root.borderColor
+                                            border.width: 1
                                             color: root.tidePalette.base
                                             clip: true
 
@@ -1647,7 +1651,10 @@ ApplicationWindow {
                                                               projectPicker.getDirNameForBookmark(modelData.bookmark) :
                                                               modelData.name
                                                     font.pixelSize: 16
-                                                    height: font.pixelSize + (paddingSmall * 2)
+                                                    width: parent.width
+                                                    height: font.pixelSize + (paddingMid * 2)
+                                                    iconWidth: 16
+                                                    iconHeight: 16
                                                     textColor: root.palette.button
                                                     icon.source: modelData.isBookmark ?
                                                                      Qt.resolvedUrl("qrc:/assets/bookmark@2x.png") :
@@ -1724,6 +1731,8 @@ ApplicationWindow {
                                             width: parent.width
                                             height: parent.height
                                             radius: roundedCornersRadiusMedium
+                                            border.color: root.borderColor
+                                            border.width: 1
                                             color: root.palette.base
                                             clip: true
 
@@ -1867,8 +1876,8 @@ ApplicationWindow {
                                                                               : (isDir ? Qt.resolvedUrl("qrc:/assets/folder@2x.png")
                                                                                        : isProject ? Qt.resolvedUrl("qrc:/assets/hammer@2x.png")
                                                                                                    : Qt.resolvedUrl("qrc:/assets/doc@2x.png"))
-                                                    iconWidth: menuItemIconSize
-                                                    iconHeight: menuItemIconSize
+                                                    iconWidth: 16
+                                                    iconHeight: 16
                                                     text: isBackButton ? qsTr("Back") : modelData.name
                                                     detailText: isBackButton ? "" : directoryListView.getDetailText(modelData)
                                                     pressAnimation: !isBackButton
@@ -1993,14 +2002,14 @@ ApplicationWindow {
                                 }
                             }
 
-                            MultiEffect {
+                            /*MultiEffect {
                                 source: projectNavigationRectangle
                                 anchors.fill: projectNavigationRectangle
                                 paddingRect: Qt.rect(0, 0, projectNavigationRectangle.width, projectNavigationRectangle.height)
                                 shadowEnabled: true
                                 shadowBlur: 1.0
                                 shadowOpacity: defaultRectangleShadow
-                            }
+                            }*/
                         }
 
                         Item {
@@ -2026,6 +2035,8 @@ ApplicationWindow {
                                 width: parent.width
                                 height: parent.height
                                 radius: roundedCornersRadiusMedium
+                                border.color: root.borderColor
+                                border.width: 1
                                 color: root.palette.base
                                 clip: true
 
@@ -2132,7 +2143,7 @@ ApplicationWindow {
 
                                     clip: true
                                     delegate: OpenFileListingButton {
-                                        readonly property bool isProject : modelData.name.endsWith(".pro") //|| modelData.name == "CMakeLists.txt"
+                                        readonly property bool isProject : modelData.name.endsWith(".pro") //|| modelData.name === "CMakeLists.txt"
                                         readonly property bool isActiveProject: modelData.path === projectBuilder.projectFile
                                         radius: roundedCornersRadiusSmall
 
@@ -2265,14 +2276,14 @@ ApplicationWindow {
                                 }
                             }
 
-                            MultiEffect {
+                            /*MultiEffect {
                                 source: openFilesRectangle
                                 anchors.fill: openFilesRectangle
                                 paddingRect: Qt.rect(0, 0, openFilesRectangle.width, openFilesRectangle.height)
                                 shadowEnabled: true
                                 shadowBlur: 1.0
                                 shadowOpacity: defaultRectangleShadow
-                            }
+                            }*/
                         }
                     }
                 }
@@ -2538,6 +2549,8 @@ ApplicationWindow {
                         id: breakpointsContainer
                         anchors.fill: parent
                         radius: roundedCornersRadiusMedium
+                        border.color: root.borderColor
+                        border.width: 1
                         color: root.palette.base
                         clip: true
 
@@ -2636,7 +2649,7 @@ ApplicationWindow {
                         }
                     }
 
-                    MultiEffect {
+                    /*MultiEffect {
                         source: breakpointsContainer
                         anchors.fill: breakpointsContainer
                         paddingRect: Qt.rect(0, 0, breakpointsContainer.width, breakpointsContainer.height)
@@ -2649,7 +2662,7 @@ ApplicationWindow {
                                 easing.type: Easing.OutCubic
                             }
                         }
-                    }
+                    }*/
                 }
 
                 Item {
@@ -2663,6 +2676,8 @@ ApplicationWindow {
                         id: backtracesContainer
                         anchors.fill: parent
                         radius: roundedCornersRadiusMedium
+                        border.color: root.borderColor
+                        border.width: 1
                         color: root.palette.base
 
                         Label {
@@ -2732,7 +2747,7 @@ ApplicationWindow {
                         }
                     }
 
-                    MultiEffect {
+                    /*MultiEffect {
                         source: backtracesContainer
                         anchors.fill: backtracesContainer
                         paddingRect: Qt.rect(0, 0, backtracesContainer.width, backtracesContainer.height)
@@ -2745,7 +2760,7 @@ ApplicationWindow {
                                 easing.type: Easing.OutCubic
                             }
                         }
-                    }
+                    }*/
                 }
 
                 Item {
@@ -2760,6 +2775,8 @@ ApplicationWindow {
                         anchors.fill: parent
                         color: root.palette.base
                         radius: roundedCornersRadiusMedium
+                        border.color: root.borderColor
+                        border.width: 1
 
                         Label {
                             anchors.fill: parent
@@ -2845,7 +2862,7 @@ ApplicationWindow {
                         }
                     }
 
-                    MultiEffect {
+                    /*MultiEffect {
                         source: frameValuesContainer
                         anchors.fill: frameValuesContainer
                         paddingRect: Qt.rect(0, 0, frameValuesContainer.width, frameValuesContainer.height)
@@ -2858,7 +2875,7 @@ ApplicationWindow {
                                 easing.type: Easing.OutCubic
                             }
                         }
-                    }
+                    }*/
                 }
             }
         }
@@ -3081,7 +3098,7 @@ ApplicationWindow {
 
                     ComboBox {
                         id: projectTypeComboBox
-                        model: ["Application", "Library", "Tide plugin"]
+                        model: ["Application", "Library" /*, "Tide plugin"*/]
                         width: parent.width
                         editable: false
                     }

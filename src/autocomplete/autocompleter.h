@@ -17,7 +17,7 @@ class AutoCompleter : public QObject
     Q_OBJECT
 
     Q_PROPERTY(QVariantList decls MEMBER m_decls NOTIFY declsChanged)
-    Q_PROPERTY(TidePluginManager* pluginManager MEMBER m_pluginManager NOTIFY pluginManagerChanged)
+    Q_PROPERTY(TidePluginManager* pluginsManager MEMBER m_pluginManager NOTIFY pluginManagerChanged)
 
 public:
     enum CompletionKind {

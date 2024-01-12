@@ -91,9 +91,9 @@ static void* runInThread(void* userdata)
                           interpreterPath.toStdString().c_str(),
                           cargs.size(),
                           (char**)cargs.data(),
-                          dup(fileno(shared.stdio.stdin)),
-                          dup(fileno(shared.stdio.stdout)),
-                          dup(fileno(shared.stdio.stderr)),
+                          dup(fileno(shared.stdio.std_in)),
+                          dup(fileno(shared.stdio.std_out)),
+                          dup(fileno(shared.stdio.std_err)),
                           shared.debug,
                           mapping.toStdString().c_str());
     }

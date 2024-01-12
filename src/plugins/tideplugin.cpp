@@ -1,8 +1,10 @@
 #include "tideplugin.h"
 
+#include <QDebug>
+
 TidePlugin::TidePlugin(const QString& path) :
     m_path{path},
-    m_loadable{std::make_shared<WasmLoadable>(path)}
+    m_loadable{new WasmLoadable(path)}
 {
 }
 
@@ -57,7 +59,7 @@ bool TidePlugin::isValid() const
     return m_loadable->isValid();
 }
 
-std::shared_ptr<WasmLoadable>& TidePlugin::loadable()
+QSharedPointer<WasmLoadable> TidePlugin::loadable()
 {
     return m_loadable;
 }

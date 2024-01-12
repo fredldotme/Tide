@@ -7,9 +7,9 @@ class StdioSpec {
     Q_GADGET
 
 public:
-    FILE* stdin = nullptr;
-    FILE* stdout = nullptr;
-    FILE* stderr = nullptr;
+    FILE* std_in = nullptr;
+    FILE* std_out = nullptr;
+    FILE* std_err = nullptr;
 };
 
 Q_DECLARE_METATYPE(StdioSpec)

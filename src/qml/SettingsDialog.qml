@@ -445,17 +445,30 @@ TideDialog {
                         width: parent.width
                         anchors.centerIn: parent
                         visible: pluginManager.plugins.length === 0
+                        spacing: paddingMedium
                         Label {
                             text: qsTr("No plugins found")
-                            width: parent.width
-                            horizontalAlignment: Qt.AlignHCenter
-                            verticalAlignment: Qt.AlignVCenter
-                        }
-                        ToolButton {
-                            text: qsTr("Reload plugins")
                             anchors.horizontalCenter: parent.horizontalCenter
-                            onClicked: {
-                                pluginManager.reloadPlugins()
+                        }
+                        RowLayout {
+                            width: implicitWidth
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            spacing: paddingSmall
+
+                            TideButton {
+                                text: qsTr("Reload plugins")
+                                color: root.palette.button
+                                onClicked: {
+                                    pluginManager.reloadPlugins()
+                                    hud.hudLabel.flashMessage("Plugins reloaded")
+                                }
+                            }
+                            TideButton {
+                                text: qsTr("Open Plugins folder")
+                                color: root.palette.button
+                                onClicked: {
+                                    Qt.openUrlExternally("shareddocuments://" + pluginManager.pluginsPath())
+                                }
                             }
                         }
                     }
@@ -466,21 +479,31 @@ TideDialog {
                         spacing: 0
                         visible: pluginManager.plugins.length !== 0
 
-                        ToolButton {
-                            id: reloadPluginsButton
-                            text: qsTr("Reload plugins")
-                            visible: pluginManager.plugins.length !== 0
-                            onClicked: {
-                                pluginManager.reloadPlugins()
-                            }
-                        }
-
                         ListView {
                             model: pluginManager.plugins
                             width: parent.width
-                            height: parent.height - reloadPluginsButton.height
+                            height: parent.height
                             clip: true
                             spacing: paddingSmall
+                            header: Component {
+                                Row {
+                                    spacing: paddingTiny
+                                    ToolButton {
+                                        text: qsTr("Reload plugins")
+                                        visible: pluginManager.plugins.length !== 0
+                                        onClicked: {
+                                            pluginManager.reloadPlugins()
+                                        }
+                                    }
+                                    ToolButton {
+                                        text: qsTr("Open Plugins folder")
+                                        onClicked: {
+                                            Qt.openUrlExternally("shareddocuments://" + pluginManager.pluginsPath())
+                                        }
+                                    }
+                                }
+                            }
+
                             delegate: Column {
                                 width: parent.width
                                 height: implicitHeight

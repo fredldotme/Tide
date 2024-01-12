@@ -48,12 +48,13 @@ TidePluginManager::TidePluginManager(QObject *parent)
 
 TidePluginManager::~TidePluginManager()
 {
+    m_plugins.clear();
     wasm_runtime_destroy();
 }
 
 void TidePluginManager::reloadPlugins()
 {
-    const QString pluginDir = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/Plugins";
+    const QString pluginDir = pluginsPath();
     QDirIterator dit(pluginDir, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
 
     m_plugins.clear();
@@ -95,4 +96,9 @@ QVariantList TidePluginManager::plugins()
 const QList<QSharedPointer<TidePlugin>>& TidePluginManager::pluginRefs()
 {
     return m_plugins;
+}
+
+QString TidePluginManager::pluginsPath()
+{
+    return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) + "/Plugins";
 }

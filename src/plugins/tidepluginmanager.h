@@ -19,6 +19,7 @@ public:
 
 public slots:
     void reloadPlugins();
+    QString pluginsPath();
 
 private:
     QVariantList plugins();

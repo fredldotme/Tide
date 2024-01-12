@@ -14,8 +14,6 @@ CMakeBuilder::CMakeBuilder(QObject *parent)
     const auto cmakePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                            QStringLiteral("/Library/CMake");
     qputenv("CMAKE_ROOT", cmakePath.toUtf8());
-    qputenv("CC", "clang");
-    qputenv("CXX", "clang++");
 
     QObject::connect(this, &CMakeBuilder::projectFileChanged, this, &CMakeBuilder::runnableChanged);
 }
@@ -52,7 +50,7 @@ void CMakeBuilder::clean()
         return;
     }
 
-    if (!buildDir.rmpath(buildPath)) {
+    if (!buildDir.removeRecursively()) {
         qWarning() << "Failed to clean build directory" << buildPath;
     }
 }
@@ -65,17 +63,29 @@ void CMakeBuilder::build(const bool debug, const bool aot)
     QDir buildDir(buildPath);
     qDebug() << buildDir.mkpath(buildPath);
 
-    const auto cmakeArgs = QStringLiteral("-DCMAKE_SYSTEM_NAME=WASI -DCMAKE_SYSTEM_VERSION=1 -DCMAKE_SYSTEM_PROCESSOR=wasm32 -DCMAKE_MAKE_PROGRAM=ninja");
+    const auto cmakePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                           QStringLiteral("/Library/CMake");
+    const auto cmakeRoot = QStringLiteral("-DCMAKE_ROOT=\"%1\""
+                                          " -DCMAKE_C_COMPILER=/usr/bin/clang"
+                                          " -DCMAKE_CXX_COMPILER=/usr/bin/clang++"
+                                          " -DCMAKE_SYSTEM_PROCESSOR=wasm32"
+                                          " -DCMAKE_SYSROOT=\"%2\""
+                                          " -DCMAKE_C_COMPILER_TARGET=wasm32-wasi-threads"
+                                          " -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi-threads").arg(cmakePath, m_sysroot);
+    const auto cmakeArgs = cmakeRoot + QStringLiteral(" -DCMAKE_SYSTEM_NAME=WASI -DCMAKE_SYSTEM_VERSION=1 -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja ");
 
     QStringList buildCommands;
-    buildCommands << QStringLiteral("cmake -G Ninja -S \"%1\" -B \"%2\" %3").arg(sourcePath, buildPath, cmakeArgs);
-    buildCommands << QStringLiteral("ninja -j1 -C \"%1\"").arg(buildPath);
+    buildCommands << QStringLiteral("/usr/bin/cmake -G Ninja -S \"%1\" %2").arg(sourcePath, cmakeArgs);
+    buildCommands << QStringLiteral("/usr/bin/ninja -j1");
 
     std::thread buildThread([=]() {
         m_building = true;
         emit buildingChanged();
 
+        const auto pwd = QDir::currentPath();
+        QDir::setCurrent(buildPath);
         const bool success = iosSystem->runBuildCommands(buildCommands);
+        QDir::setCurrent(pwd);
         if (success) {
             emit buildSuccess(debug, aot);
         } else {

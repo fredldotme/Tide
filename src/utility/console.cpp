@@ -15,20 +15,20 @@ Console::~Console()
 {
     m_quitting = true;
 
-    close(fileno(m_spec.stdout));
+    close(fileno(m_spec.std_out));
     m_readThreadOut.terminate();
     m_readThreadOut.wait(1000);
 
-    close(fileno(m_spec.stderr));
+    close(fileno(m_spec.std_err));
     m_readThreadErr.terminate();
     m_readThreadErr.wait(1000);
 }
 
 void Console::feedProgramSpec(StdioSpec spec)
 {
-    m_spec.stdin = spec.stdin;
-    m_spec.stdout = spec.stdout;
-    m_spec.stderr = spec.stderr;
+    m_spec.std_in = spec.std_in;
+    m_spec.std_out = spec.std_out;
+    m_spec.std_err = spec.std_err;
 
     m_readThreadOut.start(QThread::LowestPriority);
     m_readThreadErr.start(QThread::LowestPriority);
@@ -36,11 +36,11 @@ void Console::feedProgramSpec(StdioSpec spec)
 
 void Console::write(const QString str)
 {
-    if (!m_spec.stdin)
+    if (!m_spec.std_in)
         return;
 
-    fwrite(str.toUtf8().data(), sizeof(char), str.length(), m_spec.stdin);
-    fflush(m_spec.stdin);
+    fwrite(str.toUtf8().data(), sizeof(char), str.length(), m_spec.std_in);
+    fflush(m_spec.std_in);
 }
 
 void Console::read(FILE* io)
@@ -52,7 +52,7 @@ void Console::read(FILE* io)
     while (::read(fileno(io), buffer, 4096))
     {
         const auto output = QString::fromUtf8(buffer);
-        emit contentRead(output, (this->m_spec.stdout == io));
+        emit contentRead(output, (this->m_spec.std_out == io));
         memset(buffer, 0, 4096);
         if (m_quitting)
             return;
@@ -61,10 +61,10 @@ void Console::read(FILE* io)
 
 void Console::readOutput()
 {
-    read(m_spec.stdout);
+    read(m_spec.std_out);
 }
 
 void Console::readError()
 {
-    read(m_spec.stderr);
+    read(m_spec.std_err);
 }
