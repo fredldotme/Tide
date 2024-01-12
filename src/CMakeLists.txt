@@ -83,7 +83,7 @@ set(TIDE_SRC_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 if(IOS)
     resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
-    # resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
+    resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
     resource(COMMANDSYAML ${CMAKE_CURRENT_SOURCE_DIR} Resources commands.yaml)
 endif()
@@ -91,7 +91,7 @@ endif()
 if(APPLE)
     resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
-    # resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
+    resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
 endif()
 
@@ -308,6 +308,8 @@ set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
 set(LLVM_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/include)
 set(LLVM_CLANG_INCLUDES ${LLVM_DIR}/${LLVM_BUILD_DIR}/tools/clang/include)
 set(NOSYSTEM_FRAMEWORK ${LLVM_DIR}/no_system/${LLVM_BUILD_DIR}/Debug-iphoneos)
+set(UNIXY_FRAMEWORK ${UNIXY_DIR}/build-iphoneos/Debug-iphoneos)
+message("NOSYSTEM_FRAMEWORK: ${NOSYSTEM_FRAMEWORK}")
 
 # Include libs after defining a few crucial variables
 add_subdirectory(lib)
@@ -415,21 +417,10 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
 
     # CMake and Ninja
     find_library(CMAKEFW REQUIRED NAMES cmake PATHS ${CMAKE_PATH} CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMAKELIB REQUIRED NAMES CMakeLib PATHS ${CMAKE_PATH} CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMSYSFW REQUIRED NAMES cmsys PATHS ${CMAKE_PATH}/kwsys CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMLIBUV REQUIRED NAMES cmlibuv PATHS ${CMAKE_UTIL_PATH}/cmlibuv CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMEXPAT REQUIRED NAMES cmexpat PATHS ${CMAKE_UTIL_PATH}/cmexpat CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMZLIB REQUIRED NAMES cmzlib PATHS ${CMAKE_UTIL_PATH}/cmzlib CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMLIBLZMA REQUIRED NAMES cmliblzma PATHS ${CMAKE_UTIL_PATH}/cmliblzma CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMJSONCPP REQUIRED NAMES cmjsoncpp PATHS ${CMAKE_UTIL_PATH}/cmjsoncpp CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMSTD REQUIRED NAMES cmstd PATHS ${CMAKE_UTIL_PATH}/std CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMLIBRHASH REQUIRED NAMES cmlibrhash PATHS ${CMAKE_UTIL_PATH}/cmlibrhash CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMBZIP2 REQUIRED NAMES cmbzip2 PATHS ${CMAKE_UTIL_PATH}/cmbzip2 CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMCURL REQUIRED NAMES cmcurl PATHS ${CMAKE_UTIL_PATH}/cmcurl/lib CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMLIBARCHIVE REQUIRED NAMES cmlibarchive PATHS ${CMAKE_UTIL_PATH}/cmlibarchive/libarchive CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMNGHTTP2 REQUIRED NAMES cmnghttp2 PATHS ${CMAKE_UTIL_PATH}/cmnghttp2 CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(CMZSTD REQUIRED NAMES cmzstd PATHS ${CMAKE_UTIL_PATH}/cmzstd CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(NINJAFW REQUIRED NAMES ninjaexe PATHS ${NINJA_PATH} CMAKE_FIND_ROOT_PATH_BOTH)
+
+    # Unixy tools
+    find_library(UNIXYFW REQUIRED NAMES unixy PATHS ${UNIXY_FRAMEWORK} CMAKE_FIND_ROOT_PATH_BOTH)
 
     # Debugger's lldb requires some trickery
     #set_source_files_properties(${LLDB}
@@ -585,22 +576,6 @@ target_link_libraries(${PROJECT_NAME}-platform
     Qt6::Quick
     Qt6::Widgets
     ${NOSYSTEM}
-    ${CMAKEFW}
-    ${CMAKELIB}
-    ${CMSYSFW}
-    ${CMLIBUV}
-    ${CMEXPAT}
-    ${CMZLIB}
-    ${CMLIBLZMA}
-    ${CMJSONCPP}
-    ${CMSTD}
-    ${CMLIBRHASH}
-    ${CMLIBARCHIVE}
-    ${CMZSTD}
-    ${CMBZIP2}
-    ${CMNGHTTP2}
-    ${CMCURL}
-    ${NINJAFW}
 )
 
 if(APPLE OR IOS)
@@ -667,6 +642,9 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
         ${LLDFW}
         ${LLDBFW}
         ${LIBCLANG_C}
+        #${CMAKEFW}
+        ${NINJAFW}
+        ${UNIXYFW}
         ${PROJECT_NAME}-Formatter
         ${PROJECT_NAME}-Wasmrunner
         ${PROJECT_NAME}-Wasmrunnerfast
@@ -771,7 +749,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     endif()
     install(FILES "${CLANGRT_DIR}/the-sysroot.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
     install(FILES "${CLANGRT_DIR}/boost.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
-    # install(FILES "${CLANGRT_DIR}/cmake.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
+    install(FILES "${CLANGRT_DIR}/cmake.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
     install(FILES "${CLANGRT_DIR}/python.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
 
     install(FILES "${LLVM_TOOLS}/clang-17" DESTINATION ${CMAKE_INSTALL_BINDIR} PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
