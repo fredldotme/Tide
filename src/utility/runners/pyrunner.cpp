@@ -279,7 +279,7 @@ void PyRunner::runRepl()
 
     if (sharedData.lib->init) {
         WasmRunnerConfig config;
-        config.flags = WasmRunnerConfigFlags::JIT;
+        config.flags = WasmRunnerConfigFlags::None;
         sharedData.runtime = sharedData.lib->init(m_runnerHost, (WasmRuntimeConfig)&config);
         std::cout << "Initialization complete: " << sharedData.runtime << std::endl;
     } else {

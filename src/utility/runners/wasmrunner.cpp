@@ -118,7 +118,7 @@ void TideWasmRunnerHost::reportDebugPort(const uint32_t port)
     }
 }
 
-void WasmRunner::configure(unsigned int stack, unsigned int heap, unsigned int threads, bool aot)
+void WasmRunner::configure(unsigned int stack, unsigned int heap, unsigned int threads, bool opt)
 {
     sharedData.config.stackSize = stack;
     sharedData.config.heapSize = heap;
@@ -127,8 +127,8 @@ void WasmRunner::configure(unsigned int stack, unsigned int heap, unsigned int t
     // Enable certain properties the WasmRunner plugin should attempt to do,
     // but might fail depending on various reasons (platform capabilities, init failure)
     // and fall back to a working default. That means plugins might take this as a hint.
-    if (aot)
-        sharedData.config.flags = WasmRunnerConfigFlags::AOT;
+    if (opt)
+        sharedData.config.flags = WasmRunnerConfigFlags::JIT;
     else
         sharedData.config.flags = WasmRunnerConfigFlags::None;
 }
@@ -157,6 +157,13 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
 {
     kill();
 
+    QString wasmRunner = QStringLiteral("Wasmrunnerfast");
+    if (m_forceDebugInterpreter || debug) {
+        wasmRunner = QStringLiteral("Wasmrunner");
+    } else if (sharedData.config.flags & JIT) {
+        wasmRunner = QStringLiteral("Wasmrunnerjit");
+    }
+
     QString applicationFile = binary;
     qDebug() << "Running" << applicationFile << args << debug;
 
@@ -181,15 +188,15 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
 
 #ifdef Q_OS_LINUX
     if (m_forceDebugInterpreter || debug) {
-        runnerPath = QStringLiteral("%1/libtide-Wasmrunner.so").arg(libsRoot).toStdString();
+        runnerPath = QStringLiteral("%1/libtide-%2.so").arg(libsRoot, wasmRunner).toStdString();
     } else {
-        runnerPath = QStringLiteral("%1/libtide-Wasmrunnerfast.so").arg(libsRoot).toStdString();
+        runnerPath = QStringLiteral("%1/libtide-%2.so").arg(libsRoot, wasmRunner).toStdString();
     }
 #else
     if (m_forceDebugInterpreter || debug) {
-        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunner.framework/Tide-Wasmrunner").arg(libsRoot).toStdString();
+        runnerPath = QStringLiteral("%1/Frameworks/Tide-%2.framework/Tide-%2").arg(libsRoot, wasmRunner).toStdString();
     } else {
-        runnerPath = QStringLiteral("%1/Frameworks/Tide-Wasmrunnerfast.framework/Tide-Wasmrunnerfast").arg(libsRoot).toStdString();
+        runnerPath = QStringLiteral("%1/Frameworks/Tide-%2.framework/Tide-%2").arg(libsRoot, wasmRunner).toStdString();
     }
 #endif
 

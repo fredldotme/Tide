@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 
 if(IOS OR APPLE)
-    set(PROJECT_NAME Tide-Wasmrunnerfast)
+    set(PROJECT_NAME Tide-Wasmrunnerjit)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-    set(PROJECT_NAME tide-Wasmrunnerfast)
+    set(PROJECT_NAME tide-Wasmrunnerjit)
 endif()
 
 project(${PROJECT_NAME} VERSION 0.1 LANGUAGES CXX)
@@ -50,7 +50,7 @@ if(APPLE AND NOT IOS)
     set (WAMR_BUILD_INTERP 1)
     set (WAMR_BUILD_FAST_INTERP 1)
     set (WAMR_BUILD_AOT 0)
-    set (WAMR_BUILD_JIT 0)
+    set (WAMR_BUILD_JIT 1)
     set (WAMR_BUILD_LAZY_JIT 0)
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
@@ -80,9 +80,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set (WAMR_BUILD_TARGET "X86_64")
     endif()
     set (WAMR_BUILD_INTERP 1)
-    set (WAMR_BUILD_FAST_INTERP 1)
     set (WAMR_BUILD_AOT 0)
-    set (WAMR_BUILD_JIT 0)
+    set (WAMR_BUILD_JIT 1)
     set (WAMR_BUILD_LIBC_BUILTIN 0)
     set (WAMR_BUILD_LIBC_WASI 1)
     set (WAMR_BUILD_LIB_WASI_THREADS 1)
@@ -114,12 +113,10 @@ if(APPLE OR IOS)
     include(${WAMR_DIR}/core/iwasm/aot/iwasm_aot.cmake)
     include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
     include(${WAMR_DIR}/core/shared/platform/common/libc-util/platform_common_libc_util.cmake)
-
-    set (WAMR_COMPILER "${WAMR_DIR}/wamr-compiler/main.c")
 endif()
 
 if (APPLE OR IOS)
-    add_library(vmlibfast
+    add_library(vmlibjit
         STATIC
 
         ${WAMR_COMPILER}
@@ -138,7 +135,7 @@ if (APPLE OR IOS)
         ${IWASM_INTERP_SOURCE}
         ${IWASM_AOT_SOURCE})
 
-    target_include_directories(vmlibfast PUBLIC
+    target_include_directories(vmlibjit PUBLIC
         ${WAMR_DIR}/core/shared/platform/common/libc-util
     )
 endif()
@@ -146,10 +143,10 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
     include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
-    add_library(vmlibfast ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
+    add_library(vmlibjit ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 endif()
 
-target_link_libraries(vmlibfast
+target_link_libraries(vmlibjit
     PRIVATE
     ${LLVM}
     ${NOSYSTEM}
@@ -158,10 +155,8 @@ target_link_libraries(vmlibfast
 qt_add_library(${PROJECT_NAME}
     SHARED
 
-    wasmrunnerfast.cpp
+    wasmrunnerjit.cpp
 
-    # AOT compiler
-    ${WAMR_COMPILER}
     ${IWAMR}
 )
 
@@ -182,7 +177,7 @@ if(IOS OR CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         FRAMEWORK TRUE
-        MACOSX_FRAMEWORK_IDENTIFIER me.fredl.wasmrunnerfast
+        MACOSX_FRAMEWORK_IDENTIFIER me.fredl.Wasmrunnerjit
         MACOSX_FRAMEWORK_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_FRAMEWORK_SHORT_VERSION_STRING ${PROJECT_VERSION}
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
@@ -199,7 +194,7 @@ if(APPLE AND NOT IOS)
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         FRAMEWORK TRUE
-        MACOSX_FRAMEWORK_IDENTIFIER me.fredl.wasmrunnerfast
+        MACOSX_FRAMEWORK_IDENTIFIER me.fredl.Wasmrunnerjit
         MACOSX_FRAMEWORK_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_FRAMEWORK_SHORT_VERSION_STRING ${PROJECT_VERSION}
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
@@ -230,7 +225,7 @@ target_link_libraries(${PROJECT_NAME}
     PRIVATE
     ${LLVM}
     ${NOSYSTEM}
-    vmlibfast
+    vmlibjit
 )
 
 include_directories(${PROJECT_NAME}
@@ -239,6 +234,6 @@ include_directories(${PROJECT_NAME}
     ${UNCOMMON_SHARED_DIR}
 )
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
-endif()
+#if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_LIBDIR})
+#endif()

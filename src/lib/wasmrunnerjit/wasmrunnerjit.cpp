@@ -1,4 +1,4 @@
-#include "wasmrunnerfast.h"
+#include "wasmrunnerjit.h"
 
 #include <map>
 #include <memory>
@@ -44,7 +44,7 @@
 #include "aot_export.h"
 #endif
 
-struct WasmRunnerFastImplSharedData {
+struct WasmRunnerJITImplSharedData {
     WasmRunnerHost* host;
     std::string binary;
     int argc;
@@ -57,32 +57,31 @@ struct WasmRunnerFastImplSharedData {
     WasmRunnerConfig configuration;
 };
 
-class WasmRunnerFastImpl : public WasmRunnerInterface
+class WasmRunnerJITImpl : public WasmRunnerInterface
 {
 public:
-    WasmRunnerFastImpl(WasmRuntimeHost host);
+    WasmRunnerJITImpl(WasmRuntimeHost host);
     virtual void init(const WasmRunnerConfig& config) override;
     virtual void destroy() override;
     virtual int exec(const std::string& path, int argc, char** argv, int infd, int outfd, int errfd, const bool debug, const std::string& readableDir) override;
     virtual void stop() override;
 
 private:
-    WasmRunnerFastImplSharedData shared;
+    WasmRunnerJITImplSharedData shared;
 };
 
 
-WasmRunnerFastImpl::WasmRunnerFastImpl(WasmRuntimeHost host) :
+WasmRunnerJITImpl::WasmRunnerJITImpl(WasmRuntimeHost host) :
     WasmRunnerInterface(host)
 {
 }
 
-void WasmRunnerFastImpl::init(const WasmRunnerConfig& config)
+void WasmRunnerJITImpl::init(const WasmRunnerConfig& config)
 {
     std::cout << "Configuring:" << std::endl;
     std::cout << "Stack size: " << config.stackSize << std::endl;
     std::cout << "Heap size:" << config.heapSize << std::endl;
     std::cout << "Thread count:" << config.threadCount << std::endl;
-    std::cout << "Flags:" << config.flags;
 
     shared.configuration = config;
 
@@ -91,13 +90,9 @@ void WasmRunnerFastImpl::init(const WasmRunnerConfig& config)
 
     init_args.mem_alloc_type = Alloc_With_System_Allocator;
     init_args.max_thread_num = config.threadCount;
-    if (config.flags & WasmRunnerConfigFlags::JIT) {
-        init_args.llvm_jit_opt_level = 3;
-        init_args.llvm_jit_size_level = 3;
-        init_args.running_mode = Mode_LLVM_JIT;
-    } else {
-        init_args.running_mode = Mode_Interp;
-    }
+    init_args.llvm_jit_opt_level = 3;
+    init_args.llvm_jit_size_level = 3;
+    init_args.running_mode = Mode_LLVM_JIT;
 
     wasm_runtime_full_init(&init_args);
 
@@ -148,7 +143,7 @@ void* mmap_wamr_file(const char* filename, unsigned int* size, int* fd)
     return ret;
 }
 
-int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int stdinfd, int stdoutfd, int stderrfd, const bool debug, const std::string& readableDir)
+int WasmRunnerJITImpl::exec(const std::string& path, int argc, char** argv, int stdinfd, int stdoutfd, int stderrfd, const bool debug, const std::string& readableDir)
 {
     char error_buf[128];
     int main_result;
@@ -279,7 +274,7 @@ aotFail:
         goto fail;
     }
 
-    std::cout << "WasmRunnerFastImpl: host " << host << std::endl;
+    std::cout << "WasmRunnerJITImpl: host " << host << std::endl;
 
     wasm_runtime_set_wasi_args_ex(shared.module,
                                   nullptr, 0,
@@ -364,12 +359,12 @@ fail:
     return exitCode;
 }
 
-void WasmRunnerFastImpl::destroy()
+void WasmRunnerJITImpl::destroy()
 {
     wasm_runtime_destroy();
 }
 
-void WasmRunnerFastImpl::stop()
+void WasmRunnerJITImpl::stop()
 {
     shared.killing = true;
     if (shared.module_inst) {
@@ -388,7 +383,7 @@ WasmRuntime init_wamr_runtime(WasmRuntimeHost host, const WasmRuntimeConfig conf
     if (!runner)
         return 0;
 
-    runner->interface = new WasmRunnerFastImpl(host);
+    runner->interface = new WasmRunnerJITImpl(host);
     runner->interface->init(*static_cast<WasmRunnerConfig*>(config));
     return (WasmRuntime)runner;
 }

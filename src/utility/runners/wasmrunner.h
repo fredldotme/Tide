@@ -60,7 +60,7 @@ public:
     WasmRunnerSharedData sharedData;
 
 public slots:
-    void configure(unsigned int stack, unsigned int heap, unsigned int threads, bool aot);
+    void configure(unsigned int stack, unsigned int heap, unsigned int threads, bool opt);
     void run(const QString binary, const QStringList args);
     void debug(const QString binary, const QStringList args);
     void waitForFinished();

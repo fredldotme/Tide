@@ -1,3 +1,10 @@
 add_subdirectory(formatter)
 add_subdirectory(wasmrunner)
 add_subdirectory(wasmrunnerfast)
+
+if(APPLE AND NOT IOS)
+    add_subdirectory(wasmrunnerjit)
+endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_subdirectory(wasmrunnerjit)
+endif()
