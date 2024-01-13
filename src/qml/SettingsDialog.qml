@@ -425,12 +425,12 @@ TideDialog {
                             }
                         }
                         Switch {
-                            id: aotSwitch
-                            text: qsTr("AOT optimizations")
+                            id: optSwitch
+                            text: qsTr("AOT/JIT optimizations")
                             visible: Qt.platform.os !== "ios"
-                            checked: settings.aotOptimizations
+                            checked: settings.optimizations
                             onCheckedChanged: {
-                                settings.aotOptimizations = checked
+                                settings.optimizations = checked
                             }
                         }
                     }
@@ -467,7 +467,7 @@ TideDialog {
                                 text: qsTr("Open Plugins folder")
                                 color: root.palette.button
                                 onClicked: {
-                                    Qt.openUrlExternally("shareddocuments://" + pluginManager.pluginsPath())
+                                    Qt.openUrlExternally(root.dirOpenProtocol + pluginManager.pluginsPath())
                                 }
                             }
                         }

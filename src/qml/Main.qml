@@ -47,6 +47,9 @@ ApplicationWindow {
     readonly property int toolBarHeight : 40
     readonly property int menuItemIconSize : 20
     readonly property real defaultRectangleShadow: 0.2
+    readonly property string dirOpenProtocol : Qt.platform.os === "ios" ?
+                                                   "shareddocuments://" :
+                                                   "file://"
 
     readonly property color borderColor : Qt.tint(root.palette.window, "#10FF0000")
     property color headerItemColor : dialogShadow.opacity > 0.0 ?
@@ -131,7 +134,7 @@ ApplicationWindow {
         projectBuilder.clean()
 
         // No AOT for releases
-        const aot = !releaseRequested && settings.aotOptimizations
+        const aot = !releaseRequested && settings.optimizations
         projectBuilder.build(debugRequested, aot)
     }
 
@@ -157,7 +160,7 @@ ApplicationWindow {
         wasmRunner.configure((settings.stackSize * 1024) * 1024,
                              (settings.heapSize * 1024) * 1024,
                              settings.threads,
-                             platformProperties.supportsAot && settings.aotOptimizations);
+                             platformProperties.supportsOptimizations && settings.optimizations);
         wasmRunner.run(projectBuilder.runnableFile(), [])
     }
 
@@ -184,7 +187,7 @@ ApplicationWindow {
         wasmRunner.configure((settings.stackSize * 1024) * 1024,
                              (settings.heapSize * 1024) * 1024,
                              settings.threads,
-                             platformProperties.supportsAot);
+                             platformProperties.supportsOptimizations);
         dbugger.debug(projectBuilder.runnableFile(), [])
     }
 
@@ -1515,7 +1518,7 @@ ApplicationWindow {
                     Column {
                         width: parent.width
                         height: parent.height
-                        spacing: parent.spaceBetweenSections
+                        spacing: projectsArea.spaceBetweenSections
 
                         Item {
                             id: projectNavigationContainer
@@ -1694,7 +1697,7 @@ ApplicationWindow {
                                                             text: qsTr("Open in Files app")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/folder@2x.png")
                                                             onClicked: {
-                                                                Qt.openUrlExternally("shareddocuments://" + projectsContextMenu.selectedProject.path)
+                                                                Qt.openUrlExternally(dirOpenProtocol + projectsContextMenu.selectedProject.path)
                                                             }
                                                         }
 
@@ -1972,7 +1975,7 @@ ApplicationWindow {
                                                             text: qsTr("Open in Files app")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/folder@2x.png")
                                                             onClicked: {
-                                                                Qt.openUrlExternally("shareddocuments://" + modelData.path)
+                                                                Qt.openUrlExternally(dirOpenProtocol + modelData.path)
                                                             }
                                                         }
 
@@ -2964,7 +2967,7 @@ ApplicationWindow {
             property int stackSize : 536870912
             property int heapSize : 536870912
             property int threads : 16
-            property bool aotOptimizations : false
+            property bool optimizations : platformProperties.supportsOptimizations
         }
 
         Component {
