@@ -176,6 +176,7 @@ Item {
         loading = true
         const bookmarkPath = projectPicker.openBookmark(editor.file.bookmark)
 
+        codeField.visible = false
         if (root.fileIsImageFile(file.path)) {
             preview.source = "file://" + file.path
             text = ""
@@ -186,6 +187,7 @@ Item {
             else
                 text = ""
         }
+        codeField.visible = true
 
         loading = false
         projectPicker.closeFile(bookmarkPath)
