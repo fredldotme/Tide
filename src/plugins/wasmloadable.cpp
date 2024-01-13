@@ -106,7 +106,9 @@ WasmLoadableInterface WasmLoadable::interface(const WasmLoaderFeature feature)
     std::vector<wasm_val_t> args = {
         {
             .kind = WASM_I32,
-            .of.i32 = feature
+            .of {
+                .i32 = feature
+            }
         }
     };
     const auto ret = call_wasm_function("tide_plugin_get_interface", args);

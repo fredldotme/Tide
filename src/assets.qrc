@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
+        <file>qtquickcontrols2.conf</file>
         <file>assets/play.fill@2x.png</file>
         <file>assets/play@2x.png</file>
         <file>assets/square.and.arrow.down.on.square.fill@2x.png</file>

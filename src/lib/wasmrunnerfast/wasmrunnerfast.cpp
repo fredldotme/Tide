@@ -218,7 +218,7 @@ int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int
             goto aotFail;
         }
 
-        if (aot_compile_wasm(comp_ctx)) {
+        if (aot_compile_wasm(comp_ctx)) {
             aot_emit_llvm_file(comp_ctx, aotpath.c_str());
             aotSuccess = true;
         }

@@ -122,10 +122,14 @@ void AutoCompleter::run()
                     std::vector<wasm_val_t> setupArgs = {
                         {
                             .kind = WASM_I32,
-                            .of.i32 = interface
+                            .of {
+                                .i32 = interface
+                            }
                         },{
                             .kind = WASM_I32,
-                            .of.i32 = (int32_t)buffer_for_wasm
+                            .of {
+                                .i32 = (int32_t)buffer_for_wasm
+                            }
                         }
                     };
                     const auto setup = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_setup", setupArgs);
@@ -143,11 +147,15 @@ void AutoCompleter::run()
                     std::vector<wasm_val_t> args = {
                         {
                             .kind = WASM_I32,
-                            .of.i32 = interface
+                            .of {
+                                .i32 = interface
+                            }
                         },
                         {
                             .kind = WASM_I32,
-                            .of.i32 = (int32_t)buffer_for_wasm
+                            .of {
+                                .i32 = (int32_t)buffer_for_wasm
+                            }
                         }
                     };
                     auto finder = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_find", args);
@@ -160,7 +168,9 @@ void AutoCompleter::run()
                         std::vector<wasm_val_t> typeArgs = {
                             {
                                 .kind = WASM_I32,
-                                .of.i32 = finder.of.i32
+                                .of {
+                                    .i32 = finder.of.i32
+                                }
                             }
                         };
                         const auto typeRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_type", typeArgs);
@@ -169,7 +179,9 @@ void AutoCompleter::run()
                         std::vector<wasm_val_t> idArgs = {
                             {
                                 .kind = WASM_I32,
-                                .of.i32 = finder.of.i32
+                                .of {
+                                    .i32 = finder.of.i32
+                                }
                             }
                         };
                         const auto idRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_identifier", idArgs);
@@ -178,7 +190,9 @@ void AutoCompleter::run()
                         std::vector<wasm_val_t> detailArgs = {
                             {
                                 .kind = WASM_I32,
-                                .of.i32 = finder.of.i32
+                                .of {
+                                    .i32 = finder.of.i32
+                                }
                             }
                         };
                         const auto detailRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_detail", detailArgs);
@@ -187,7 +201,9 @@ void AutoCompleter::run()
                         std::vector<wasm_val_t> kindArgs = {
                             {
                                 .kind = WASM_I32,
-                                .of.i32 = finder.of.i32
+                                .of {
+                                    .i32 = finder.of.i32
+                                }
                             }
                         };
                         const auto kindRet = plugin->loadable()->call_wasm_function("tide_plugin_autocompletorresult_kind", kindArgs);
@@ -198,7 +214,9 @@ void AutoCompleter::run()
                         std::vector<wasm_val_t> nextArgs = {
                             {
                                 .kind = WASM_I32,
-                                .of.i32 = interface
+                                .of {
+                                    .i32 = interface
+                                }
                             }
                         };
                         const auto next = plugin->loadable()->call_wasm_function("tide_plugin_autocompletor_next", nextArgs);
