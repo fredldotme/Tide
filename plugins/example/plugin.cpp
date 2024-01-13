@@ -108,7 +108,7 @@ TideAutoCompleterResult tide_plugin_autocompletor_next(TideAutoCompleter complet
         return nullptr;
 
     const auto comp = static_cast<TidePluginAutoCompleter*>(completer);
-    return comp->next();
+    return static_cast<TideAutoCompleterResult>(comp->next());
 }
 
 const AutoCompletorKind tide_plugin_autocompletorresult_kind(TideAutoCompleterResult result)
