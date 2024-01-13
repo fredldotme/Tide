@@ -124,6 +124,10 @@ ApplicationWindow {
 
         hud.hudLabel.flashMessage(qsTr("Building project..."))
         root.compiling = true
+        
+        if (settings.clearConsole)
+            clearConsoleOutput()
+
         projectBuilder.clean()
 
         // No AOT for releases
@@ -267,7 +271,7 @@ ApplicationWindow {
             showDebugArea = true;
         } else if (width < height) {
             showDebugArea = false;
-        } else {
+        } else {
             showDebugArea = shouldAllowDebugArea;
         }
     }
@@ -858,7 +862,7 @@ ApplicationWindow {
                             Qt.resolvedUrl("qrc:/assets/play.fill@2x.png") :
                             Qt.resolvedUrl("qrc:/assets/stop.fill@2x.png")
                 color: root.headerItemColor
-                visible: projectBuilder.projectFile !== "" || (!editor.invalidated && editor.file.name.endsWith(".py")) || pyRunner.running
+                visible: projectBuilder.projectFile !== "" || (!editor.invalidated && editor.file.name.endsWith(".py")) || pyRunner.running
                 height: headerItemHeight
 
                 onClicked: {
@@ -1117,7 +1121,7 @@ ApplicationWindow {
             onRunningChanged: {
                 if (running) {
                     hud.hudLabel.flashMessage(qsTr("Started"))
-                } else {
+                } else {
                     hud.hudLabel.flashMessage(qsTr("Stopped"))
                 }
 
@@ -1158,7 +1162,7 @@ ApplicationWindow {
             onRunningChanged: {
                 if (running) {
                     hud.hudLabel.flashMessage(qsTr("Started"))
-                } else {
+                } else {
                     hud.hudLabel.flashMessage(qsTr("Stopped"))
                 }
 
@@ -2198,7 +2202,7 @@ ApplicationWindow {
                                         }
                                     }
 
-                                    Component {
+                                    Component {
                                         id: switchProjectDialogComponent
                                         TideDialog {
                                             title: qsTr("You're about to switch projects");
@@ -2565,7 +2569,7 @@ ApplicationWindow {
                             visible: opacity > 0.0
                             opacity: visibility ? 1.0 : 0.0
                             Behavior on opacity {
-                                NumberAnimation {
+                                NumberAnimation {
                                     duration: 100
                                 }
                             }
@@ -2691,7 +2695,7 @@ ApplicationWindow {
                             visible: opacity > 0.0
                             opacity: visibility ? 1.0 : 0.0
                             Behavior on opacity {
-                                NumberAnimation {
+                                NumberAnimation {
                                     duration: 100
                                 }
                             }
@@ -2789,7 +2793,7 @@ ApplicationWindow {
                             visible: opacity > 0.0
                             opacity: visibility ? 1.0 : 0.0
                             Behavior on opacity {
-                                NumberAnimation {
+                                NumberAnimation {
                                     duration: 100
                                 }
                             }
@@ -3414,7 +3418,7 @@ ApplicationWindow {
                 }
             }
 
-            MultiEffect {
+            MultiEffect {
                 source: rubberDuck
                 anchors.fill: rubberDuck
                 saturation: parent.saturation

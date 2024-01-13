@@ -76,7 +76,7 @@ TideDialog {
                 interactive: false
 
                 Behavior on width {
-                    NumberAnimation {
+                    NumberAnimation {
                         duration: 300
                         easing.type: Easing.OutExpo
                     }
@@ -450,7 +450,7 @@ TideDialog {
                             text: qsTr("No plugins found")
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
-                        RowLayout {
+                        RowLayout {
                             width: implicitWidth
                             anchors.horizontalCenter: parent.horizontalCenter
                             spacing: paddingSmall
