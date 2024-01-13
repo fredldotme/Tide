@@ -7,6 +7,7 @@
 #include <QProcess>
 
 #include <thread>
+#include <iostream>
 #include <spawn.h>
 
 extern "C" {
@@ -15,21 +16,26 @@ extern "C" {
 
 #import <AppKit/AppKit.h>
 
+extern char **environ;
+
 MacSystemGlue::MacSystemGlue(QObject* parent) :
     QObject(parent), m_requestBuildStop{false}
 {
+    const auto currPath = qgetenv("PATH");
+    const auto prefix = qApp->applicationDirPath() + QString(":");
+    qputenv("PATH", prefix.toUtf8() + currPath);
 }
 
 MacSystemGlue::~MacSystemGlue()
 {
-    if (m_spec.stdout) {
-        fwrite("\n", sizeof(char), 1, m_spec.stdout);
-        fflush(m_spec.stdout);
+    if (m_spec.std_out) {
+        fwrite("\n", sizeof(char), 1, m_spec.std_out);
+        fflush(m_spec.std_out);
     }
 
-    if (m_spec.stderr) {
-        fwrite("\n", sizeof(char), 1, m_spec.stderr);
-        fflush(m_spec.stderr);
+    if (m_spec.std_err) {
+        fwrite("\n", sizeof(char), 1, m_spec.std_err);
+        fflush(m_spec.std_err);
     }
 }
 
@@ -70,13 +76,13 @@ std::pair<StdioSpec, StdioSpec> MacSystemGlue::setupPipes()
     setvbuf(outWriteEnd , nullptr , _IOLBF , 1024);
     setvbuf(errWriteEnd , nullptr , _IOLBF , 1024);
 
-    spec.stdin = inReadEnd;
-    spec.stdout = outWriteEnd;
-    spec.stderr = errWriteEnd;
+    spec.std_in = inReadEnd;
+    spec.std_out = outWriteEnd;
+    spec.std_err = errWriteEnd;
 
-    consumerSpec.stdin = inWriteEnd;
-    consumerSpec.stdout = outReadEnd;
-    consumerSpec.stderr = errReadEnd;
+    consumerSpec.std_in = inWriteEnd;
+    consumerSpec.std_out = outReadEnd;
+    consumerSpec.std_err = errReadEnd;
 
     return std::make_pair(spec, consumerSpec);
 }
@@ -142,61 +148,62 @@ bool MacSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spe
 int MacSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
 {
     StdioSpec copy;
-    int status;
-    pid_t childpid, statuspid;
+    int status = 0;
+    pid_t childpid = 0;
     int ret = -1;
 
-    if (spec.stdin || spec.stdout || spec.stderr) {
-        copy.stdin = fdopen(dup(fileno(spec.stdin)), "r");
-        copy.stdout = fdopen(dup(fileno(spec.stdout)), "w");
-        copy.stderr = fdopen(dup(fileno(spec.stderr)), "w");
+    if (spec.std_in || spec.std_out || spec.std_err) {
+        copy.std_in = fdopen(dup(fileno(spec.std_in)), "r");
+        copy.std_out = fdopen(dup(fileno(spec.std_out)), "w");
+        copy.std_err = fdopen(dup(fileno(spec.std_err)), "w");
     } else {
-        copy.stdin = fdopen(dup(fileno(m_spec.stdin)), "r");
-        copy.stdout = fdopen(dup(fileno(m_spec.stdout)), "w");
-        copy.stderr = fdopen(dup(fileno(m_spec.stderr)), "w");
+        copy.std_in = fdopen(dup(fileno(m_spec.std_in)), "r");
+        copy.std_out = fdopen(dup(fileno(m_spec.std_out)), "w");
+        copy.std_err = fdopen(dup(fileno(m_spec.std_err)), "w");
     }
 
     const auto stdcmd = cmd.toStdString();
-    const auto cmdcrumbs = cmd.split(' ', Qt::KeepEmptyParts);
-
     std::vector<std::string> args = split_command(stdcmd);
     std::vector<const char*> cargs;
-    std::vector<char*> cenv;
 
     for (const auto& arg : args) {
         cargs.push_back(arg.c_str());
     }
+    cargs.push_back(nullptr);
 
-    if (cmdcrumbs.length() == 0)
-        return ret;
+    if (cargs.size() == 1)
+        goto done;
 
     posix_spawn_file_actions_t action;
     posix_spawn_file_actions_init(&action);
-    posix_spawn_file_actions_adddup2(&action, fileno(copy.stdin), 0);
-    posix_spawn_file_actions_adddup2(&action, fileno(copy.stdout), 1);
-    posix_spawn_file_actions_adddup2(&action, fileno(copy.stderr), 2);
+    posix_spawn_file_actions_addclose(&action, 0);
+    posix_spawn_file_actions_addclose(&action, 1);
+    posix_spawn_file_actions_addclose(&action, 2);
+    posix_spawn_file_actions_adddup2(&action, fileno(copy.std_in), 0);
+    posix_spawn_file_actions_adddup2(&action, fileno(copy.std_out), 1);
+    posix_spawn_file_actions_adddup2(&action, fileno(copy.std_err), 2);
 
-    const auto binpath = qApp->applicationDirPath() + "/" + cmdcrumbs[0];
-    qDebug() << "Run command:" << binpath;
+    qDebug() << "Run command:" << cmd;
 
-    extern char **environ;
-    status = posix_spawn(&childpid, binpath.toLocal8Bit().data(), &action, NULL, (char**)cargs.data(), environ);
-    if (status == 0) {
-        waitpid(childpid, &status, 0);
-    }
-    posix_spawn_file_actions_destroy(&action);
-    ret = WEXITSTATUS(status);
-    if (ret != 0) {
+    status = posix_spawn(&childpid, cargs[0], &action, NULL, (char * const*)cargs.data(), environ);
+    if (status != 0) {
+        qDebug() << "spawn status:" << status;
         goto done;
     }
 
+    if (childpid >= 0) {
+        waitpid(childpid, &status, 0);
+    }
+    ret = WEXITSTATUS(status);
+
 done:
-    if (copy.stdin)
-        fclose(copy.stdin);
-    if (copy.stdout)
-        fclose(copy.stdout);
-    if (copy.stderr)
-        fclose(copy.stderr);
+    posix_spawn_file_actions_destroy(&action);
+    if (copy.std_in)
+        fclose(copy.std_in);
+    if (copy.std_out)
+        fclose(copy.std_out);
+    if (copy.std_err)
+        fclose(copy.std_err);
 
     return ret;
 }
@@ -208,8 +215,8 @@ void MacSystemGlue::killBuildCommands()
 
 void MacSystemGlue::writeToStdIn(const QByteArray data)
 {
-    fwrite(data.constData(), sizeof(const char*), data.length(), m_consumerSpec.stdin);
-    fflush(m_consumerSpec.stdin);
+    fwrite(data.constData(), sizeof(const char*), data.length(), m_consumerSpec.std_in);
+    fflush(m_consumerSpec.std_in);
 }
 
 void MacSystemGlue::copyToClipboard(const QString text)
