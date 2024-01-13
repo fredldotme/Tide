@@ -31,7 +31,7 @@
 
 #if __APPLE__
 #include <TargetConditionals.h>
-extern "C" { extern int wamr_compiler_main(int argc, char* argv[]); }
+extern "C" { int wamr_compiler_main(int argc, char *argv[]); }
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 #define SUPPORTS_AOT 0
 #else
@@ -41,6 +41,9 @@ extern "C" { extern int wamr_compiler_main(int argc, char* argv[]); }
 #define SUPPORTS_AOT 0
 #endif
 
+#if SUPPORTS_AOT
+#include "aot_export.h"
+#endif
 
 struct WasmRunnerFastImplSharedData {
     WasmRunnerHost* host;
@@ -171,32 +174,70 @@ int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int
 
 #if SUPPORTS_AOT
     if (shared.configuration.flags & WasmRunnerConfigFlags::AOT) {
+        bool aotSuccess = false;
         const auto aotpath = path + ".aot";
-        std::vector<const char*> cmd;
-        cmd.push_back("wamrc");
-        cmd.push_back("--size-level=3");
-        cmd.push_back("--opt-level=3");
-        cmd.push_back("--format=aot");
-        cmd.push_back("-o");
-        cmd.push_back(aotpath.c_str());
-        cmd.push_back(path.c_str());
-
-        int cmdargc = cmd.size();
-        char** cmdargv = (char**)cmd.data();
         hostInterface->report("Optimizing via AOT...");
-        const auto compileRet = wamr_compiler_main(cmdargc, cmdargv);
 
-        if (compileRet != 0) {
-            std::string err; err = "AOT compilation failed with return code: " + std::to_string(compileRet);
+        AOTCompOption option = { 0 };
+        option.opt_level = 3;
+        option.size_level = 3;
+        option.output_format = AOT_FORMAT_FILE;
+        /* default value, enable or disable depends on the platform */
+        option.bounds_checks = 2;
+        /* default value, enable or disable depends on the platform */
+        option.stack_bounds_checks = 2;
+        option.enable_simd = true;
+        option.enable_aux_stack_check = true;
+        option.enable_bulk_memory = true;
+        option.enable_ref_types = true;
+        option.is_indirect_mode = true;
+        option.disable_llvm_intrinsics = true;
+
+        wasm_module_t wasm_module = NULL;
+        aot_comp_data_t comp_data = NULL;
+        aot_comp_context_t comp_ctx = NULL;
+        uint8 *wasm_file = NULL;
+        uint32 wasm_file_size;
+
+        wasm_file = (uint8 *)bh_read_file_to_buffer(exepath.c_str(), &wasm_file_size);
+
+        /* load WASM module */
+        if (!(wasm_module = wasm_runtime_load(wasm_file, wasm_file_size, error_buf,
+                                              sizeof(error_buf)))) {
+            printf("%s\n", error_buf);
+            goto aotFail;
+        }
+
+        if (!(comp_data = aot_create_comp_data(wasm_module))) {
+            printf("%s\n", aot_get_last_error());
+            goto aotFail;
+        }
+
+        if (!(comp_ctx = aot_create_comp_context(comp_data, &option))) {
+            printf("%s\n", aot_get_last_error());
+            goto aotFail;
+        }
+
+        if (aot_compile_wasm(comp_ctx)) {
+            aot_emit_llvm_file(comp_ctx, aotpath.c_str());
+            aotSuccess = true;
+        }
+
+aotFail:
+        BH_FREE(wasm_file);
+        if (!aotSuccess) {
+            std::string err; err = "AOT compilation failed";
             hostInterface->reportError(err);
             goto fail;
         } else {
             sync();
             std::cout << "AOT compilation successful" << std::endl;
             exepath = aotpath;
+            useMmap = true;
         }
     }
 #endif
+
     unsigned int siz;
     uint8_t* buf;
     int fd;
