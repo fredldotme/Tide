@@ -153,7 +153,7 @@ ApplicationWindow {
         wasmRunner.configure((settings.stackSize * 1024) * 1024,
                              (settings.heapSize * 1024) * 1024,
                              settings.threads,
-                             platformProperties.supportsAot);
+                             platformProperties.supportsAot && settings.aotOptimizations);
         wasmRunner.run(projectBuilder.runnableFile(), [])
     }
 
