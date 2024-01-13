@@ -551,21 +551,6 @@ ensure_dir_exists "$IBUS_CONFIG_PATH"
 [ -d "$IBUS_CONFIG_PATH/bus" ] && rm -rf "$IBUS_CONFIG_PATH/bus"
 ln -sfn "$REALHOME/.config/ibus/bus" "$IBUS_CONFIG_PATH"
 
-# ibus and fcitx integration
-GTK_IM_MODULE_DIR="$XDG_CACHE_HOME/immodules"
-export GTK_IM_MODULE_FILE="$GTK_IM_MODULE_DIR/immodules.cache"
-# shellcheck disable=SC2154
-if [ "$needs_update" = true ]; then
-  rm -rf "$GTK_IM_MODULE_DIR"
-  ensure_dir_exists "$GTK_IM_MODULE_DIR"
-  ln -s "$SNAP"/usr/lib/"$ARCH"/gtk-3.0/3.0.0/immodules/*.so "$GTK_IM_MODULE_DIR"
-  async_exec "$SNAP/usr/lib/$ARCH/libgtk-3-0/gtk-query-immodules-3.0" > "$GTK_IM_MODULE_FILE"
-fi
-
-# Add paths for games
-append_dir PATH "$SNAP/usr/games"
-append_dir PATH "$SNAP/usr/games"
-
 # Removes Qt warning: Could not find a location
 # of the system Compose files
 export QTCOMPOSE="$SNAP/usr/share/X11/locale"
