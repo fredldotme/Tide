@@ -176,7 +176,7 @@ void PyRunner::start(const QString binary, const QStringList args, const bool de
 #elif defined(Q_OS_MACOS)
     const auto libsRoot = qApp->applicationDirPath() + "/..";
 #elif defined(Q_OS_LINUX)
-    const auto libsRoot = qApp->applicationDirPath() + "/../lib";
+    const auto libsRoot = qApp->applicationDirPath() + "/../../lib";
 #endif
 
 #ifndef Q_OS_LINUX
