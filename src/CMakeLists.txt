@@ -664,6 +664,7 @@ if(APPLE AND NOT IOS)
         ${PROJECT_NAME}-Formatter
         ${PROJECT_NAME}-Wasmrunner
         ${PROJECT_NAME}-Wasmrunnerfast
+        ${PROJECT_NAME}-Wasmrunnerjit
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES XCODE_EMBED_FRAMEWORKS_REMOVE_HEADERS_ON_COPY OFF)
