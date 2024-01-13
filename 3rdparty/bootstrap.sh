@@ -3,12 +3,15 @@
 set -e
 
 BUILD_LINUX=0
+BUILD_SNAP=0
+
 if [ "$1" = "--linux" ]; then
     BUILD_LINUX=1
     BUILD_SNAP=0
 fi
 
 if [ "$1" = "--linux-snap" ]; then
+    echo "Building for Snap environment"
     BUILD_LINUX=1
     BUILD_SNAP=1
 fi
@@ -147,7 +150,16 @@ if [ "$BUILD_LINUX" = "0" ]; then
     cd $OLD_PWD
 fi
 
-exit 0
+# Dummy files for Linux
+if [ "$BUILD_LINUX" = "1" ]; then
+    cd tmp
+    if [ ! -d cmake-dummy ]; then
+        mkdir cmake-dummy
+    fi
+    touch cmake-dummy/.dummy
+    tar cvf cmake.tar -C cmake-dummy .
+    cd $OLD_PWD
+fi
 
 # wasi-libc
 cd wasi-libc
@@ -311,7 +323,7 @@ cd $OLD_PWD
 
 if [ "$BUILD_SNAP" = "1" ]; then
     mkdir -p $CRAFT_PART_INSTALL/resources
-    cp -a tmp/{boost.tar,the-sysroot.tar,python.tar} $CRAFT_PART_INSTALL/resources
+    cp -a tmp/{boost.tar,the-sysroot.tar,python.tar,cmake.tar} $CRAFT_PART_INSTALL/resources
 fi
 
 # Done!
