@@ -137,6 +137,7 @@ ColumnLayout {
               "\n" +
               qsTr("Mutable variables:") + "\n" +
               qsTr("• 'TARGET' (required): Name of the project's binary") + "\n" +
+              qsTr("• 'TEMPLATE': Type of project ('app' or 'lib')") + "\n" +
               qsTr("• 'CONFIG': List of features to enable (see below)") + "\n" +
               qsTr("• 'SOURCES': Source files (.c, .cpp) to compile") + "\n" +
               qsTr("• 'INCLUDEPATH': Directories to add to header search path") + "\n" +
@@ -148,6 +149,27 @@ ColumnLayout {
               "\n" +
               qsTr("Possible values for CONFIG list:") + "\n" +
               qsTr("• 'threads': Enables threading support") + "\n"
+        font.pixelSize: 18
+        wrapMode: Label.WrapAtWordBoundaryOrAnywhere
+        Layout.preferredWidth: parent.width
+        Layout.alignment: Qt.AlignLeft
+    }
+
+    Label {
+        text: qsTr("Plugins for Tide")
+        font.pixelSize: 20
+        font.bold: true
+        wrapMode: Label.WrapAtWordBoundaryOrAnywhere
+        Layout.preferredWidth: parent.width
+        Layout.alignment: Qt.AlignLeft
+    }
+
+    Label {
+        text: qsTr("Plugins are able to extend the functionality of Tide.") + "\n" +
+              "\n" +
+              qsTr("To make use of plugins you will have to:") + "\n" +
+              qsTr("• Ensure it is a WebAssembly based library file with its name ending in '.a'") + "\n" +
+              qsTr("• Place it in Tide's 'Plugins' directory using the system's Files app") + "\n"
         font.pixelSize: 18
         wrapMode: Label.WrapAtWordBoundaryOrAnywhere
         Layout.preferredWidth: parent.width

@@ -2,6 +2,7 @@
 #define TIDEPLUGIN_H
 
 #include <QObject>
+#include <QSharedPointer>
 
 #include "wasmloadable.h"
 
@@ -30,11 +31,11 @@ public:
     const WasmLoadable::WasmLoaderFeature features();
     bool isValid() const;
 
-    std::shared_ptr<WasmLoadable>& loadable();
+    QSharedPointer<WasmLoadable> loadable();
 
 private:
     QString m_path;
-    std::shared_ptr<WasmLoadable> m_loadable;
+    QSharedPointer<WasmLoadable> m_loadable;
     TidePluginCache m_cache;
 };
 Q_DECLARE_METATYPE(TidePlugin)

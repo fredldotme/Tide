@@ -1,5 +1,6 @@
 #include "wasmloadable.h"
 
+#include <QDebug>
 #include <QFile>
 
 #include <iostream>
@@ -36,15 +37,6 @@ WasmLoadable::WasmLoadable(const QString& path) :
     exec_env = wasm_runtime_create_exec_env(module_inst, stack_size);
     
     std::cout << "Exec env ready: " << exec_env << std::endl;
-}
-
-WasmLoadable::WasmLoadable(const WasmLoadable& o)
-{
-    m_path = o.m_path;
-    m_buffer = o.m_buffer;
-    module = o.module;
-    module_inst = o.module_inst;
-    exec_env = o.exec_env;
 }
 
 WasmLoadable::~WasmLoadable()

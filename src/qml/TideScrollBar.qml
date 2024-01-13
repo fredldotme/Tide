@@ -9,10 +9,10 @@ ScrollBar {
     leftPadding: orientation === Qt.Vertical ? 0 : roundedCornersRadiusMedium
     rightPadding: orientation === Qt.Vertical ? 0 : roundedCornersRadiusMedium
 
-    anchors.top: orientation === Qt.Vertical ? parent.top : null
+    anchors.top: orientation === Qt.Vertical ? parent.top : top
     anchors.right: parent.right
     anchors.bottom: parent.bottom
-    anchors.left: orientation === Qt.Vertical ? null : parent.left
+    anchors.left: orientation === Qt.Vertical ? left : parent.left
 
     policy: ScrollBar.AsNeeded
     size: (parent.height / parent.implicitHeight)

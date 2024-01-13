@@ -97,7 +97,7 @@ void SysrootManager::runInThread()
     m_installing = true;
     emit installingChanged();
 
-    const int stages = 7;
+    const int stages = 9;
     int stage = 0;
 
     // Clear old temporaries
@@ -123,14 +123,12 @@ void SysrootManager::runInThread()
         setProgress((qreal)stage++ / (qreal)stages);
     }
 
-#if 0
     // CMake
     {
         const auto archive = resourcesRoot + "/cmake.tar";
         unpackTar(archive, temporaries + QStringLiteral("/CMake"));
         setProgress((qreal)stage++ / (qreal)stages);
     }
-#endif
 
     // Python
     {
@@ -212,7 +210,6 @@ void SysrootManager::runInThread()
         setProgress((qreal)stage++ / (qreal)stages);
     }
 
-#if 0
     // CMake parts
     {
         const QString source = temporaries + "/CMake";
@@ -243,7 +240,6 @@ void SysrootManager::runInThread()
         }
         setProgress((qreal)stage++ / (qreal)stages);
     }
-#endif
 
     // Python parts
     {

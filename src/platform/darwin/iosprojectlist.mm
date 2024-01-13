@@ -62,6 +62,23 @@ QVariantList IosProjectList::projects()
         ret << bm;
     }
 
+    for (int i = 0; i < ret.length(); i++) {
+        int swaps = 0;
+        for (auto rit = ret.begin(); rit != (ret.end() - 1); rit++) {
+            auto left = (rit);
+            auto right = (rit + 1);
+
+            const auto leftName = left->toMap().value("name").toString();
+            const auto rightName = right->toMap().value("name").toString();
+            if (QString::compare(leftName, rightName, Qt::CaseInsensitive) > 0) {
+                std::iter_swap(left, right);
+                ++swaps;
+            }
+        }
+        if (swaps == 0)
+            break;
+    }
+
     return ret;
 }
 

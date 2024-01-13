@@ -23,8 +23,8 @@ public:
     };
 
     WasmLoadable(const QString& path = QString());
-    WasmLoadable(const WasmLoadable& o);
     ~WasmLoadable();
+    Q_DISABLE_COPY(WasmLoadable)
 
 public:
     bool isValid();

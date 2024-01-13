@@ -288,8 +288,9 @@ Item {
         }
     }
 
+
     property var autoCompleter : AutoCompleter {
-        pluginManager: root.pluginManager
+        pluginsManager: pluginManager
         onDeclsChanged: {
             console.log("Autocompleter decls changed");
         }
@@ -317,6 +318,8 @@ Item {
         id: mainEditorContainer
         anchors.fill: parent
         radius: root.roundedCornersRadiusMedium
+        border.color: root.borderColor
+        border.width: 1
         color: root.palette.base
         clip: true
 
@@ -468,7 +471,7 @@ Item {
                     id: currentLineIndicator
                     width: Math.max(codeView.implicitWidth, codeField.width)
                     color: codeField.selectionColor
-                    visible: !codeField.readOnly
+                    visible: codeField.focus && !codeField.readOnly
                     height: lineNumbersHelper.lineCount[codeField.currentLine - 1] !== undefined ?
                                 lineNumbersHelper.lineCount[codeField.currentLine - 1].height : 0
                     x: codeView.x
@@ -614,7 +617,6 @@ Item {
                                 color: codeField.selectionColor
                                 width: 3
                                 height: codeField.font.pixelSize
-                                visible: true
                                 Timer {
                                     id: cursorBlinkTimer
                                     repeat: true
@@ -1109,14 +1111,14 @@ Item {
         }
     }
 
-    MultiEffect {
+    /*MultiEffect {
         source: mainEditorContainer
         anchors.fill: mainEditorContainer
         paddingRect: Qt.rect(0, 0, mainEditorContainer.width, mainEditorContainer.height)
         shadowEnabled: true
         shadowBlur: 1.0
         shadowOpacity: defaultRectangleShadow
-    }
+    }*/
 
     Rectangle {
         id: codeFieldCurtain

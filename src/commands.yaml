@@ -5,12 +5,36 @@ commands:
     - command: clang++
       framework: clang
       entrypoint: clang_hook
+    - command: /usr/bin/clang
+      framework: clang
+      entrypoint: clang_hook
+    - command: /usr/bin/clang++
+      framework: clang
+      entrypoint: clang_hook
     - command: lld
       framework: lld
       entrypoint: lld_hook
     - command: wasm-ld
       framework: lld
       entrypoint: lld_hook
+    - command: /usr/bin/wasm-ld
+      framework: lld
+      entrypoint: lld_hook
     - command: lldb
       framework: lldb
       entrypoint: lldb_hook
+    - command: cmake
+      framework: cmake
+      entrypoint: _Z10cmake_mainiPKPKc
+    - command: /usr/bin/cmake
+      framework: cmake
+      entrypoint: _Z10cmake_mainiPKPKc
+    - command: /usr/bin/ninja
+      framework: ninjaexe
+      entrypoint: _Z10ninja_mainiPPc
+    - command: ninja
+      framework: ninjaexe
+      entrypoint: _Z10ninja_mainiPPc
+    - command: uname
+      framework: unixy
+      entrypoint: uname_main

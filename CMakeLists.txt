@@ -21,6 +21,7 @@ set(WAMR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/wamr)
 set(QMAKEPARSER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libqmakeparser)
 set(MICROTAR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/microtar)
 set(GIT2_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libgit2)
+set(UNIXY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/unixy)
 # set(SDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/SDL)
 
 # CMake & Ninja

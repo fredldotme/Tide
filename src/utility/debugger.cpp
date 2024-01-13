@@ -49,8 +49,8 @@ Debugger::~Debugger()
     m_forceQuit = true;
     writeToStdIn("quit\n");
 
-    close(fileno(m_stdioPair.second.stdout));
-    close(fileno(m_stdioPair.second.stderr));
+    close(fileno(m_stdioPair.second.std_out));
+    close(fileno(m_stdioPair.second.std_err));
 
     m_readThreadOut.quit();
     m_readThreadErr.quit();
@@ -86,7 +86,7 @@ void Debugger::read(FILE* io)
             const auto wholeOutput = QString::fromUtf8(buffer);
             const QStringList splitOutput = wholeOutput.split('\n', Qt::KeepEmptyParts);
 
-            if (io == m_stdioPair.second.stdout) {
+            if (io == m_stdioPair.second.std_out) {
                 QVariantMap varmap;
                 bool multiLineValues = false;
 
@@ -261,12 +261,12 @@ QVariantMap Debugger::filterStackFrame(const QString output)
 
 void Debugger::readOutput()
 {
-    read(m_stdioPair.second.stdout);
+    read(m_stdioPair.second.std_out);
 }
 
 void Debugger::readError()
 {
-    read(m_stdioPair.second.stderr);
+    read(m_stdioPair.second.std_err);
 }
 
 void Debugger::debug(const QString binary, const QStringList args)
@@ -393,14 +393,14 @@ void Debugger::runDebugSession()
 
 void Debugger::writeToStdIn(const QByteArray& input)
 {
-    if (!m_stdioPair.second.stdin)
+    if (!m_stdioPair.second.std_in)
         return;
 
     // Always ensure a broken pipe cannot crash the app
     signal(SIGPIPE, SIG_IGN);
 
-    fwrite(input.data(), sizeof(char), input.length(), m_stdioPair.second.stdin);
-    fflush(m_stdioPair.second.stdin);
+    fwrite(input.data(), sizeof(char), input.length(), m_stdioPair.second.std_in);
+    fflush(m_stdioPair.second.std_in);
 }
 
 WasmRunner* Debugger::runner()

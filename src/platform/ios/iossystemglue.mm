@@ -21,14 +21,14 @@ IosSystemGlue::IosSystemGlue(QObject* parent) :
 
 IosSystemGlue::~IosSystemGlue()
 {
-    if (m_spec.stdout) {
-        fwrite("\n", sizeof(char), 1, m_spec.stdout);
-        fflush(m_spec.stdout);
+    if (m_spec.std_out) {
+        fwrite("\n", sizeof(char), 1, m_spec.std_out);
+        fflush(m_spec.std_out);
     }
 
-    if (m_spec.stderr) {
-        fwrite("\n", sizeof(char), 1, m_spec.stderr);
-        fflush(m_spec.stderr);
+    if (m_spec.std_err) {
+        fwrite("\n", sizeof(char), 1, m_spec.std_err);
+        fflush(m_spec.std_err);
     }
 }
 
@@ -69,13 +69,13 @@ std::pair<StdioSpec, StdioSpec> IosSystemGlue::setupPipes()
     setvbuf(outWriteEnd , nullptr , _IOLBF , 1024);
     setvbuf(errWriteEnd , nullptr , _IOLBF , 1024);
 
-    spec.stdin = inReadEnd;
-    spec.stdout = outWriteEnd;
-    spec.stderr = errWriteEnd;
+    spec.std_in = inReadEnd;
+    spec.std_out = outWriteEnd;
+    spec.std_err = errWriteEnd;
 
-    consumerSpec.stdin = inWriteEnd;
-    consumerSpec.stdout = outReadEnd;
-    consumerSpec.stderr = errReadEnd;
+    consumerSpec.std_in = inWriteEnd;
+    consumerSpec.std_out = outReadEnd;
+    consumerSpec.std_err = errReadEnd;
 
     return std::make_pair(spec, consumerSpec);
 }
@@ -95,24 +95,24 @@ bool IosSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spe
 {
     StdioSpec copy;
 
-    if (spec.stdin || spec.stdout || spec.stderr) {
-        copy.stdin = fdopen(dup(fileno(spec.stdin)), "r");
-        copy.stdout = fdopen(dup(fileno(spec.stdout)), "w");
-        copy.stderr = fdopen(dup(fileno(spec.stderr)), "w");
+    if (spec.std_in || spec.std_out || spec.std_err) {
+        copy.std_in = fdopen(dup(fileno(spec.std_in)), "r");
+        copy.std_out = fdopen(dup(fileno(spec.std_out)), "w");
+        copy.std_err = fdopen(dup(fileno(spec.std_err)), "w");
     } else {
-        copy.stdin = fdopen(dup(fileno(m_spec.stdin)), "r");
-        copy.stdout = fdopen(dup(fileno(m_spec.stdout)), "w");
-        copy.stderr = fdopen(dup(fileno(m_spec.stderr)), "w");
+        copy.std_in = fdopen(dup(fileno(m_spec.std_in)), "r");
+        copy.std_out = fdopen(dup(fileno(m_spec.std_out)), "w");
+        copy.std_err = fdopen(dup(fileno(m_spec.std_err)), "w");
     }
-
-    nosystem_stdin = copy.stdin;
-    nosystem_stdout = copy.stdout;
-    nosystem_stderr = copy.stderr;
 
     for (const auto& command : cmds) {
         if (m_requestBuildStop) {
             break;
         }
+
+        nosystem_stdin = copy.std_in;
+        nosystem_stdout = copy.std_out;
+        nosystem_stderr = copy.std_err;
 
         const auto stdcmd = command.toStdString();
         const int ret = nosystem_system(stdcmd.c_str());
@@ -120,12 +120,12 @@ bool IosSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spe
             return false;
     }
 
-    if (copy.stdin)
-        fclose(copy.stdin);
-    if (copy.stdout)
-        fclose(copy.stdout);
-    if (copy.stderr)
-        fclose(copy.stderr);
+    if (copy.std_in)
+        fclose(copy.std_in);
+    if (copy.std_out)
+        fclose(copy.std_out);
+    if (copy.std_err)
+        fclose(copy.std_err);
 
     if (m_requestBuildStop) {
         m_requestBuildStop = false;
@@ -140,30 +140,30 @@ int IosSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
 {
     StdioSpec copy;
 
-    if (spec.stdin || spec.stdout || spec.stderr) {
-        copy.stdin = fdopen(dup(fileno(spec.stdin)), "r");
-        copy.stdout = fdopen(dup(fileno(spec.stdout)), "w");
-        copy.stderr = fdopen(dup(fileno(spec.stderr)), "w");
+    if (spec.std_in || spec.std_out || spec.std_err) {
+        copy.std_in = fdopen(dup(fileno(spec.std_in)), "r");
+        copy.std_out = fdopen(dup(fileno(spec.std_out)), "w");
+        copy.std_err = fdopen(dup(fileno(spec.std_err)), "w");
     } else {
-        copy.stdin = fdopen(dup(fileno(m_spec.stdin)), "r");
-        copy.stdout = fdopen(dup(fileno(m_spec.stdout)), "w");
-        copy.stderr = fdopen(dup(fileno(m_spec.stderr)), "w");
+        copy.std_in = fdopen(dup(fileno(m_spec.std_in)), "r");
+        copy.std_out = fdopen(dup(fileno(m_spec.std_out)), "w");
+        copy.std_err = fdopen(dup(fileno(m_spec.std_err)), "w");
     }
 
-    nosystem_stdin = copy.stdin;
-    nosystem_stdout = copy.stdout;
-    nosystem_stderr = copy.stderr;
+    nosystem_stdin = copy.std_in;
+    nosystem_stdout = copy.std_out;
+    nosystem_stderr = copy.std_err;
 
     const auto stdcmd = cmd.toStdString();
     const int ret = nosystem_system(stdcmd.c_str());
     qWarning() << "Return" << ret << "from command" << cmd;
 
-    if (copy.stdin)
-        fclose(copy.stdin);
-    if (copy.stdout)
-        fclose(copy.stdout);
-    if (copy.stderr)
-        fclose(copy.stderr);
+    if (copy.std_in)
+        fclose(copy.std_in);
+    if (copy.std_out)
+        fclose(copy.std_out);
+    if (copy.std_err)
+        fclose(copy.std_err);
 
     return ret;
 }
@@ -175,8 +175,8 @@ void IosSystemGlue::killBuildCommands()
 
 void IosSystemGlue::writeToStdIn(const QByteArray data)
 {
-    fwrite(data.constData(), sizeof(const char*), data.length(), m_consumerSpec.stdin);
-    fflush(m_consumerSpec.stdin);
+    fwrite(data.constData(), sizeof(const char*), data.length(), m_consumerSpec.std_in);
+    fflush(m_consumerSpec.std_in);
 }
 
 void IosSystemGlue::copyToClipboard(const QString text)

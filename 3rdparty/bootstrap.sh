@@ -45,10 +45,11 @@ function cmake_iossystem_build {
     cd build
     cmake \
         -G Ninja \
-        -DCMAKE_OSX_SYSROOT=${IOS_SDKROOT} \
+        -DCMAKE_OSX_SYSROOT=iphoneos \
         -DCMAKE_C_COMPILER=$(xcrun --sdk iphoneos -f clang) \
         -DCMAKE_CXX_COMPILER=$(xcrun --sdk iphoneos -f clang++) \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+        -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=14.0 \
         $1 ..
     ninja
 
@@ -85,7 +86,7 @@ function cmake_wasi_build {
 # LLVM
 cd llvm
 if [ "$BUILD_LINUX" = "0" ]; then
-    ./bootstrap.sh
+    echo "Dere" # ./bootstrap.sh
 else
     mkdir build-linux || true
     cd build-linux
@@ -127,17 +128,26 @@ if [ "$BUILD_LINUX" = "0" ]; then
     plutil -convert binary1 Info.plist
     cd $OLD_PWD
 
-    # CMake
-    cd CMake
-    cmake_iossystem_build "-DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos"
-    tar cvf $OLD_PWD/tmp/cmake.tar Modules
+    # Unixy tools
+    cd unixy
+    cmake_iossystem_build "-DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DNO_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos"
     cd $OLD_PWD
 
     # Ninja
     cd ninja
-    cmake_iossystem_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DNINJA_BUILD_BINARY=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos"
+    cmake_iossystem_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DNINJA_BUILD_BINARY=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos -DCMAKE_SYSTEM_NAME=iOS"
+    cp ios/Info.plist build/ninjaexe.framework/Info.plist
+    cd $OLD_PWD
+
+    # CMake
+    cd CMake
+    cmake_iossystem_build "-DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos"
+    cp ios/Info.plist build/Source/cmake.framework/Info.plist
+    tar cvf $OLD_PWD/tmp/cmake.tar Modules
     cd $OLD_PWD
 fi
+
+exit 0
 
 # wasi-libc
 cd wasi-libc
