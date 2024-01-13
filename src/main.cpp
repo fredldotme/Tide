@@ -156,7 +156,7 @@ int main(int argc, char *argv[])
             //engine.rootContext()->setContextProperty("runtime", runtime);
             
             const QUrl url(u"qrc:/Tide/qml/Main.qml"_qs);
-#ifdef Q_OS_IOS
+#if defined(Q_OS_IOS) || defined(Q_OS_MACOS)
             QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
                              &app, []() { QCoreApplication::exit(-1); },
                              Qt::QueuedConnection);
@@ -164,6 +164,9 @@ int main(int argc, char *argv[])
             engine.load(url);
             
             signal(SIGPIPE, SIG_IGN);
+#if !defined(Q_OS_IOS)
+            setsid();
+#endif
             ret = app.exec();
         }
     }

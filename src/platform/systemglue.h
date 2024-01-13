@@ -4,6 +4,8 @@
 #include <QtSystemDetection>
 
 #if defined(Q_OS_LINUX)
+#include <unistd.h>
+
 #include "platform/posix/posixsystemglue.h"
 #include "platform/posix/projectdirectorypicker.h"
 #include "platform/posix/posixintegrationdelegate.h"
@@ -30,6 +32,8 @@ typedef IosIntegrationDelegate PlatformIntegrationDelegate;
 typedef ImFixerInstaller InputMethodFixerInstaller;
 typedef IosProjectList ProjectList;
 #elif defined(Q_OS_MACOS)
+#include <unistd.h>
+
 #include "platform/macos/macsystemglue.h"
 #include "platform/macos/externalprojectpicker.h"
 #include "platform/macos/integrationdelegate.h"
