@@ -6,7 +6,7 @@ import QtQuick.Window
 import QtQuick.Effects
 import Tide
 
-ApplicationWindow {
+Window {
     id: root
     width: 1280
     height: 720
@@ -15,6 +15,8 @@ ApplicationWindow {
     flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
     maximumWidth: Screen.width
     maximumHeight: Screen.height
+
+    palette.button: "dodgerblue"
 
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
     property alias tidePalette : tidePalette
@@ -52,9 +54,7 @@ ApplicationWindow {
                                                    "file://"
 
     readonly property color borderColor : Qt.tint(root.palette.window, "#10FF0000")
-    property color headerItemColor : dialogShadow.opacity > 0.0 ?
-                                         root.palette.buttonText :
-                                         root.palette.button
+    property color headerItemColor : root.palette.button
     Behavior on headerItemColor {
         ColorAnimation {
             duration: 300
