@@ -76,11 +76,15 @@ QVariantList PosixProjectList::projects()
 QList<DirectoryListing> PosixProjectList::listDirectoryContents(const QString path)
 {
     QList<DirectoryListing> ret;
-    qDebug() << "Iterating through" << path;
+    QString actualPath = path;
+    if (actualPath.startsWith("file:")) {
+        actualPath = path.mid(7);
+    }
+    qDebug() << "Iterating through" << actualPath;
 
     QStringList toSort;
 
-    QDirIterator it(path, QDir::NoDot | QDir::AllEntries);
+    QDirIterator it(actualPath, QDir::NoDot | QDir::AllEntries);
     while (it.hasNext()) {
         toSort << it.next();
     }
