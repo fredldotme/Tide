@@ -207,6 +207,7 @@ parts:
     override-stage: |
       cd $SNAPCRAFT_PART_BUILD
       DESTDIR=$SNAPCRAFT_STAGE ninja install
+      mkdir -p $SNAPCRAFT_STAGE/usr/share/doc/libwayland-client0
     build-packages:
       - cmake
       - ninja-build
