@@ -22,7 +22,9 @@ void ProjectDirectoryPicker::startImport()
     QFileDialog dialog;
     dialog.setFileMode(QFileDialog::Directory);
     dialog.setViewMode(QFileDialog::Detail);
-    dialog.exec();
+    const auto res = dialog.exec();
+    if (res != QDialog::Accepted)
+        return;
 
     for (const auto& url : dialog.selectedUrls()) {
         emit documentSelected(url.toEncoded());
