@@ -111,7 +111,6 @@ parts:
       - libinput-dev
       - libgl-dev
       - libgles-dev
-      - libwayland-dev
       - libfontconfig1-dev
       - libfreetype6-dev
       - libx11-dev
@@ -207,16 +206,11 @@ parts:
     override-stage: |
       cd $SNAPCRAFT_PART_BUILD
       DESTDIR=$SNAPCRAFT_STAGE ninja install
-      mkdir -p $SNAPCRAFT_STAGE/usr/share/doc/libwayland-client0
-      mkdir -p $SNAPCRAFT_STAGE/usr/share/doc/libwayland-cursor0
     build-packages:
       - cmake
       - ninja-build
       - build-essential
       - dpkg-dev
-    stage-packages:
-      - libwayland-client0
-      - libwayland-cursor0
     stage:
       - usr/*
     after: [ qt6declarative ]
