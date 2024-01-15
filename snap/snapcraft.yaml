@@ -187,6 +187,10 @@ parts:
       - ninja-build
       - build-essential
       - dpkg-dev
+      - libharfbuzz-dev
+    stage-packages:
+      - libharfbuzz-bin
+      - libharfbuzz0b
     stage:
       - usr/*
     after: [ qt6shadertools ]
