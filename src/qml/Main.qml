@@ -535,7 +535,7 @@ ApplicationWindow {
                     running: wasmRunner.running || projectBuilder.building || dbugger.running || git.busy
                 }
 
-                Text {
+                Label {
                     id: prefixLabel
                     color: headerItemColor
                     elide: Text.ElideRight
@@ -572,7 +572,7 @@ ApplicationWindow {
                     }
                 }
 
-                Text {
+                Label {
                     color: headerItemColor
                     font.bold: true
                     width: implicitWidth
@@ -586,7 +586,7 @@ ApplicationWindow {
                     }
                 }
 
-                Text {
+                Label {
                     id: hudLabel
                     color: headerItemColor
                     elide: Text.ElideRight
@@ -1363,7 +1363,7 @@ ApplicationWindow {
                 Layout.preferredHeight: width
             }
 
-            Text {
+            Label {
                 Layout.preferredWidth: parent.width
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 font.pixelSize: startPage.sideLength
@@ -1566,7 +1566,7 @@ ApplicationWindow {
                                             radius: roundedCornersRadiusMedium
                                             border.color: root.borderColor
                                             border.width: 1
-                                            color: root.tidePalette.base
+                                            color: root.palette.base
                                             clip: true
 
                                             property var project : null
@@ -3348,7 +3348,7 @@ ApplicationWindow {
                     flat: true
                     enabled: false
                 }
-                Text {
+                Label {
                     id: warningText
                     color: Qt.rgba(flashingIcon.icon.color.r,
                                    flashingIcon.icon.color.g,
