@@ -15,7 +15,7 @@ Menu {
     contentItem: Rectangle {
         implicitWidth: 200
         implicitHeight: menuItemListView.height
-        color: root.palette.window
+        color: root.palette.base
         radius: roundedCornersRadius
         clip: true
         ListView {

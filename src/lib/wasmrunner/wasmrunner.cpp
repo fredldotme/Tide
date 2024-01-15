@@ -58,6 +58,9 @@ void WasmRunnerImpl::init(const WasmRunnerConfig& config)
 {
     shared.configuration = config;
 
+    std::cout << "Stack size: " << config.stackSize << std::endl;
+    std::cout << "Heap size: " << config.heapSize << std::endl;
+
     RuntimeInitArgs init_args;
     memset(&init_args, 0, sizeof(RuntimeInitArgs));
 

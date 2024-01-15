@@ -1766,6 +1766,9 @@ ApplicationWindow {
                                                     projectsArea.project = project
                                                     if (project.isBookmark) {
                                                         model = projectPicker.listBookmarkContents(project.bookmark)
+                                                        if (model.length === 0) {
+                                                            model = projectList.listDirectoryContents(project.path)
+                                                        }
                                                     } else {
                                                         model = projectList.listDirectoryContents(project.path)
                                                     }

@@ -66,13 +66,13 @@ Rectangle {
 
             RowLayout {
                 width: parent.width
-                Text {
+                Label {
                     id: boldLabelControl
                     color: itemRoot.textColor
                     textFormat: Text.PlainText
                     font.bold: true
                 }
-                Text {
+                Label {
                     id: labelControl
                     color: itemRoot.textColor
                     textFormat: Text.PlainText
@@ -80,7 +80,7 @@ Rectangle {
                 }
             }
 
-            Text {
+            Label {
                 id: detailControl
                 font.pixelSize: detailControl.text === "" ? 0 : 12
                 visible: detailControl.text !== ""

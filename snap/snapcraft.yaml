@@ -19,16 +19,30 @@ apps:
       QT_PLUGIN_PATH: ${SNAP}/usr/plugins
       QML_IMPORT_PATH: ${SNAP}/usr/qml
     command-chain:
-      - bin/graphics-core22-wrapper
       - bin/desktop-launch
+    extensions: [ gnome ]
     command: usr/bin/tide-ide
     plugs: [ x11, wayland, desktop, desktop-legacy, opengl, alsa, pulseaudio, home, removable-media, network, network-bind ]
 
 plugs:
-  graphics-core22:
-    interface: content
-    target: $SNAP/graphics
-    default-provider: mesa-core22
+    desktop:
+        mount-host-font-cache: false
+    gtk-3-themes:
+        interface: content
+        target: $SNAP/data-dir/themes
+        default-provider: gtk-common-themes
+    icon-themes:
+        interface: content
+        target: $SNAP/data-dir/icons
+        default-provider: gtk-common-themes
+    sound-themes:
+        interface: content
+        target: $SNAP/data-dir/sounds
+        default-provider: gtk-common-themes
+    gnome-42-2204:
+        interface: content
+        target: $SNAP/gnome-platform
+        default-provider: gnome-42-2204
 
 layout:
   /usr/share/libdrm:
@@ -55,6 +69,7 @@ parts:
       - libcrypt-dev
       - curl
       - clang
+      - libicu-dev
     stage-packages:
       - libpcre2-16-0
     override-build: |
@@ -78,20 +93,9 @@ parts:
       - clang
     stage-packages:
       - libpcre2-16-0
+      - fonts-open-sans
+      - fonts-ubuntu
     after: [ qt6declarative, bootstrap ]
-  graphics-core22:
-    source: https://github.com/MirServer/graphics-core22.git
-    plugin: dump
-    override-prime: |
-      craftctl default
-      ${CRAFT_PART_SRC}/bin/graphics-core22-cleanup mesa-core22 nvidia-core22
-      mkdir -p ${CRAFT_STAGE}/usr/share/doc/libwayland-client0
-    stage-packages:
-      - libwayland-client0
-      - libwayland-cursor0
-    prime:
-    - bin/graphics-core22-wrapper
-    after: [ tide ]
   qt6:
     plugin: cmake
     source: https://github.com/qt/qtbase.git

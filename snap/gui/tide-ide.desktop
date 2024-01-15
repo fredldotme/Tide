@@ -1,0 +1,5 @@
+[Desktop Entry]
+Type=Application
+Icon=${SNAP}/meta/gui/tide-ide.png
+Exec=tide-ide
+Name=Tide IDE

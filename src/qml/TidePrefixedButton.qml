@@ -57,7 +57,7 @@ Column {
         Row {
             width: implicitWidth
             spacing: paddingSmall
-            Text {
+            Label {
                 id: prefixLabelControl
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 color: labelControl.color
@@ -78,7 +78,7 @@ Column {
                 }
             }
 
-            Text {
+            Label {
                 id: labelControl
                 wrapMode: Text.WrapAtWordBoundaryOrAnywhere
                 MouseArea {
@@ -97,7 +97,7 @@ Column {
         }
     }
 
-    Text {
+    Label {
         id: detailsLabelControl
         wrapMode: Text.WrapAtWordBoundaryOrAnywhere
         color: labelControl.color

@@ -66,13 +66,13 @@ Rectangle {
             Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
             Layout.fillWidth: true
 
-            Text {
+            Label {
                 id: labelControl
                 color: itemRoot.textColor
                 Layout.fillWidth: true
             }
 
-            Text {
+            Label {
                 id: detailControl
                 font.pixelSize: detailControl.text === "" ? 0 : 12
                 visible: detailControl.text !== ""

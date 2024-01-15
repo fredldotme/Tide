@@ -31,14 +31,14 @@ void ProjectDirectoryPicker::startImport()
 
 QString ProjectDirectoryPicker::openBookmark(const QByteArray encodedData)
 {
-    const auto ret = QUrl::fromEncoded(encodedData).toString();
+    const auto asString = QUrl::fromLocalFile(QString::fromUtf8(encodedData)).path();
 
-    if (!QDir(ret).exists()) {
+    if (!QDir(asString).exists()) {
         emit bookmarkStale(encodedData);
         return QString();
     }
 
-    return ret;
+    return asString;
 }
 
 bool ProjectDirectoryPicker::secureFile(const QString path)
@@ -54,7 +54,7 @@ void ProjectDirectoryPicker::closeFile(QUrl url)
 
 QString ProjectDirectoryPicker::getDirNameForBookmark(const QByteArray encodedData)
 {
-    const auto path = openBookmark(encodedData);
+    const auto path = QUrl::fromLocalFile(QString::fromUtf8(encodedData)).path();
     if (path.isEmpty()) {
         qWarning() << "Failed to get name: path is empty";
         return QString();
@@ -73,7 +73,7 @@ QString ProjectDirectoryPicker::getDirNameForBookmark(const QByteArray encodedDa
 
 QList<DirectoryListing> ProjectDirectoryPicker::listBookmarkContents(const QByteArray bookmark)
 {
-    const auto path = openBookmark(bookmark);
+    const auto path = QUrl::fromLocalFile(QString::fromUtf8(bookmark)).path();
     if (path.isEmpty()) {
         qWarning() << "Failed to open bookmark";
         return QList<DirectoryListing>();
@@ -88,7 +88,6 @@ QList<DirectoryListing> ProjectDirectoryPicker::listBookmarkContents(const QByte
 QList<DirectoryListing> ProjectDirectoryPicker::listDirectoryContents(const QString path, const QByteArray bookmark)
 {
     QList<DirectoryListing> ret;
-
     QStringList toSort;
 
     QDirIterator it(path, QDir::NoDot | QDir::AllEntries);

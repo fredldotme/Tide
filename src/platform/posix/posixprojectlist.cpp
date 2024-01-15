@@ -35,19 +35,19 @@ QVariantList PosixProjectList::projects()
         ret << project;
     }
 
-    for (const auto& bookmark : m_bookmarkDb->bookmarks()) {
+    for (const auto& bookmarkData : m_bookmarkDb->bookmarks()) {
+        qDebug() << "Bookmark:" << bookmarkData;
         QVariantMap bm;
         QString path;
         QString name;
-        QUrl qUrl = QUrl::fromEncoded(bookmark);
-        QString bookmarkData = qUrl.toString();
+        QString bookmark = bookmarkData;
 
-        QStringList splitPath = qUrl.path().split(QDir::separator(), Qt::SkipEmptyParts);
+        QStringList splitPath = bookmark.split(QDir::separator(), Qt::SkipEmptyParts);
         name = splitPath.last();
-        path = qUrl.path().left(qUrl.path().length() - 1);
+        path = bookmark.left(bookmark.length());
 
         bm.insert("isBookmark", true);
-        bm.insert("bookmark", bookmarkData);
+        bm.insert("bookmark", bookmark);
         bm.insert("path", path);
         bm.insert("name", name);
         ret << bm;
@@ -104,7 +104,7 @@ QList<DirectoryListing> PosixProjectList::listDirectoryContents(const QString pa
         QFileInfo fileInfo(next);
         QUrl preUrl(fileInfo.absoluteDir().absolutePath());
 
-        const QByteArray bookmark = preUrl.toString().toLocal8Bit();
+        const QByteArray bookmark = preUrl.toLocalFile().toUtf8();
         ret << DirectoryListing(type, next, bookmark);
     }
 

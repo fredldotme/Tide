@@ -593,7 +593,7 @@ Item {
                         }
                     }
 
-                    TextArea {
+                    TextEdit {
                         id: codeField
                         Layout.fillHeight: true
                         Layout.fillWidth: settings.wrapEditor
@@ -612,7 +612,7 @@ Item {
                             //uiIntegration.hookUpNativeView(codeField)
                             imFixer.setupImEventFilter(codeField)
                         }
-                        background: Item { }
+                        // background: Item { }
                         cursorDelegate: Component {
                             Rectangle {
                                 id: cursor

@@ -15,6 +15,9 @@
 
 PosixSystemGlue::PosixSystemGlue(QObject* parent) : QObject(parent)
 {
+    const auto currPath = qgetenv("PATH");
+    const auto prefix = QString::fromUtf8(qgetenv("SNAP")) + QString("/usr/bin:");
+    qputenv("PATH", prefix.toUtf8() + currPath);
 }
 
 PosixSystemGlue::~PosixSystemGlue()
@@ -147,34 +150,39 @@ int PosixSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
     }
 
     const auto stdcmd = cmd.toStdString();
-    const auto cmdcrumbs = cmd.split(' ', Qt::KeepEmptyParts);
-
     std::vector<std::string> args = split_command(stdcmd);
     std::vector<const char*> cargs;
     std::vector<char*> cenv;
+    std::string cmdbin;
+    posix_spawn_file_actions_t action;
 
     for (const auto& arg : args) {
         cargs.push_back(arg.c_str());
     }
+    cargs.push_back(nullptr);
 
-    if (cmdcrumbs.length() == 0)
-        return ret;
+    if (cargs.size() == 1)
+        goto done;
 
-    posix_spawn_file_actions_t action;
     posix_spawn_file_actions_init(&action);
+    posix_spawn_file_actions_addclose(&action, 0);
+    posix_spawn_file_actions_addclose(&action, 1);
+    posix_spawn_file_actions_addclose(&action, 2);
     posix_spawn_file_actions_adddup2(&action, fileno(copy.std_in), 0);
     posix_spawn_file_actions_adddup2(&action, fileno(copy.std_out), 1);
     posix_spawn_file_actions_adddup2(&action, fileno(copy.std_err), 2);
+    cmdbin = std::string("/snap/tide-ide/current/usr/bin/") + args.at(0);
 
-    const auto binpath = qApp->applicationDirPath() + "/" + cmdcrumbs[0];
-    qDebug() << "Run command:" << binpath;
+    qDebug() << "Run command:" << cmd;
 
-    extern char **environ;
-    status = posix_spawn(&childpid, binpath.toLocal8Bit().data(), &action, NULL, (char**)cargs.data(), environ);
-    posix_spawn_file_actions_destroy(&action);
-    statuspid = waitpid(childpid, &status, WUNTRACED | WCONTINUED);
-    if (statuspid == -1) {
-        return ret;
+    status = posix_spawn(&childpid, cmdbin.c_str(), &action, NULL, (char * const*)cargs.data(), environ);
+    if (status != 0) {
+        qDebug() << "spawn status:" << status;
+        goto done;
+    }
+
+    if (childpid >= 0) {
+        waitpid(childpid, &status, 0);
     }
     ret = WEXITSTATUS(status);
 

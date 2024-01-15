@@ -61,12 +61,12 @@ Item {
             Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
             Layout.fillWidth: true
 
-            Text {
+            Label {
                 id: labelControl
                 Layout.fillWidth: true
             }
 
-            Text {
+            Label {
                 id: detailControl
                 font.pixelSize: detailControl.text === "" ? 0 : 12
                 visible: detailControl.text !== ""

@@ -48,7 +48,7 @@ RowLayout {
         }
     }
 
-    Text {
+    Label {
         id: labelControl
         Layout.fillWidth: true
         wrapMode: Text.WrapAtWordBoundaryOrAnywhere

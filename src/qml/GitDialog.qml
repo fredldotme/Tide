@@ -107,13 +107,13 @@ TideDialog {
                             spacing: paddingSmall
                             Row {
                                 width: parent.width
-                                Text {
+                                Label {
                                     width: implicitWidth
                                     text: qsTr("Name:")
                                     font.bold: true
                                     color: root.palette.text
                                 }
-                                Text {
+                                Label {
                                     width: implicitWidth
                                     text: modelData.name
                                     color: root.palette.text
@@ -121,13 +121,13 @@ TideDialog {
                             }
                             Row {
                                 width: parent.width
-                                Text {
+                                Label {
                                     width: implicitWidth
                                     text: qsTr("Fetch:")
                                     font.bold: true
                                     color: root.palette.text
                                 }
-                                Text {
+                                Label {
                                     width: implicitWidth
                                     text: modelData.fetch
                                     color: root.palette.text
@@ -135,13 +135,13 @@ TideDialog {
                             }
                             Row {
                                 width: parent.width
-                                Text {
+                                Label {
                                     width: implicitWidth
                                     text: qsTr("Push:")
                                     font.bold: true
                                     color: root.palette.text
                                 }
-                                Text {
+                                Label {
                                     width: implicitWidth
                                     text: modelData.push
                                     color: root.palette.text

@@ -71,16 +71,25 @@ int main(int argc, char *argv[])
     const auto orgName = QStringLiteral("");
     const auto appName = QStringLiteral("tide.fredldotme");
 
-    const auto sysroot = QStringLiteral("/usr");
+    qputenv("HOME", "/home/ubuntu/snap/tide-ide/current");
 
-    QQuickStyle::setStyle("Material");
+    const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                            QStringLiteral("/Library/wasi-sysroot");
+    const QString library = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                            QStringLiteral("/Library");
+    const QString runtime = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                            QStringLiteral("/Runtimes/Linux");
 
+    qputenv("SYSROOT", sysroot.toUtf8().data());
+    qputenv("CLANG_RESOURCE_DIR",
+            QStringLiteral("%1/usr/lib/clang/17").arg(library).toStdString().c_str());
     qputenv("QML_IMPORT_PATH", "./qml");
     qputenv("QT_PLUGIN_PATH", "./plugins");
     qputenv("QT_QPA_PLATFORM", "wayland-egl");
+    qputenv("QT_QPA_FONTDIR", "/snap/tide-ide/current/usr/share/fonts/truetype");
+    qputenv("QT_QUICK_CONTROLS_STYLE", "Material");
 
     if (qEnvironmentVariableIsSet("DESKTOP_FILE_HINT")) {
-        qputenv("QT_QPA_FONTDIR", "/usr/share/fonts/truetype");
         qputenv("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1");
     }
 #endif
@@ -143,8 +152,12 @@ int main(int argc, char *argv[])
         {
             SystemGlue iosSystemGlue;
             InputMethodFixerInstaller imFixer;
-            
+
+#if defined(Q_OS_IOS) || defined(Q_OS_MACOS)
             QFont standardFixedFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+#else
+            QFont standardFixedFont("Ubuntu Mono");
+#endif
             standardFixedFont.setPixelSize(14);
             standardFixedFont.setStyleHint(QFont::Monospace);
             

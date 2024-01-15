@@ -143,7 +143,7 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
     include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
-    add_library(vmlibjit ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
+    add_library(vmlibjit STATIC ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 endif()
 
 target_link_libraries(vmlibjit
@@ -234,6 +234,6 @@ include_directories(${PROJECT_NAME}
     ${UNCOMMON_SHARED_DIR}
 )
 
-#if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_LIBDIR})
-#endif()
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+endif()

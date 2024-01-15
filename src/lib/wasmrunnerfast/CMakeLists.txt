@@ -146,7 +146,7 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
     include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
-    add_library(vmlibfast ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
+    add_library(vmlibfast STATIC ${WAMR_RUNTIME_LIB_SOURCE} ${UNCOMMON_SHARED_SOURCE})
 endif()
 
 target_link_libraries(vmlibfast
