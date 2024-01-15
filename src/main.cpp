@@ -71,8 +71,6 @@ int main(int argc, char *argv[])
     const auto orgName = QStringLiteral("");
     const auto appName = QStringLiteral("tide.fredldotme");
 
-    qputenv("HOME", "/home/ubuntu/snap/tide-ide/current");
-
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                             QStringLiteral("/Library/wasi-sysroot");
     const QString library = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
