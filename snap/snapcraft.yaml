@@ -1,5 +1,5 @@
 name: tide-ide
-version: git
+version: 1.8.0
 grade: stable
 confinement: strict
 base: core22
@@ -214,6 +214,46 @@ parts:
     stage:
       - usr/*
     after: [ qt6declarative ]
+  cmake:
+    plugin: cmake
+    source: 3rdparty/CMake
+    override-build: |
+      mkdir $SNAPCRAFT_PART_BUILD || true
+      cd $SNAPCRAFT_PART_BUILD
+      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC" $SNAPCRAFT_PART_SRC
+      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
+      ninja
+      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+    override-stage: |
+      cd $SNAPCRAFT_PART_BUILD
+      DESTDIR=$SNAPCRAFT_STAGE ninja install
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+    stage:
+      - usr/*
+  ninja:
+    plugin: cmake
+    source: 3rdparty/ninja
+    override-build: |
+      mkdir $SNAPCRAFT_PART_BUILD || true
+      cd $SNAPCRAFT_PART_BUILD
+      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_SRC
+      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
+      ninja
+      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+    override-stage: |
+      cd $SNAPCRAFT_PART_BUILD
+      DESTDIR=$SNAPCRAFT_STAGE ninja install
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+    stage:
+      - usr/*
   launcher:
     plugin: dump
     source: snap/local
