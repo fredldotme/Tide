@@ -60,6 +60,10 @@ function cmake_iossystem_build {
 }
 
 function cmake_wasi_build {
+    if [ "$BUILD_LINUX" = "1" ]; then
+        OLD_PATH="$PATH"
+        export PATH="/usr/bin:/bin:$PATH"
+    fi
     if [ -d build ]; then
         rm -rf build
     fi
@@ -79,10 +83,13 @@ function cmake_wasi_build {
         -DCMAKE_CXX_COMPILER_TARGET=$1 \
         -DCMAKE_ASM_COMPILER_TARGET=$1 \
         -DCMAKE_SYSROOT=$OLD_PWD/tmp/wasi-sysroot \
-        -DCMAKE_C_FLAGS="-Wl,--allow-undefined -Wno-error=unused-command-line-argument $2" \
-        -DCMAKE_CXX_FLAGS="-Wl,--allow-undefined -Wno-error=unused-command-line-argument $2" \
+        -DCMAKE_C_FLAGS="-Wl,--allow-undefined -Wno-error=unused-command-line-argument -Wno-error=unknown-warning-option $2" \
+        -DCMAKE_CXX_FLAGS="-Wl,--allow-undefined -Wno-error=unused-command-line-argument -Wno-error=unknown-warning-option $2" \
         "$3" ..
     ninja
+    if [ "$BUILD_LINUX" = "1" ]; then
+        export PATH="$OLD_PATH"
+    fi
     cd ..
 }
 
