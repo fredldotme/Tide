@@ -85,7 +85,6 @@ int main(int argc, char *argv[])
     qputenv("QT_PLUGIN_PATH", "./plugins");
     qputenv("QT_QPA_PLATFORM", "wayland-egl");
     qputenv("QT_QPA_FONTDIR", "/snap/tide-ide/current/usr/share/fonts/truetype");
-    qputenv("QT_QUICK_CONTROLS_STYLE", "Material");
 
     if (qEnvironmentVariableIsSet("DESKTOP_FILE_HINT")) {
         qputenv("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1");
@@ -158,7 +157,7 @@ int main(int argc, char *argv[])
 #endif
             standardFixedFont.setPixelSize(14);
             standardFixedFont.setStyleHint(QFont::Monospace);
-            
+            engine.addImportPath(":/");
             engine.rootContext()->setContextProperty("standardFixedFont", standardFixedFont);
             engine.rootContext()->setContextProperty("imFixer", &imFixer);
             engine.rootContext()->setContextProperty("sysroot", sysroot);

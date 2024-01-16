@@ -6,7 +6,7 @@ import QtQuick.Window
 import QtQuick.Effects
 import Tide
 
-Window {
+ApplicationWindow {
     id: root
     width: 1280
     height: 720
@@ -15,8 +15,6 @@ Window {
     flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
     maximumWidth: Screen.width
     maximumHeight: Screen.height
-
-    palette.button: "dodgerblue"
 
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
     property alias tidePalette : tidePalette
@@ -1311,7 +1309,7 @@ Window {
         editor.file = modelData;
 
         // Also load project in case it's a project
-        if (modelData.path.endsWith(".pro") /*|| modelData.name === "CMakeLists.txt"*/)
+        if (modelData.path.endsWith(".pro") || (platformProperties.supportsCMake && modelData.name === "CMakeLists.txt"))
             projectBuilder.loadProject(modelData.path);
 
         if (root.width < root.height)
@@ -1878,7 +1876,7 @@ Window {
                                                     id: fileListingButton
                                                     readonly property bool isBackButton : (modelData.name === "..")
                                                     readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
-                                                    readonly property bool isProject : (modelData.name.endsWith(".pro") /*|| modelData.name === "CMakeLists.txt"*/)
+                                                    readonly property bool isProject : (modelData.name.endsWith(".pro") || (platformProperties.supportsCMake && modelData.name === "CMakeLists.txt"))
 
                                                     textColor: root.palette.button
                                                     icon.color: root.palette.button
@@ -2153,7 +2151,7 @@ Window {
 
                                     clip: true
                                     delegate: OpenFileListingButton {
-                                        readonly property bool isProject : modelData.name.endsWith(".pro") //|| modelData.name === "CMakeLists.txt"
+                                        readonly property bool isProject : modelData.name.endsWith(".pro") || (platformProperties.supportsCMake && modelData.name === "CMakeLists.txt")
                                         readonly property bool isActiveProject: modelData.path === projectBuilder.projectFile
                                         radius: roundedCornersRadiusSmall
 

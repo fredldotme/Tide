@@ -272,8 +272,10 @@ qt_add_executable(${PROJECT_NAME}
 qt_add_qml_module(${PROJECT_NAME}
     URI Tide
     VERSION 1.0
-    QML_FILES
+    RESOURCE_PREFIX /Tide
+    NO_RESOURCE_TARGET_PATH
 
+    QML_FILES
     qml/Main.qml
     qml/CodeEditor.qml
     qml/TideButton.qml
