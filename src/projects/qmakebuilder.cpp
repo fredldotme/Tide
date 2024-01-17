@@ -31,7 +31,7 @@ inline static QString resolveDefaultVariables(const QString& line,
 }
 
 QMakeBuilder::QMakeBuilder(QObject *parent)
-    : QObject{parent}, iosSystem{nullptr}, m_building(false)
+    : BuilderBackend{parent}, iosSystem{nullptr}, m_building(false)
 {
     QObject::connect(this, &QMakeBuilder::projectFileChanged, this, &QMakeBuilder::runnableChanged);
 }

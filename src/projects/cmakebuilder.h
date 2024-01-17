@@ -11,7 +11,7 @@
 #include "builderbackend.h"
 #include "platform/systemglue.h"
 
-class CMakeBuilder : public QObject, public BuilderBackend
+class CMakeBuilder : public BuilderBackend
 {
     Q_OBJECT
 
@@ -49,13 +49,7 @@ private:
     bool m_building;
 
 signals:
-    void projectFileChanged();
     void commandRunnerChanged();
-    void buildingChanged();
-    void buildSuccess(bool debug, bool aot);
-    void buildError(QString str);
-    void cleaned();
-    void runnableChanged();
 };
 
 #endif // CMAKEBUILDER_H

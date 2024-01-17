@@ -1,15 +1,17 @@
-#ifndef QMAKEBUILDER_H
-#define QMAKEBUILDER_H
+#ifndef CLICKABLEBUILDER_H
+#define CLICKABLEBUILDER_H
+
+#include <QObject>
+
+#include "builderbackend.h"
 
 #include <QObject>
 #include <QString>
 
-#include <qmakeparser.h>
-
 #include "builderbackend.h"
 #include "platform/systemglue.h"
 
-class QMakeBuilder : public BuilderBackend
+class ClickableBuilder : public BuilderBackend
 {
     Q_OBJECT
 
@@ -19,7 +21,7 @@ class QMakeBuilder : public BuilderBackend
     Q_PROPERTY(bool runnable READ isRunnable NOTIFY runnableChanged)
 
 public:
-    explicit QMakeBuilder(QObject *parent = nullptr);
+    explicit ClickableBuilder(QObject *parent = nullptr);
     SystemGlue* iosSystem;
 
 public slots:
@@ -39,6 +41,9 @@ public slots:
     bool isRunnable() override;
 
 private:
+    QString projectName();
+    QString projectDir();
+
     QString m_sysroot;
     QString m_projectFile;
     bool m_building;
@@ -47,4 +52,4 @@ signals:
     void commandRunnerChanged();
 };
 
-#endif // QMAKEBUILDER_H
+#endif // CLICKABLEBUILDER_H

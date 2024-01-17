@@ -1,4 +1,4 @@
-#include "cmakebuilder.h"
+#include "snapcraftbuilder.h"
 
 #include <QCoreApplication>
 #include <QCryptographicHash>
@@ -8,18 +8,18 @@
 
 #include <thread>
 
-CMakeBuilder::CMakeBuilder(QObject *parent)
+SnapcraftBuilder::SnapcraftBuilder(QObject *parent)
     : BuilderBackend{parent}, iosSystem{nullptr}, m_building(false)
 {
-    QObject::connect(this, &CMakeBuilder::projectFileChanged, this, &CMakeBuilder::runnableChanged);
+    QObject::connect(this, &SnapcraftBuilder::projectFileChanged, this, &SnapcraftBuilder::runnableChanged);
 }
 
-void CMakeBuilder::setSysroot(const QString path)
+void SnapcraftBuilder::setSysroot(const QString path)
 {
     m_sysroot = path;
 }
 
-bool CMakeBuilder::loadProject(const QString path)
+bool SnapcraftBuilder::loadProject(const QString path)
 {
     if (!QFile::exists(path))
         return false;
@@ -30,13 +30,13 @@ bool CMakeBuilder::loadProject(const QString path)
     return true;
 }
 
-void CMakeBuilder::unloadProject()
+void SnapcraftBuilder::unloadProject()
 {
     m_projectFile = "";
     emit projectFileChanged();
 }
 
-void CMakeBuilder::clean()
+void SnapcraftBuilder::clean()
 {
     const auto buildPath = buildRoot() + QDir::separator() + projectName();
 
@@ -51,7 +51,7 @@ void CMakeBuilder::clean()
     }
 }
 
-void CMakeBuilder::build(const bool debug, const bool aot)
+void SnapcraftBuilder::build(const bool debug, const bool aot)
 {
     const auto sourcePath = projectDir();
     const auto buildPath = buildRoot() + QDir::separator() + projectName();
@@ -98,12 +98,12 @@ void CMakeBuilder::build(const bool debug, const bool aot)
     buildThread.detach();
 }
 
-void CMakeBuilder::cancel()
+void SnapcraftBuilder::cancel()
 {
     iosSystem->killBuildCommands();
 }
 
-QString CMakeBuilder::runnableFile()
+QString SnapcraftBuilder::runnableFile()
 {
     const auto buildDirPath = projectBuildRoot();
     if (buildDirPath.isEmpty()) {
@@ -116,25 +116,25 @@ QString CMakeBuilder::runnableFile()
     return runnableFilePath;
 }
 
-QStringList CMakeBuilder::includePaths()
+QStringList SnapcraftBuilder::includePaths()
 {
     QStringList ret;
     return ret;
 }
 
-QString CMakeBuilder::buildRoot()
+QString SnapcraftBuilder::buildRoot()
 {
     return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
            QStringLiteral("/Artifacts");
 }
 
-QString CMakeBuilder::sourceRoot()
+QString SnapcraftBuilder::sourceRoot()
 {
     return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
            QStringLiteral("/Projects");
 }
 
-QString CMakeBuilder::projectBuildRoot()
+QString SnapcraftBuilder::projectBuildRoot()
 {
     QString ret = buildRoot() + QDir::separator();
     QCryptographicHash hash(QCryptographicHash::Sha256);
@@ -142,22 +142,22 @@ QString CMakeBuilder::projectBuildRoot()
     return ret + QString::fromUtf8(hash.result());
 }
 
-QStringList CMakeBuilder::sourceFiles()
+QStringList SnapcraftBuilder::sourceFiles()
 {
     return QStringList();
 }
 
-bool CMakeBuilder::building()
+bool SnapcraftBuilder::building()
 {
     return m_building;
 }
 
-bool CMakeBuilder::isRunnable()
+bool SnapcraftBuilder::isRunnable()
 {
     return false;
 }
 
-QString CMakeBuilder::projectName()
+QString SnapcraftBuilder::projectName()
 {
     if (!m_projectFile.contains(QDir::separator())) {
         return "";
@@ -172,7 +172,7 @@ QString CMakeBuilder::projectName()
     return crumbs.last();
 }
 
-QString CMakeBuilder::projectDir()
+QString SnapcraftBuilder::projectDir()
 {
     if (!m_projectFile.contains(QDir::separator())) {
         return "";

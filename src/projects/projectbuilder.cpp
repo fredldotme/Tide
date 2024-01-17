@@ -40,30 +40,25 @@ bool ProjectBuilder::loadProject(const QString path)
         m_activeBuilder = &m_qmakeBuilder;
         m_qmakeBuilder.iosSystem = m_iosSystem;
         m_qmakeBuilder.setSysroot(m_sysroot);
-        QObject::connect(&m_qmakeBuilder, &QMakeBuilder::buildError, this, &ProjectBuilder::buildError, Qt::DirectConnection);
-        QObject::connect(&m_qmakeBuilder, &QMakeBuilder::buildSuccess, this, &ProjectBuilder::buildSuccess, Qt::DirectConnection);
-        QObject::connect(&m_qmakeBuilder, &QMakeBuilder::buildingChanged, this, &ProjectBuilder::buildingChanged, Qt::DirectConnection);
-        QObject::connect(&m_qmakeBuilder, &QMakeBuilder::projectFileChanged, this, &ProjectBuilder::projectFileChanged, Qt::DirectConnection);
-        QObject::connect(&m_qmakeBuilder, &QMakeBuilder::cleaned, this, &ProjectBuilder::cleaned, Qt::DirectConnection);
         QObject::connect(&m_qmakeBuilder, &QMakeBuilder::commandRunnerChanged, this, &ProjectBuilder::commandRunnerChanged, Qt::DirectConnection);
-        QObject::connect(&m_qmakeBuilder, &QMakeBuilder::runnableChanged, this, &ProjectBuilder::runnableChanged, Qt::DirectConnection);
     } else if (path.endsWith("/CMakeLists.txt")) {
         m_activeBuilder = &m_cmakeBuilder;
         m_cmakeBuilder.iosSystem = m_iosSystem;
         m_cmakeBuilder.setSysroot(m_sysroot);
-        QObject::connect(&m_cmakeBuilder, &CMakeBuilder::buildError, this, &ProjectBuilder::buildError, Qt::DirectConnection);
-        QObject::connect(&m_cmakeBuilder, &CMakeBuilder::buildSuccess, this, &ProjectBuilder::buildSuccess, Qt::DirectConnection);
-        QObject::connect(&m_cmakeBuilder, &CMakeBuilder::buildingChanged, this, &ProjectBuilder::buildingChanged, Qt::DirectConnection);
-        QObject::connect(&m_cmakeBuilder, &CMakeBuilder::projectFileChanged, this, &ProjectBuilder::projectFileChanged, Qt::DirectConnection);
-        QObject::connect(&m_cmakeBuilder, &CMakeBuilder::cleaned, this, &ProjectBuilder::cleaned, Qt::DirectConnection);
         QObject::connect(&m_cmakeBuilder, &CMakeBuilder::commandRunnerChanged, this, &ProjectBuilder::commandRunnerChanged, Qt::DirectConnection);
-        QObject::connect(&m_cmakeBuilder, &CMakeBuilder::runnableChanged, this, &ProjectBuilder::runnableChanged, Qt::DirectConnection);
     }
 
     if (!m_activeBuilder) {
         qWarning() << "No active builder!";
         return false;
     }
+
+    QObject::connect(m_activeBuilder, &BuilderBackend::buildError, this, &ProjectBuilder::buildError, Qt::DirectConnection);
+    QObject::connect(m_activeBuilder, &BuilderBackend::buildSuccess, this, &ProjectBuilder::buildSuccess, Qt::DirectConnection);
+    QObject::connect(m_activeBuilder, &BuilderBackend::buildingChanged, this, &ProjectBuilder::buildingChanged, Qt::DirectConnection);
+    QObject::connect(m_activeBuilder, &BuilderBackend::projectFileChanged, this, &ProjectBuilder::projectFileChanged, Qt::DirectConnection);
+    QObject::connect(m_activeBuilder, &BuilderBackend::cleaned, this, &ProjectBuilder::cleaned, Qt::DirectConnection);
+    QObject::connect(m_activeBuilder, &BuilderBackend::runnableChanged, this, &ProjectBuilder::runnableChanged, Qt::DirectConnection);
 
     // Count already loaded project as a valid operation
     if (m_projectFile == path) {
