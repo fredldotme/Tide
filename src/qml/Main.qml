@@ -529,8 +529,8 @@ ApplicationWindow {
 
                 BusyIndicator {
                     id: hudIndicator
-                    visible: wasmRunner.running || projectBuilder.building || dbugger.running || git.busy
-                    running: wasmRunner.running || projectBuilder.building || dbugger.running || git.busy
+                    visible: platformProperties.usesHudBusyIndicator && (wasmRunner.running || projectBuilder.building || dbugger.running || git.busy)
+                    running: visible
                 }
 
                 Label {
@@ -2191,7 +2191,7 @@ ApplicationWindow {
                                                        root.palette.button
                                         text: modelData.name
                                         detailText: getDetailText()
-                                        height: font.pixelSize + detailControl.height + (paddingSmall * 2)
+                                        height: mainArea.height
                                         font.pixelSize: 16
                                         onClicked: {
                                             if (modelData.name.endsWith(".pro") &&
@@ -2526,7 +2526,7 @@ ApplicationWindow {
             width: showDebugArea ? (sideBarWidth - paddingMedium) : 0
             height: mainContainer.height - (paddingMedium * 2) // TODO: Commonalize
             anchors.top: parent.top
-            anchors.topMargin: headerBarHeight
+            anchors.topMargin: headerBarHeight + uiIntegration.topPadding
             anchors.right: parent.right
             anchors.rightMargin: paddingSmall
             parent: paddedOverlayArea

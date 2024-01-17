@@ -16,6 +16,7 @@ Rectangle {
     property alias icon: iconControl.icon
     property alias detailText: detailControl.text
     property alias detailControl: detailControl
+    property alias mainArea : mainLayout
     property bool flat: true
     property bool pressAnimation : true
     property bool longPressEnabled: true
