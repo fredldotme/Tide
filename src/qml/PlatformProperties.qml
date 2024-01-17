@@ -1,6 +1,7 @@
 import QtQml
 
 QtObject {
-    readonly property bool supportsOptimizations : Qt.platform.os === "osx" || Qt.platform.os === "linux"
-    readonly property bool supportsCMake : true
+    readonly property bool supportsOptimizations : Qt.platform.os === "osx"
+    readonly property bool supportsCMake : Qt.platform.os === "linux"
+    readonly property bool supportsEmbeddedStatusbar : Qt.platform.os === "ios"
 }

@@ -323,7 +323,7 @@ ApplicationWindow {
 
     Item {
         id: floatingOverlayHeaderArea
-        y: uiIntegration.statusBarHeight
+        y: uiIntegration.insetTop
         height: headerBarHeight
         parent: Overlay.overlay
         anchors {
@@ -337,7 +337,7 @@ ApplicationWindow {
 
     Item {
         id: mainViewHeader
-        y: uiIntegration.statusBarHeight
+        y: uiIntegration.insetTop
         height: headerBarHeight
         anchors {
             left: mainContainer.left
@@ -576,7 +576,7 @@ ApplicationWindow {
                     width: implicitWidth
                     height: implicitHeight
                     text: "|"
-                    property bool visibility: hudLabel.width > 0 && prefixLabel.text !== ""
+                    property bool visibility: hudLabel.text !== "" && prefixLabel.text !== ""
                     visible: opacity > 0.0
                     opacity: visibility ? 1.0 : 0.0
                     Behavior on opacity {
@@ -589,14 +589,16 @@ ApplicationWindow {
                     color: headerItemColor
                     elide: Text.ElideRight
                     font.bold: true
-                    width: 0
+                    width: text !== "" ? implicitWidth : 0
                     height: implicitHeight
-
-                    Behavior on width {
-                        NumberAnimation {
-                            duration: 200
-                            easing.type: Easing.OutExpo
-                        }
+                    property string flashyMessage : ""
+                    property string stickyMessage : {
+                        if (consoleView.consoleOutput.length > 0)
+                            return consoleView.consoleOutput[consoleView.consoleOutput.length - 1]
+                        return ""
+                    }
+                    text: {
+                        return (flashyMessage !== "") ? flashyMessage : stickyMessage
                     }
 
                     Behavior on opacity {
@@ -611,7 +613,7 @@ ApplicationWindow {
                     }
 
                     function flashMessageWithDuration(msg, duration) {
-                        hudLabel.text = msg
+                        hudLabel.flashyMessage = msg
                         hudLabel.width = hudLabel.implicitWidth
                         hudLabelHideTimer.stop()
                         hudLabelHideTimer.interval = duration
@@ -621,7 +623,9 @@ ApplicationWindow {
                     Timer {
                         id: hudLabelHideTimer
                         repeat: false
-                        onTriggered: hudLabel.width = 0
+                        onTriggered: {
+                            hudLabel.flashyMessage = ""
+                        }
                     }
                 }
             }
@@ -1323,6 +1327,8 @@ ApplicationWindow {
 
     PlatformIntegrationDelegate {
         id: uiIntegration
+        property int insetTop : platformProperties.supportsEmbeddedStatusbar ? uiIntegration.statusBarHeight : 0
+        property int topPadding : platformProperties.supportsEmbeddedStatusbar ? 0 : paddingMedium
     }
 
     // Main container
@@ -1446,7 +1452,7 @@ ApplicationWindow {
             onVisibleChanged: mainView.forceLayout()
 
             x: !centered ? 0 : ((parent.width - width) / 2)
-            y: !centered ? 0 : ((parent.height - height) / 2)
+            y: !centered ? uiIntegration.topPadding : ((parent.height - height) / 2)
             width: !centered ? parent.width : dialogWidth
             height: !centered ? parent.height : dialogHeight
 
@@ -2419,7 +2425,7 @@ ApplicationWindow {
         Item {
             id: paddedOverlayArea
             width: parent.width
-            y: uiIntegration.statusBarHeight
+            y: uiIntegration.insetTop
             height: parent.height - (uiIntegration.oskVisible ? uiIntegration.oskHeight : 0) - headerItemHeight
             parent: Overlay.overlay
             z: dialogShadow.z + 1
