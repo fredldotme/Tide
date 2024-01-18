@@ -243,6 +243,7 @@ void AutoCompleter::run()
             QStringLiteral("--sysroot=%1").arg(this->m_sysroot).toUtf8()
         };
 
+        tmpArgs << QStringLiteral("-I%1/include").arg(this->m_sysroot).toUtf8();
         for (const auto& tmpArg : m_includePaths) {
             tmpArgs << QStringLiteral("-I%1").arg(tmpArg).toUtf8();
         }
