@@ -471,7 +471,7 @@ Item {
 
                 Rectangle {
                     id: currentLineIndicator
-                    width: Math.max(codeView.implicitWidth, codeField.width)
+                    width: Math.max(codeView.implicitWidth, mainEditorColumn.width)
                     color: codeField.selectionColor
                     visible: codeField.focus && !codeField.readOnly
                     height: lineNumbersHelper.lineCount[codeField.currentLine - 1] !== undefined ?
@@ -880,7 +880,7 @@ Item {
                             property bool compact : true
                             state: compact && root.landscapeMode ? "compact" : "expanded"
 
-                            readonly property int maxWidth : state === "compact" ? 400 : mainView.dialogWidth
+                            readonly property int maxWidth : state === "compact" ? 500 : mainView.dialogWidth
                             readonly property int maxHeight : state === "compact" ? 300 : mainView.dialogHeight
 
                             function framePaddingX() {
@@ -999,8 +999,8 @@ Item {
                                         delegate: TidePrefixedButton {
                                             width: autoCompletorFrame.width
                                             icon.source: autoCompletionList.iconForKind(modelData.kind)
-                                            prefix: modelData.prefix
-                                            text: modelData.name
+                                            prefix: modelData.name
+                                            text: modelData.prefix
                                             detail: modelData.detail !== "" ? qsTr("inside %1").arg(modelData.detail) :
                                                                               qsTr("in %1").arg(file.name)
                                             font.styleName: "Monospace"
