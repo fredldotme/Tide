@@ -189,10 +189,10 @@ cd $OLD_PWD
 cd wasi-sdk
 mkdir -p $OLD_PWD/tmp/wasi-sysroot/lib
 rm -rf build || true
-NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi TARGET_TRIPLE=wasm32-wasi THREADING=OFF DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-tide.BUILT
+NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi TARGET_TRIPLE=wasm32-wasi THREADING=OFF EXCEPTIONS=OFF EXCEPTIONS_FLAGS="-fno-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-tide.BUILT
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi $OLD_PWD/tmp/wasi-sysroot/lib/
 rm -rf build
-NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET_TRIPLE=wasm32-wasi-threads DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-tide.BUILT
+NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET_TRIPLE=wasm32-wasi-threads EXCEPTIONS=OFF EXCEPTIONS_FLAGS="-fno-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-tide.BUILT
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/lib/
 # cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/libunwind.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
 # cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/libunwind.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
