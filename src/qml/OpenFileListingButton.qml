@@ -7,6 +7,7 @@ Rectangle {
     color: "transparent"
     border.width: outline ? 1 : 0
     border.color: outlineColor
+    clip: true
 
     property color textColor
     property alias label: labelControl
@@ -42,6 +43,12 @@ Rectangle {
     Behavior on opacity {
         NumberAnimation {
             duration: 750
+            easing.type: Easing.OutQuad
+        }
+    }
+    Behavior on height {
+        NumberAnimation {
+            duration: 150
             easing.type: Easing.OutQuad
         }
     }
