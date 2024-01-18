@@ -3,8 +3,33 @@ version: 1.9.0
 grade: stable
 confinement: strict
 base: core22
-summary: A modern approach to WebAssembly development
-description: TBD
+summary: The modern approach to WebAssembly development
+description: |
+  Develop and build WebAssembly code directly on your favorite tablet device!
+  Welcome to Tide, the touch-friendly IDE for WebAssembly development.
+
+  Common Features:
+  - On-device compilation & execution of WebAssembly
+  - Supports C, C++23 & Python 3.11
+  - Import projects from third-party software like Working Copy
+  - Project-wide Find & Replace
+  - Syntax highlighting
+
+  For C/C++:
+  - Debugging with breakpoints & single-stepping, call stack and stack frame information
+  - Format your code based on popular styling
+  - Autocomplete your variables & functions/methods
+  - Project management (using a subset of QMake)
+  - Optional WASI threading and socket support
+  - Easily release your WebAssembly builds
+
+  Copyright notices
+  - LLVM: Apache 2.0 License with LLVM exceptions
+  - WAMR: Apache 2.0
+  - Wasi SDK: Apache 2.0
+  - libqmakeparser: BSD 3-Clause License
+  - no_system: BSD 3-Clause License
+  - Tide icon: Parmjot Singh
 
 architectures:
   - build-on: [amd64]
