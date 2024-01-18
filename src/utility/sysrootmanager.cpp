@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QDirIterator>
 #include <QStandardPaths>
+#include <QThreadPool>
 
 #include <microtar.h>
 
@@ -11,6 +12,13 @@ SysrootManager::SysrootManager(QObject *parent)
     : QObject{parent}, m_installing{false}, m_progress{0.0}
 {
     QObject::connect(&m_installThread, &QThread::started, this, &SysrootManager::runInThread, Qt::DirectConnection);
+    QObject::connect(this, &SysrootManager::progressChanged, this, [=](){
+        if (stage != stages) {
+            return;
+        }
+        m_installing = false;
+        emit installingChanged();
+    });
 }
 
 SysrootManager::~SysrootManager()
@@ -97,9 +105,6 @@ void SysrootManager::runInThread()
     m_installing = true;
     emit installingChanged();
 
-    const int stages = 9;
-    int stage = 0;
-
     // Clear old temporaries
     {
         qDebug() << "Clearing old temporaries";
@@ -110,168 +115,170 @@ void SysrootManager::runInThread()
     }
 
     // Unpack new temporaries
-    {
-        const auto archive = resourcesRoot + "/the-sysroot.tar";
-        unpackTar(archive, temporaries);
-        setProgress((qreal)stage++ / (qreal)stages);
-    }
+    QThreadPool::globalInstance()->start([=](){
+        {
+            const auto archive = resourcesRoot + "/the-sysroot.tar";
+            unpackTar(archive, temporaries);
+            setProgress((qreal)stage++ / (qreal)stages);
+        }
+        {
+            const auto archive = resourcesRoot + "/boost.tar";
+            unpackTar(archive, temporaries + QStringLiteral("/Sysroot/include"));
+            setProgress((qreal)stage++ / (qreal)stages);
+        }
 
-    // Boost
-    {
-        const auto archive = resourcesRoot + "/boost.tar";
-        unpackTar(archive, temporaries + QStringLiteral("/Sysroot/include"));
-        setProgress((qreal)stage++ / (qreal)stages);
-    }
+        // Clang parts
+        {
+            const QString source = temporaries + "/Clang";
+            const QString targetRoot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                                       QStringLiteral("/Library/usr/lib/clang");
+            const QString target = targetRoot + QStringLiteral("/17");
+
+            {
+                qDebug() << "Clearing old Clang area";
+                QDir targetDir(targetRoot);
+                if (targetDir.exists())
+                    qDebug() << targetDir.removeRecursively();
+            }
+
+            qDebug() << "Moving bundled Clang headers";
+            QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
+
+            while (it.hasNext()) {
+                const QString sourcePath = it.next();
+                const QString relativePath = sourcePath.mid(source.length());
+                const QString targetPath = target + relativePath;
+                const QString targetDir = QFileInfo(targetPath).absolutePath();
+
+                QDir dir(targetDir);
+                if (!dir.exists()) {
+                    dir.mkpath(targetDir);
+                }
+
+                //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
+                QFile::rename(sourcePath, targetPath);
+            }
+            setProgress((qreal)stage++ / (qreal)stages);
+        }
+
+        // Sysroot/wasi-sdk parts
+        {
+            const QString source = temporaries + "/Sysroot";
+            const QString target = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                                   QStringLiteral("/Library/wasi-sysroot");
+
+            qDebug() << "Clearing old sysroot area";
+            QDir targetDir(target);
+            if (targetDir.exists())
+                qDebug() << targetDir.removeRecursively();
+
+            qDebug() << "Moving bundled sysroot";
+            QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
+
+            while (it.hasNext()) {
+                const QString sourcePath = it.next();
+                const QString relativePath = sourcePath.mid(source.length());
+                const QString targetPath = target + relativePath;
+                const QString targetDir = QFileInfo(targetPath).absolutePath();
+
+                QDir dir(targetDir);
+                if (!dir.exists()) {
+                    dir.mkpath(targetDir);
+                }
+
+                //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
+                QFile::rename(sourcePath, targetPath);
+            }
+            setProgress((qreal)stage++ / (qreal)stages);
+        }
+    });
+
 
     // CMake
-    {
-        const auto archive = resourcesRoot + "/cmake.tar";
-        unpackTar(archive, temporaries + QStringLiteral("/CMake"));
-        setProgress((qreal)stage++ / (qreal)stages);
-    }
+    QThreadPool::globalInstance()->start([=](){
+        {
+            const auto archive = resourcesRoot + "/cmake.tar";
+            unpackTar(archive, temporaries + QStringLiteral("/CMake"));
+            setProgress((qreal)stage++ / (qreal)stages);
+        }
+
+        // CMake parts
+        {
+            const QString source = temporaries + "/CMake";
+            const QString target = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                                   QStringLiteral("/Library/CMake");
+
+            qDebug() << "Clearing old CMake area";
+            QDir targetDir(target);
+            if (targetDir.exists())
+                qDebug() << targetDir.removeRecursively();
+
+            qDebug() << "Moving bundled CMake contents";
+            QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
+
+            while (it.hasNext()) {
+                const QString sourcePath = it.next();
+                const QString relativePath = sourcePath.mid(source.length());
+                const QString targetPath = target + relativePath;
+                const QString targetDir = QFileInfo(targetPath).absolutePath();
+
+                QDir dir(targetDir);
+                if (!dir.exists()) {
+                    dir.mkpath(targetDir);
+                }
+
+                //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
+                QFile::rename(sourcePath, targetPath);
+            }
+            setProgress((qreal)stage++ / (qreal)stages);
+        }
+    });
+
 
     // Python
-    {
-        const auto archive = resourcesRoot + "/python.tar";
-        unpackTar(archive, temporaries + QStringLiteral("/Python"));
-        setProgress((qreal)stage++ / (qreal)stages);
-    }
+    QThreadPool::globalInstance()->start([=](){
+        {
+            const auto archive = resourcesRoot + "/python.tar";
+            unpackTar(archive, temporaries + QStringLiteral("/Python"));
+            setProgress((qreal)stage++ / (qreal)stages);
+        }
+        // Python parts
+        {
+            const QString source = temporaries + "/Python";
+            const QString target = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                                   QStringLiteral("/Library/Python");
 
-    // SDL
+            qDebug() << "Clearing old Python area";
+            QDir targetDir(target);
+            if (targetDir.exists())
+                qDebug() << targetDir.removeRecursively();
+
+            qDebug() << "Moving bundled Python contents";
+            QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
+
+            while (it.hasNext()) {
+                const QString sourcePath = it.next();
+                const QString relativePath = sourcePath.mid(source.length());
+                const QString targetPath = target + relativePath;
+                const QString targetDir = QFileInfo(targetPath).absolutePath();
+
+                QDir dir(targetDir);
+                if (!dir.exists()) {
+                    dir.mkpath(targetDir);
+                }
+
+                //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
+                QFile::rename(sourcePath, targetPath);
+            }
+            setProgress((qreal)stage++ / (qreal)stages);
+        }
+    });
+
+// SDL
 #if 0
     {
         const auto archive = qApp->applicationDirPath() + "/SDL.tar";
         unpackTar(archive, temporaries + QStringLiteral("/Sysroot/include"));
     }
 #endif
-
-    // Clang parts
-    {
-        const QString source = temporaries + "/Clang";
-        const QString targetRoot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
-                               QStringLiteral("/Library/usr/lib/clang");
-        const QString target = targetRoot + QStringLiteral("/17");
-
-        {
-            qDebug() << "Clearing old Clang area";
-            QDir targetDir(targetRoot);
-            if (targetDir.exists())
-                qDebug() << targetDir.removeRecursively();
-        }
-
-        qDebug() << "Moving bundled Clang headers";
-        QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
-
-        while (it.hasNext()) {
-            const QString sourcePath = it.next();
-            const QString relativePath = sourcePath.mid(source.length());
-            const QString targetPath = target + relativePath;
-            const QString targetDir = QFileInfo(targetPath).absolutePath();
-
-            QDir dir(targetDir);
-            if (!dir.exists()) {
-                dir.mkpath(targetDir);
-            }
-
-            //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
-            QFile::rename(sourcePath, targetPath);
-        }
-        setProgress((qreal)stage++ / (qreal)stages);
-    }
-
-    // Sysroot/wasi-sdk parts
-    {
-        const QString source = temporaries + "/Sysroot";
-        const QString target = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
-                               QStringLiteral("/Library/wasi-sysroot");
-
-        qDebug() << "Clearing old sysroot area";
-        QDir targetDir(target);
-        if (targetDir.exists())
-            qDebug() << targetDir.removeRecursively();
-
-        qDebug() << "Moving bundled sysroot";
-        QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
-
-        while (it.hasNext()) {
-            const QString sourcePath = it.next();
-            const QString relativePath = sourcePath.mid(source.length());
-            const QString targetPath = target + relativePath;
-            const QString targetDir = QFileInfo(targetPath).absolutePath();
-
-            QDir dir(targetDir);
-            if (!dir.exists()) {
-                dir.mkpath(targetDir);
-            }
-
-            //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
-            QFile::rename(sourcePath, targetPath);
-        }
-        setProgress((qreal)stage++ / (qreal)stages);
-    }
-
-    // CMake parts
-    {
-        const QString source = temporaries + "/CMake";
-        const QString target = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
-                               QStringLiteral("/Library/CMake");
-
-        qDebug() << "Clearing old CMake area";
-        QDir targetDir(target);
-        if (targetDir.exists())
-            qDebug() << targetDir.removeRecursively();
-
-        qDebug() << "Moving bundled CMake contents";
-        QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
-
-        while (it.hasNext()) {
-            const QString sourcePath = it.next();
-            const QString relativePath = sourcePath.mid(source.length());
-            const QString targetPath = target + relativePath;
-            const QString targetDir = QFileInfo(targetPath).absolutePath();
-
-            QDir dir(targetDir);
-            if (!dir.exists()) {
-                dir.mkpath(targetDir);
-            }
-
-            //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
-            QFile::rename(sourcePath, targetPath);
-        }
-        setProgress((qreal)stage++ / (qreal)stages);
-    }
-
-    // Python parts
-    {
-        const QString source = temporaries + "/Python";
-        const QString target = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
-                               QStringLiteral("/Library/Python");
-
-        qDebug() << "Clearing old Python area";
-        QDir targetDir(target);
-        if (targetDir.exists())
-            qDebug() << targetDir.removeRecursively();
-
-        qDebug() << "Moving bundled Python contents";
-        QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);
-
-        while (it.hasNext()) {
-            const QString sourcePath = it.next();
-            const QString relativePath = sourcePath.mid(source.length());
-            const QString targetPath = target + relativePath;
-            const QString targetDir = QFileInfo(targetPath).absolutePath();
-
-            QDir dir(targetDir);
-            if (!dir.exists()) {
-                dir.mkpath(targetDir);
-            }
-
-            //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
-            QFile::rename(sourcePath, targetPath);
-        }
-        setProgress((qreal)stage++ / (qreal)stages);
-    }
-
-    m_installing = false;
-    emit installingChanged();
 }
