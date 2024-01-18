@@ -106,7 +106,10 @@ else
     else
         PREFIX_ARG=""
     fi
-
+    if [ "$BUILD_LINUX" = "1" ]; then
+        OLD_PATH="$PATH"
+        export PATH="/usr/bin:/bin:$PATH"
+    fi
     env CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake -GNinja \
         -DLLVM_TARGETS_TO_BUILD="AArch64;X86;WebAssembly" \
         -DLLVM_ENABLE_PROJECTS='clang;lld;lldb' \
@@ -121,6 +124,10 @@ else
     if [ "$BUILD_SNAP" = "1" ]; then
         ninja install
     fi
+    if [ "$BUILD_LINUX" = "1" ]; then
+        export PATH="$OLD_PATH"
+    fi
+
 fi
 cd $OLD_PWD
 
@@ -189,10 +196,10 @@ cd $OLD_PWD
 cd wasi-sdk
 mkdir -p $OLD_PWD/tmp/wasi-sysroot/lib
 rm -rf build || true
-NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi TARGET_TRIPLE=wasm32-wasi THREADING=OFF EXCEPTIONS=OFF EXCEPTIONS_FLAGS="-fno-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-tide.BUILT
+NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi TARGET_TRIPLE=wasm32-wasi THREADING=OFF EXCEPTIONS=ON EXCEPTIONS_FLAGS="-fwasm-exceptions -Wl,--export=__cpp_exception" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-tide.BUILT
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi $OLD_PWD/tmp/wasi-sysroot/lib/
 rm -rf build
-NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET_TRIPLE=wasm32-wasi-threads EXCEPTIONS=OFF EXCEPTIONS_FLAGS="-fno-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-tide.BUILT
+NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET_TRIPLE=wasm32-wasi-threads EXCEPTIONS=ON EXCEPTIONS_FLAGS="-fwasm-exceptions -Wl,--export=__cpp_exception" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-tide.BUILT
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/lib/
 # cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/libunwind.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
 # cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/libunwind.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
