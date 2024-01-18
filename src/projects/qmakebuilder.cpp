@@ -18,7 +18,7 @@
 #define SUPPORT_AOT 0
 #endif
 
-#define SUPPORT_EXCEPTIONS 0
+#define SUPPORT_EXCEPTIONS 1
 
 inline static QString resolveDefaultVariables(const QString& line,
                                               const QString& sourceDir,
@@ -119,7 +119,7 @@ void QMakeBuilder::build(const bool debug, const bool aot)
     }
 
 #if SUPPORT_EXCEPTIONS
-    const auto commonFlags = QStringLiteral(" -fwasm-exceptions ");
+    const auto commonFlags = QStringLiteral(" -fwasm-exceptions -Wl,--export=__cpp_exception ");
 #else
     const auto commonFlags = QStringLiteral(" -fno-exceptions ");
 #endif
