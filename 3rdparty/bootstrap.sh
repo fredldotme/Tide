@@ -48,6 +48,7 @@ function cmake_iossystem_build {
     cd build
     cmake \
         -G Ninja \
+        -DCMAKE_SYSTEM_NAME=iOS \
         -DCMAKE_OSX_SYSROOT=iphoneos \
         -DCMAKE_C_COMPILER=$(xcrun --sdk iphoneos -f clang) \
         -DCMAKE_CXX_COMPILER=$(xcrun --sdk iphoneos -f clang++) \
