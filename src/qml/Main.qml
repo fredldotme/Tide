@@ -52,7 +52,7 @@ ApplicationWindow {
                                                    "file://"
 
     readonly property color borderColor : Qt.tint(root.palette.window, "#10FF0000")
-    property color headerItemColor : root.palette.button
+    property color headerItemColor : dialogShadow.visible ? "white" : root.palette.button
     Behavior on headerItemColor {
         ColorAnimation {
             duration: 300
