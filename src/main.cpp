@@ -7,6 +7,7 @@
 #include <QStyleHints>
 #include <QStandardPaths>
 #include <QLoggingCategory>
+#include <QThreadPool>
 
 #include "linenumbershelper.h"
 #include "syntaxhighlighter.h"
@@ -78,6 +79,7 @@ int main(int argc, char *argv[])
     const QString runtime = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
                             QStringLiteral("/Runtimes/Linux");
 
+    qputenv("QT_QUICK_CONTROLS_STYLE", "");
     qputenv("SYSROOT", sysroot.toUtf8().data());
     qputenv("CLANG_RESOURCE_DIR",
             QStringLiteral("%1/usr/lib/clang/17").arg(library).toStdString().c_str());
@@ -91,6 +93,7 @@ int main(int argc, char *argv[])
     }
 #endif
 
+    QThreadPool::globalInstance()->setMaxThreadCount(32);
     QApplication app(argc, argv);
     app.setAutoSipEnabled(true);
     app.setOrganizationDomain(orgName);
