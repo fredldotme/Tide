@@ -6,7 +6,7 @@
 #include <QThreadPool>
 
 GitClient::GitClient(QObject *parent)
-    : QObject{parent}, m_repo{nullptr}
+    : QObject{parent}, m_repo{nullptr}, m_busy{false}
 {
     QObject::connect(this, &GitClient::repoOpened, this,
         [=](const QString path){
@@ -186,13 +186,16 @@ void GitClient::refreshStage()
 
 void GitClient::clone(const QString& url, const QString& name)
 {
-    if (m_busy)
+    if (m_busy) {
+        qWarning() << "GitClient is currently busy";
         return;
+    }
 
     const auto projectDirPath = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
                                 QStringLiteral("/Projects/%1").arg(name);
 
     if (QDir(projectDirPath).exists()) {
+        qWarning() << projectDirPath << "exists already";
         emit this->repoExists(projectDirPath, name);
         return;
     }
