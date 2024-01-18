@@ -427,7 +427,7 @@ TideDialog {
                         Switch {
                             id: optSwitch
                             text: qsTr("AOT/JIT optimizations")
-                            visible: Qt.platform.os !== "ios"
+                            visible: platformProperties.supportsOptimizations
                             checked: settings.optimizations
                             onCheckedChanged: {
                                 settings.optimizations = checked
