@@ -26,6 +26,9 @@ private:
     qreal m_progress;
     QThread m_installThread;
 
+    const int stages = 9;
+    int stage = 0;
+
 signals:
     void installingChanged();
     void progressChanged();
