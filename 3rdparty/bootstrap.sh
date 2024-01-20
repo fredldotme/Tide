@@ -4,16 +4,28 @@ set -e
 
 BUILD_LINUX=0
 BUILD_SNAP=0
+BUILD_MAC=0
+BUILD_IOS=1
 
 if [ "$1" = "--linux" ]; then
     BUILD_LINUX=1
     BUILD_SNAP=0
+    BUILD_IOS=0
 fi
 
 if [ "$1" = "--linux-snap" ]; then
     echo "Building for Snap environment"
     BUILD_LINUX=1
     BUILD_SNAP=1
+    BUILD_IOS=0
+fi
+
+if [ "$1" = "--macos" ]; then
+    echo "Building for macOS"
+    BUILD_LINUX=0
+    BUILD_SNAP=0
+    BUILD_MAC=1
+    BUILD_IOS=0
 fi
 
 # Preparations
@@ -21,7 +33,7 @@ if [ ! -d tmp ]; then
     mkdir tmp
 fi
 
-if [ "$BUILD_LINUX" = "0" ]; then
+if [ "$BUILD_IOS" = "1" ]; then
     IOS_SDKROOT=$(xcrun --sdk iphoneos --show-sdk-path)
     SIM_SDKROOT=$(xcrun --sdk iphonesimulator --show-sdk-path)
 fi
@@ -54,6 +66,22 @@ function cmake_iossystem_build {
         -DCMAKE_CXX_COMPILER=$(xcrun --sdk iphoneos -f clang++) \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=14.0 \
+        $1 ..
+    ninja
+
+    cd ..
+}
+function cmake_mac_build {
+    echo "Custom args: $1"
+
+    if [ -d build-mac ]; then
+        rm -rf build-mac
+    fi
+    mkdir build-mac
+    cd build-mac
+    cmake \
+        -G Ninja \
+        -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         $1 ..
     ninja
 
@@ -96,9 +124,9 @@ function cmake_wasi_build {
 
 # LLVM
 cd llvm
-if [ "$BUILD_LINUX" = "0" ]; then
+if [ "$BUILD_IOS" = "1" ] || [ "$BUILD_MAC" = "1" ]; then
     echo "Dere" # ./bootstrap.sh
-else
+elif [ "$BUILD_LINUX" = "1" ]; then
     mkdir build-linux || true
     cd build-linux
 
@@ -125,7 +153,7 @@ else
 fi
 cd $OLD_PWD
 
-if [ "$BUILD_LINUX" = "0" ]; then
+if [ "$BUILD_IOS" = "1" ]; then
     # libclang
     LIBNAME=libclang
     cd tmp
@@ -155,6 +183,19 @@ if [ "$BUILD_LINUX" = "0" ]; then
     cmake_iossystem_build "-DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos"
     cp ios/Info.plist build/Source/cmake.framework/Info.plist
     tar cvf $OLD_PWD/tmp/cmake.tar Modules
+    cd $OLD_PWD
+fi
+
+if [ "$BUILD_MAC" = "1" ]; then
+    # Ninja
+    cd ninja
+    cmake_mac_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=0 -DNINJA_BUILD_BINARY=1"
+    cd $OLD_PWD
+
+    # CMake
+    cd CMake
+    cmake_mac_build "-DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0"
+    tar cvf $OLD_PWD/tmp/cmake.tar Modules Templates
     cd $OLD_PWD
 fi
 
