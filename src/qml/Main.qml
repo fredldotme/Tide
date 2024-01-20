@@ -282,6 +282,11 @@ ApplicationWindow {
         enabled: !editor.invalidated
         onActivated: editor.autocomplete()
     }
+    Shortcut {
+        sequence: "Ctrl+Space"
+        enabled: !editor.invalidated
+        onActivated: editor.autocomplete()
+    }
 
     Shortcut {
         sequence: "Ctrl+B"
