@@ -66,26 +66,35 @@ void CMakeBuilder::build(const bool debug, const bool aot)
     QDir buildDir(buildPath);
     qDebug() << buildDir.mkpath(buildPath);
 
-#ifndef Q_OS_LINUX
+#if defined(Q_OS_MACOS)
     const auto cmakePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                            QStringLiteral("/Library/CMake");
-    const auto cmakeBinPath = QStringLiteral("/usr/bin/");
-#else
+    const auto cmakeBinPath = QCoreApplication::applicationDirPath();
+#elif defined(Q_OS_IOS)
+    const auto cmakePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                           QStringLiteral("/Library/CMake");
+    const auto cmakeBinPath = QStringLiteral("/usr/bin");
+#elif defined(Q_OS_LINUX)
     const auto cmakePath = QStringLiteral("/snap/tide-ide/current/usr/share/cmake-3.27");
     const auto cmakeBinPath = QStringLiteral("");
+#else
+#error No cmake path set yet!
 #endif
     const auto cmakeRoot = QStringLiteral("-DCMAKE_ROOT=\"%1\""
-                                          " -DCMAKE_C_COMPILER=clang"
-                                          " -DCMAKE_CXX_COMPILER=clang++"
+                                          " -DCMAKE_C_COMPILER=\"%2/clang\""
+                                          " -DCMAKE_CXX_COMPILER=\"%2/clang++\""
+                                          " -DCMAKE_ASM_COMPILER=\"%2/clang\""
+                                          " -DCMAKE_AR=\"%2/llvm-ar\""
+                                          " -DCMAKE_RANLIB=\"%2/llvm-ranlib\""
                                           " -DCMAKE_SYSTEM_PROCESSOR=wasm32"
-                                          " -DCMAKE_SYSROOT=\"%2\""
+                                          " -DCMAKE_SYSROOT=\"%3\""
                                           " -DCMAKE_C_COMPILER_TARGET=wasm32-wasi-threads"
-                                          " -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi-threads").arg(cmakePath, m_sysroot);
-    const auto cmakeArgs = cmakeRoot + QStringLiteral(" -DCMAKE_SYSTEM_NAME=WASI -DCMAKE_SYSTEM_VERSION=1 -DCMAKE_MAKE_PROGRAM=%1ninja ").arg(cmakeBinPath);
+                                          " -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi-threads").arg(cmakePath, cmakeBinPath, m_sysroot);
+    const auto cmakeArgs = cmakeRoot + QStringLiteral(" -DCMAKE_SYSTEM_NAME=WASI -DCMAKE_SYSTEM_VERSION=1 -DCMAKE_MAKE_PROGRAM=%1/ninja ").arg(cmakeBinPath);
 
     QStringList buildCommands;
-    buildCommands << QStringLiteral("cmake -G Ninja -S \"%1\" %2").arg(sourcePath, cmakeArgs);
-    buildCommands << QStringLiteral("ninja -j1");
+    buildCommands << QStringLiteral("%1/cmake -G Ninja -S \"%2\" -B \"%3\" %4").arg(cmakeBinPath, sourcePath, buildPath, cmakeArgs);
+    buildCommands << QStringLiteral("%1/ninja -C \"%2\" -j1").arg(cmakeBinPath, buildPath);
 
     std::thread buildThread([=]() {
         m_building = true;

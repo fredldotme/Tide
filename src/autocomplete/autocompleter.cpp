@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QStandardPaths>
 #include <QTimer>
+#include <QMutexLocker>
 
 AutoCompleter::AutoCompleter(QObject *parent)
     : QObject{parent}, clang{nullptr}, m_pluginManager{nullptr}
@@ -79,7 +80,14 @@ inline static AutoCompleter::CompletionKind getAutoCompleterKind(const CXCursorK
 
 void AutoCompleter::run()
 {
-    m_decls.clear();
+    // Preparations
+    ClangWrapper clang;
+    {
+        QMutexLocker<QMutex> locker(&clangMutex);
+        this->clang = &clang;
+    }
+
+    m_declsInProgress.clear();
 
     // First from the associated plugins
     if (m_pluginManager) {
@@ -233,9 +241,6 @@ void AutoCompleter::run()
     }
 
     // Then using Clang
-    ClangWrapper clang;
-    this->clang = &clang;
-
     for (const auto& sourceFile : this->sourceFiles) {
         CXIndex index = this->clang->createIndex(0, 0);
 
@@ -298,8 +303,16 @@ void AutoCompleter::run()
         this->clang->disposeIndex(index);
     }
 
-    this->clang = nullptr;
-    emit declsChanged();
+    {
+        QMutexLocker<QMutex> locker(&declsMutex);
+        this->m_decls = m_declsInProgress;
+        emit declsChanged();
+    }
+
+    {
+        QMutexLocker<QMutex> locker(&clangMutex);
+        this->clang = nullptr;
+    }
 }
 
 void AutoCompleter::addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang)
@@ -345,6 +358,14 @@ void AutoCompleter::addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang)
 
 void AutoCompleter::reloadAst(const QStringList paths, const QString hint, const CompletionKind filter, const int line, const int column)
 {
+    {
+        QMutexLocker<QMutex> locker(&clangMutex);
+        // AST reload in progress
+        if (clang) {
+            return;
+        }
+    }
+
     this->sourceFiles = paths;
     this->hint = hint;
     this->referenceHints = createHints(hint.toLower());
@@ -353,7 +374,8 @@ void AutoCompleter::reloadAst(const QStringList paths, const QString hint, const
     this->foundLine = true;
     this->typeFilter = filter;
 
-    run();
+    m_thread.terminate();
+    m_thread.start();
 }
 
 void AutoCompleter::setSysroot(const QString sysroot)
@@ -370,6 +392,8 @@ QVariantList AutoCompleter::filteredDecls(const QString str)
 {
     qDebug() << "Filter:" << str;
     QVariantList ret;
+    QMutexLocker<QMutex> locker(&declsMutex);
+
     for (const auto& decl : m_decls) {
         const auto declMap = decl.toMap();
         const auto declPrefix = declMap.value("prefix").toString();
@@ -402,7 +426,7 @@ void AutoCompleter::foundKind(CompletionKind kind, const QString prefix, const Q
     decl.insert("detail", detail);
     decl.insert("kind", kind);
 
-    for (const auto& decl : m_decls) {
+    for (const auto& decl : m_declsInProgress) {
         const auto declMap = decl.toMap();
         if (declMap.value("prefix").toString() == prefix &&
             declMap.value("name").toString() == name) {
@@ -411,8 +435,8 @@ void AutoCompleter::foundKind(CompletionKind kind, const QString prefix, const Q
     }
 
     if (kind != AutoCompleter::CompletionKind::Unspecified) {
-        m_decls.push_front(decl);
+        m_declsInProgress.push_front(decl);
     } else {
-        m_decls.push_back(decl);
+        m_declsInProgress.push_back(decl);
     }
 }

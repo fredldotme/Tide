@@ -681,6 +681,9 @@ install(TARGETS ${PROJECT_NAME}
 
 # Non-resource bundling on macOS
 if(APPLE AND NOT IOS)
+    set(CMAKE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty/CMake/build-mac/bin)
+    set(NINJA_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty/ninja/build-mac)
+
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND mkdir -p "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Frameworks"
     )
@@ -727,6 +730,12 @@ if(APPLE AND NOT IOS)
         COMMAND cp -a "${LLVM_TOOLS}/lldb" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LLVM_TOOLS}/llvm-ar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LLVM_TOOLS}/llvm-ranlib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND install_name_tool -change "@rpath/libclang-cpp.dylib" "@rpath/../Frameworks/libclang-cpp.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lldb"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
@@ -734,6 +743,12 @@ if(APPLE AND NOT IOS)
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND install_name_tool -add_rpath "@loader_path/../Frameworks" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lldb"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${CMAKE_PATH}/cmake" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${NINJA_PATH}/ninja" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND ${MACDEPLOYQT_EXECUTABLE} "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../.." "-qmldir=${CMAKE_CURRENT_SOURCE_DIR}/qml"

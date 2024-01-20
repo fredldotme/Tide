@@ -132,6 +132,10 @@ Item {
                 id: searchAndReplace
             }
 
+            property var autoCompleter : AutoCompleter {
+                pluginsManager: pluginManager
+            }
+
             ScrollView {
                 id: contextResults
                 width: parent.width

@@ -5,6 +5,7 @@
 #include <QVariantMap>
 #include <QThread>
 #include <QList>
+#include <QMutex>
 
 #include <vector>
 
@@ -48,6 +49,8 @@ public:
     void foundKind(CompletionKind kind, const QString prefix, const QString name, const QString detail);
     void addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang);
 
+    QMutex clangMutex;
+    QMutex declsMutex;
     ClangWrapper* clang;
     CXCursor rootCursor;
     CXCursor deepestParent;
@@ -73,6 +76,7 @@ private:
 
     QThread m_thread;
     QVariantList m_decls;
+    QVariantList m_declsInProgress;
     QString m_sysroot;
     QStringList m_includePaths;
     QList<CompletionHint> m_anchorDecls;

@@ -5,6 +5,7 @@
 #include <QStandardPaths>
 #include <QUrl>
 #include <QProcess>
+#include <QDesktopServices>
 
 #include <thread>
 #include <iostream>
@@ -185,7 +186,7 @@ int MacSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
 
     qDebug() << "Run command:" << cmd;
 
-    status = posix_spawn(&childpid, cargs[0], &action, NULL, (char * const*)cargs.data(), environ);
+    status = posix_spawnp(&childpid, cargs[0], &action, NULL, (char * const*)cargs.data(), environ);
     if (status != 0) {
         qDebug() << "spawn status:" << status;
         goto done;
@@ -227,5 +228,8 @@ void MacSystemGlue::copyToClipboard(const QString text)
 
 void MacSystemGlue::share(const QString text, const QUrl url, const QRect pos)
 {
+    if (url.isValid())
+      const auto parentDir = QDir(url).
+      QDesktopServices::openUrl(url);
 }
 

@@ -443,25 +443,6 @@ ApplicationWindow {
                     }
 
                     MenuItem {
-                        id: contextFieldSearchButton
-                        text: qsTr("Find && replace")
-                        icon.source: Qt.resolvedUrl("qrc:/assets/magnifyingglass.circle.fill@2x.png")
-                        readonly property bool visibility : !editor.invalidated
-                        enabled: visibility
-                        visible: visibility
-                        height: visible ? implicitHeight : 0
-                        onVisibilityChanged: contextButton.wiggle()
-
-                        onClicked: {
-                            let root = editor.file.path
-                            if (contextDialog.visibility)
-                                contextDialog.hide()
-                            else
-                                contextDialog.show(root)
-                        }
-                    }
-
-                    MenuItem {
                         text: qsTr("Autocomplete")
                         icon.source: Qt.resolvedUrl("qrc:/assets/keyboard.badge.eye@2x.png")
                         readonly property bool visibility : editor.canUseAutocomplete
@@ -692,6 +673,57 @@ ApplicationWindow {
                     runtimeRunner.run(runtime + "/out.wasm", ["/bin/bash"])
                 }
             }*/
+
+            TideHeaderButton {
+                id: contextFieldSearchButton
+                source: Qt.resolvedUrl("qrc:/assets/magnifyingglass.circle.fill@2x.png")
+                color: root.headerItemColor
+                height: headerItemHeight
+                visible: !editor.invalidated
+                onVisibleChanged: contextFieldSearchButton.wiggle()
+
+                function wiggle() {
+                    if (!settings.wiggleHints)
+                        return
+                    contextFieldButtonWiggleAnimation.restart()
+                }
+
+                SequentialAnimation {
+                    id: contextFieldButtonWiggleAnimation
+                    NumberAnimation {
+                        target: contextButton
+                        property: "rotation"
+                        duration: 50
+                        from: 0
+                        to: -45
+                        easing.type: Easing.Linear
+                    }
+                    NumberAnimation {
+                        target: contextButton
+                        property: "rotation"
+                        duration: 100
+                        from: -45
+                        to: 45
+                        easing.type: Easing.Linear
+                    }
+                    NumberAnimation {
+                        target: contextButton
+                        property: "rotation"
+                        duration: 50
+                        from: 45
+                        to: 0
+                        easing.type: Easing.Linear
+                    }
+                }
+
+                onClicked: {
+                    let root = editor.file.path
+                    if (contextDialog.visibility)
+                        contextDialog.hide()
+                    else
+                        contextDialog.show(root)
+                }
+            }
 
             TideHeaderButton {
                 id: debugHeaderButton
