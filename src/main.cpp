@@ -90,6 +90,9 @@ int main(int argc, char *argv[])
 
     if (qEnvironmentVariableIsSet("DESKTOP_FILE_HINT")) {
         qputenv("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1");
+        const auto grid_unit = qgetenv("GRID_UNIT_PX");
+        const auto scale = (qreal)8 / (qreal)grid_unit.toInt();
+        qputenv("QT_SCALE_FACTOR", std::to_string(scale).c_str());
     }
 #endif
 

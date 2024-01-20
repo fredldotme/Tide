@@ -15,6 +15,9 @@ ApplicationWindow {
     flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
     maximumWidth: Screen.width
     maximumHeight: Screen.height
+    background: Rectangle {
+        color: mainBackgroundColor
+    }
 
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
     property alias tidePalette : tidePalette
@@ -51,9 +54,23 @@ ApplicationWindow {
                                                    "shareddocuments://" :
                                                    "file://"
 
-    readonly property color borderColor : Qt.tint(root.palette.window, "#10FF0000")
-    property color headerItemColor : dialogShadow.visible ? "white" : root.palette.button
+    readonly property color borderColor : Qt.tint(mainBackgroundColor, "#10FF0000")
+    property color headerItemColor : mainBackgroundColor !== mainBackgroundDefaultColor || dialogShadow.visible ?
+                                         "white" : root.palette.button
     Behavior on headerItemColor {
+        ColorAnimation {
+            duration: 300
+        }
+    }
+    readonly property color mainBackgroundDefaultColor : root.palette.window
+    property color mainBackgroundColorOverride : "transparent"
+    property color mainBackgroundColor : mainBackgroundColorOverride !== "transparent" ?
+                                             mainBackgroundColorOverride : mainBackgroundDefaultColor
+    onMainBackgroundDefaultColorChanged: {
+        mainBackgroundColorOverride = mainBackgroundDefaultColor
+    }
+
+    Behavior on mainBackgroundColor {
         ColorAnimation {
             duration: 300
         }
@@ -1381,7 +1398,7 @@ ApplicationWindow {
         width: parent.width
         height: parent.height - headerBarHeight - (uiIntegration.oskVisible ? uiIntegration.oskHeight : 0)
         focus: true
-        color: root.palette.window
+        color: mainBackgroundColor
 
         /*Behavior on height {
             NumberAnimation {
@@ -3302,6 +3319,7 @@ ApplicationWindow {
                         flashingIcon.icon.source = obj.icon
                         warningText.text = obj.msg
                         flashingIcon.icon.color = obj.color
+                        mainBackgroundColorOverride = obj.color
                         opacity = 1.0
                     }
                 }
@@ -3314,7 +3332,18 @@ ApplicationWindow {
             Timer {
                 id: hideTimer
                 interval: 1000
-                onTriggered: warningSign.opacity = 0.0
+                onTriggered: {
+                    warningSign.opacity = 0.0
+                    colorResetTimer.restart()
+                }
+            }
+
+            Timer {
+                id: colorResetTimer
+                interval: 2000
+                onTriggered: {
+                    mainBackgroundColorOverride = root.palette.window
+                }
             }
 
             function enqueue(msg, icon, color) {
@@ -3341,6 +3370,7 @@ ApplicationWindow {
                 flashingIcon.icon.source = iconSuccess
                 warningText.text = text
                 flashingIcon.icon.color = "teal"
+                mainBackgroundColorOverride = flashingIcon.icon.color
                 opacity = 1.0
             }
 
@@ -3353,6 +3383,7 @@ ApplicationWindow {
                 flashingIcon.icon.source = iconWarning
                 warningText.text = text
                 flashingIcon.icon.color = "darkred"
+                mainBackgroundColorOverride = flashingIcon.icon.color
                 opacity = 1.0
             }
 
@@ -3365,6 +3396,7 @@ ApplicationWindow {
                 flashingIcon.icon.source = iconPause
                 warningText.text = text
                 flashingIcon.icon.color = "orange"
+                mainBackgroundColorOverride = flashingIcon.icon.color
                 opacity = 1.0
             }
 
@@ -3377,6 +3409,7 @@ ApplicationWindow {
                 flashingIcon.icon.source = iconStop
                 warningText.text = text
                 flashingIcon.icon.color = "darkred"
+                mainBackgroundColorOverride = flashingIcon.icon.color
                 opacity = 1.0
             }
 
