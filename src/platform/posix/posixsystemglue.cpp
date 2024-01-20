@@ -2,9 +2,11 @@
 
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDir>
 #include <QStandardPaths>
 #include <QUrl>
 #include <QProcess>
+#include <QDesktopServices>
 
 #include <thread>
 
@@ -213,4 +215,11 @@ void PosixSystemGlue::copyToClipboard(const QString text)
 
 void PosixSystemGlue::share(const QString text, const QUrl url, const QRect pos)
 {
+    if (url.isValid()) {
+        auto splitPath = url.path().split(QDir::separator(), Qt::SkipEmptyParts);
+        splitPath.takeLast();
+        const auto fullPath = QStringLiteral("file:///") + splitPath.join(QDir::separator());
+        qDebug() << "Opening:" << fullPath;
+        QDesktopServices::openUrl(QUrl(fullPath));
+    }
 }
