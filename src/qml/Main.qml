@@ -16,7 +16,17 @@ ApplicationWindow {
     maximumWidth: Screen.width
     maximumHeight: Screen.height
     background: Rectangle {
-        color: mainBackgroundColor
+        color: mainBackgroundDefaultColor
+        gradient: Gradient {
+            GradientStop {
+                position: 0.0
+                color: mainBackgroundColor
+            }
+            GradientStop {
+                position: (headerBarHeight * 3) / root.height
+                color: Qt.tint(mainBackgroundColor, mainBackgroundDefaultColor)
+            }
+        }
     }
 
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
@@ -54,7 +64,7 @@ ApplicationWindow {
                                                    "shareddocuments://" :
                                                    "file://"
 
-    readonly property color borderColor : Qt.tint(mainBackgroundColor, "#10FF0000")
+    readonly property color borderColor : Qt.tint(mainBackgroundDefaultColor, "#10FF0000")
     property color headerItemColor : (dialogShadow.visible || mainBackgroundColorOverride !== Qt.color("transparent") || wantContextColor) ?
                                          "white" : root.palette.button
     Behavior on headerItemColor {
@@ -67,12 +77,12 @@ ApplicationWindow {
 
     readonly property color tintedRunColor : {
         const col = Qt.color("teal")
-        const alphaCol = Qt.rgba(col.r, col.g, col.b, 0.8)
+        const alphaCol = Qt.rgba(col.r, col.g, col.b, 1.0)
         return Qt.tint(mainBackgroundDefaultColor, alphaCol)
     }
     readonly property color tintedDebugColor : {
         const col = Qt.color("darkorange")
-        const alphaCol = Qt.rgba(col.r, col.g, col.b, 0.8)
+        const alphaCol = Qt.rgba(col.r, col.g, col.b, 1.0)
         return Qt.tint(mainBackgroundDefaultColor, alphaCol)
     }
 
@@ -1409,13 +1419,12 @@ ApplicationWindow {
     }
 
     // Main container
-    Rectangle {
+    Item {
         id: mainContainer
         anchors.top: mainViewHeader.bottom
         width: parent.width
         height: parent.height - headerBarHeight - (uiIntegration.oskVisible ? uiIntegration.oskHeight : 0)
         focus: true
-        color: mainBackgroundColor
 
         /*Behavior on height {
             NumberAnimation {
