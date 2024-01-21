@@ -55,7 +55,7 @@ ApplicationWindow {
                                                    "file://"
 
     readonly property color borderColor : Qt.tint(mainBackgroundColor, "#10FF0000")
-    property color headerItemColor : mainBackgroundColor !== mainBackgroundDefaultColor || dialogShadow.visible ?
+    property color headerItemColor : (dialogShadow.visible || mainBackgroundColorOverride !== Qt.color("transparent") || wantContextColor) ?
                                          "white" : root.palette.button
     Behavior on headerItemColor {
         ColorAnimation {
@@ -64,12 +64,29 @@ ApplicationWindow {
     }
     readonly property color mainBackgroundDefaultColor : root.palette.window
     property color mainBackgroundColorOverride : "transparent"
-    property color mainBackgroundColor : mainBackgroundColorOverride !== "transparent" ?
-                                             mainBackgroundColorOverride : mainBackgroundDefaultColor
-    onMainBackgroundDefaultColorChanged: {
-        mainBackgroundColorOverride = mainBackgroundDefaultColor
+
+    readonly property color tintedRunColor : {
+        const col = Qt.color("teal")
+        const alphaCol = Qt.rgba(col.r, col.g, col.b, 0.8)
+        return Qt.tint(mainBackgroundDefaultColor, alphaCol)
+    }
+    readonly property color tintedDebugColor : {
+        const col = Qt.color("darkorange")
+        const alphaCol = Qt.rgba(col.r, col.g, col.b, 0.8)
+        return Qt.tint(mainBackgroundDefaultColor, alphaCol)
     }
 
+    readonly property bool wantContextColor : dbugger.running || runners.atLeastOneRunning
+    readonly property color contextColor : dbugger.running ?
+                                               tintedDebugColor :
+                                               runners.atLeastOneRunning ?
+                                                   tintedRunColor :
+                                                   mainBackgroundDefaultColor
+    property color mainBackgroundColor : (wantContextColor) ?
+                                             contextColor :
+                                             mainBackgroundColorOverride !== "transparent" ?
+                                                 mainBackgroundColorOverride :
+                                                 mainBackgroundDefaultColor
     Behavior on mainBackgroundColor {
         ColorAnimation {
             duration: 300
@@ -746,7 +763,7 @@ ApplicationWindow {
                 id: debugHeaderButton
                 //rightPadding: paddingMedium
                 source: Qt.resolvedUrl("qrc:/assets/ladybug.fill@2x.png")
-                color: dbugger.paused && !dbugger.heatingUp ? "orange" : root.headerItemColor
+                color: root.headerItemColor
                 visible: projectBuilder.projectFile !== "" && projectBuilder.isRunnable()
                 height: headerItemHeight
 
@@ -902,7 +919,7 @@ ApplicationWindow {
                         icon.source: dbugger.paused ? Qt.resolvedUrl("qrc:/assets/play.circle@2x.png") :
                                                       Qt.resolvedUrl("qrc:/assets/pause.circle@2x.png")
                         icon.color: dbugger.paused && !dbugger.heatingUp ?
-                                        "orange" : enabled ?
+                                        "darkorange" : enabled ?
                                             root.palette.windowText :
                                             root.palette.midlight
                         onTriggered: {
@@ -3342,7 +3359,7 @@ ApplicationWindow {
                 id: colorResetTimer
                 interval: 2000
                 onTriggered: {
-                    mainBackgroundColorOverride = root.palette.window
+                    mainBackgroundColorOverride = "transparent"
                 }
             }
 
@@ -3389,13 +3406,13 @@ ApplicationWindow {
 
             function flashPause(text) {
                 if (opacity > 0.0) {
-                    enqueue(text, iconPause, "orange")
+                    enqueue(text, iconPause, "darkorange")
                     return;
                 }
 
                 flashingIcon.icon.source = iconPause
                 warningText.text = text
-                flashingIcon.icon.color = "orange"
+                flashingIcon.icon.color = "darkorange"
                 mainBackgroundColorOverride = flashingIcon.icon.color
                 opacity = 1.0
             }
