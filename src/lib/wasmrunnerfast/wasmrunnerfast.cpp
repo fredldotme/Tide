@@ -2,6 +2,7 @@
 
 #include <map>
 #include <memory>
+#include <semaphore>
 
 #include <cstring>
 #include <iostream>
@@ -55,6 +56,7 @@ struct WasmRunnerFastImplSharedData {
     bool killing;
     bool killed;
     WasmRunnerConfig configuration;
+    std::binary_semaphore runtimeSemaphore{0};
 };
 
 class WasmRunnerFastImpl : public WasmRunnerInterface
@@ -361,11 +363,14 @@ fail:
         shared.module = nullptr;
     }
 
+    shared.runtimeSemaphore.release();
+
     return exitCode;
 }
 
 void WasmRunnerFastImpl::destroy()
 {
+    shared.runtimeSemaphore.acquire();
     wasm_runtime_destroy();
 }
 
