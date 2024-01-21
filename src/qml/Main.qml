@@ -16,10 +16,7 @@ ApplicationWindow {
     maximumWidth: Screen.width
     maximumHeight: Screen.height
     background: Rectangle {
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: mainBackgroundColor }
-            GradientStop { position: 0.33; color: root.palette.window }
-        }
+        color: mainBackgroundColor
     }
 
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
@@ -3322,7 +3319,7 @@ ApplicationWindow {
                         flashingIcon.icon.source = obj.icon
                         warningText.text = obj.msg
                         flashingIcon.icon.color = obj.color
-                        mainBackgroundColorOverride = warningSign.tintColor
+                        mainBackgroundColorOverride = obj.color
                         opacity = 1.0
                     }
                 }
@@ -3373,7 +3370,7 @@ ApplicationWindow {
                 flashingIcon.icon.source = iconSuccess
                 warningText.text = text
                 flashingIcon.icon.color = "teal"
-                mainBackgroundColorOverride = warningSign.tintColor
+                mainBackgroundColorOverride = flashingIcon.icon.color
                 opacity = 1.0
             }
 
@@ -3386,7 +3383,7 @@ ApplicationWindow {
                 flashingIcon.icon.source = iconWarning
                 warningText.text = text
                 flashingIcon.icon.color = "darkred"
-                mainBackgroundColorOverride = warningSign.tintColor
+                mainBackgroundColorOverride = flashingIcon.icon.color
                 opacity = 1.0
             }
 
@@ -3399,7 +3396,7 @@ ApplicationWindow {
                 flashingIcon.icon.source = iconPause
                 warningText.text = text
                 flashingIcon.icon.color = "orange"
-                mainBackgroundColorOverride = warningSign.tintColor
+                mainBackgroundColorOverride = flashingIcon.icon.color
                 opacity = 1.0
             }
 
@@ -3412,7 +3409,7 @@ ApplicationWindow {
                 flashingIcon.icon.source = iconStop
                 warningText.text = text
                 flashingIcon.icon.color = "darkred"
-                mainBackgroundColorOverride = warningSign.tintColor
+                mainBackgroundColorOverride = flashingIcon.icon.color
                 opacity = 1.0
             }
 
