@@ -9,7 +9,6 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     include(GNUInstallDirs)
 endif()
 
-# Official release: 1.9.0
 project(${PROJECT_NAME} VERSION 1.9.2 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -735,6 +734,8 @@ if(APPLE AND NOT IOS)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND cp -a "${LLVM_TOOLS}/llvm-ranlib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
     )
+
+    # lldb
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND install_name_tool -change "@rpath/libclang-cpp.dylib" "@rpath/../Frameworks/libclang-cpp.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lldb"
     )
@@ -744,6 +745,29 @@ if(APPLE AND NOT IOS)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND install_name_tool -add_rpath "@loader_path/../Frameworks" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lldb"
     )
+
+    # llvm-ar
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -change "@rpath/libclang-cpp.dylib" "@rpath/../Frameworks/libclang-cpp.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/llvm-ar"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/../Frameworks/libLLVM.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/llvm-ar"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -add_rpath "@loader_path/../Frameworks" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/llvm-ar"
+    )
+
+    # llvm-ranlib
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -change "@rpath/libclang-cpp.dylib" "@rpath/../Frameworks/libclang-cpp.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/llvm-ranlib"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/../Frameworks/libLLVM.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/llvm-ranlib"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND install_name_tool -add_rpath "@loader_path/../Frameworks" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/llvm-ranlib"
+    )
+
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND cp -a "${CMAKE_PATH}/cmake" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
     )
