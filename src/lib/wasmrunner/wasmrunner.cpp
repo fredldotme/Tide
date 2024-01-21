@@ -2,7 +2,7 @@
 
 #include <map>
 #include <memory>
-#include <semaphore>
+#include <mutex>
 
 #include <cstring>
 #include <iostream>
@@ -40,7 +40,7 @@ struct WasmRunnerImplSharedData {
     bool killing;
     bool killed;
     WasmRunnerConfig configuration;
-    std::binary_semaphore runtimeSemaphore{0};
+    std::mutex runtimeMutex;
 };
 
 class WasmRunnerImpl : public WasmRunnerInterface
@@ -100,6 +100,8 @@ int WasmRunnerImpl::exec(const std::string& path, int argc, char** argv, int std
     wasm_exec_env_t debug_exec_env;
     uint32_t debug_port;
     int exitCode = -1;
+
+    std::lock_guard<std::mutex> lock(shared.runtimeMutex);
 
     WasmRunnerHost* hostInterface = static_cast<WasmRunnerHost*>(shared.host);
     if (!hostInterface) {
@@ -191,14 +193,12 @@ fail:
         shared.module = nullptr;
     }
 
-    shared.runtimeSemaphore.release();
-
     return exitCode;
 }
 
 void WasmRunnerImpl::destroy()
 {
-    shared.runtimeSemaphore.acquire();
+    std::lock_guard<std::mutex> lock(shared.runtimeMutex);
     wasm_runtime_destroy();
 }
 

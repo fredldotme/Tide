@@ -2,7 +2,7 @@
 
 #include <map>
 #include <memory>
-#include <semaphore>
+#include <mutex>
 
 #include <cstring>
 #include <iostream>
@@ -56,7 +56,7 @@ struct WasmRunnerFastImplSharedData {
     bool killing;
     bool killed;
     WasmRunnerConfig configuration;
-    std::binary_semaphore runtimeSemaphore{0};
+    std::mutex runtimeMutex;
 };
 
 class WasmRunnerFastImpl : public WasmRunnerInterface
@@ -166,6 +166,8 @@ int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int
     unsigned int siz = 0;
     uint8_t* buf = nullptr;
     int fd = -1;
+
+    std::lock_guard<std::mutex> lock(shared.runtimeMutex);
 
     for (const auto& mappedDir : shared.configuration.mapDirs) {
         mappedDirs.push_back(mappedDir.c_str());
@@ -363,14 +365,12 @@ fail:
         shared.module = nullptr;
     }
 
-    shared.runtimeSemaphore.release();
-
     return exitCode;
 }
 
 void WasmRunnerFastImpl::destroy()
 {
-    shared.runtimeSemaphore.acquire();
+    std::lock_guard<std::mutex> lock(shared.runtimeMutex);
     wasm_runtime_destroy();
 }
 
