@@ -562,7 +562,7 @@ ApplicationWindow {
                 property alias hudLabel : hudLabel
                 property alias prefixLabel : prefixLabel
                 Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
-                width: implicitWidth
+                width: Math.min(implicitWidth, parent.width - (8 * headerItemHeight)) // 6 header items + 2 for padding
                 height: implicitHeight
                 spacing: paddingSmall
                 visible: landscapeMode
@@ -637,7 +637,7 @@ ApplicationWindow {
                             return qsTr("Python REPL running")
                         }
 
-                        if (consoleView.consoleOutput.count > 0) {
+                        if (runners.atLeastOneRunning && consoleView.consoleOutput.count > 0) {
                             let lastLine = consoleView.consoleOutput.get(consoleView.consoleOutput.count - 1).content
                             if (lastLine.includes("\n")) {
                                 const lastLineSplit = lastLine.split('\n')
