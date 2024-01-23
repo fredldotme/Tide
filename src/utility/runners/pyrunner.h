@@ -47,6 +47,7 @@ class PyRunner : public QObject
 
     Q_PROPERTY(bool running MEMBER m_running NOTIFY runningChanged CONSTANT)
     Q_PROPERTY(SystemGlue* system MEMBER m_system NOTIFY systemChanged)
+    Q_PROPERTY(bool isRepl MEMBER m_isRepl NOTIFY isReplChanged CONSTANT)
 
 public:
     explicit PyRunner(QObject *parent = nullptr);
@@ -75,6 +76,7 @@ private:
     pthread_t m_runThread;
     SystemGlue* m_system;
     bool m_running;
+    bool m_isRepl;
     TidePyRunnerHost* m_runnerHost;
 
 signals:
@@ -85,6 +87,7 @@ signals:
     void runEnded(int exitCode);
     void debugSessionStarted(int port);
     void systemChanged();
+    void isReplChanged();
 };
 
 #endif // PYRUNNER_H

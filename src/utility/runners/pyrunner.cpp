@@ -25,7 +25,7 @@
 #include "platform/systemglue.h"
 
 PyRunner::PyRunner(QObject *parent)
-    : QObject{parent}, m_running{false}, m_system{nullptr}, m_runnerHost{new TidePyRunnerHost(this)}
+    : QObject{parent}, m_running{false}, m_isRepl{false}, m_system{nullptr}, m_runnerHost{new TidePyRunnerHost(this)}
 {
 }
 
@@ -207,6 +207,9 @@ void PyRunner::start(const QString binary, const QStringList args, const bool de
         sharedData.runtime = nullptr;
     }
 
+    m_isRepl = false;
+    emit isReplChanged();
+
     std::lock_guard<std::mutex> lk(sharedData.runMutex);
     pthread_create(&m_runThread, nullptr, runInThread, &sharedData);
 }
@@ -288,6 +291,9 @@ void PyRunner::runRepl()
     } else {
         sharedData.runtime = nullptr;
     }
+
+    m_isRepl = true;
+    emit isReplChanged();
 
     std::lock_guard<std::mutex> lk(sharedData.runMutex);
     pthread_create(&m_runThread, nullptr, runInThread, &sharedData);
