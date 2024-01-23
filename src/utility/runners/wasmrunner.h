@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <pthread.h>
+#include <mutex>
 #include <string>
 
 #include <wasm_c_api.h>
@@ -27,6 +28,7 @@ struct WasmRunnerSharedData {
     SystemGlue* system = nullptr;
     Debugger* debugger = nullptr;
     bool killing = false;
+    std::mutex runMutex;
     WasmRunnerConfig config;
 };
 

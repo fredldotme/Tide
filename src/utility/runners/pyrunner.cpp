@@ -146,7 +146,9 @@ void PyRunner::debug(const QString binary, const QStringList args)
 
 void PyRunner::waitForFinished()
 {
+    std::lock_guard<std::mutex> lk(sharedData.runMutex);
     pthread_join(m_runThread, nullptr);
+    m_runThread = nullptr;
 }
 
 int PyRunner::exitCode()
@@ -205,6 +207,7 @@ void PyRunner::start(const QString binary, const QStringList args, const bool de
         sharedData.runtime = nullptr;
     }
 
+    std::lock_guard<std::mutex> lk(sharedData.runMutex);
     pthread_create(&m_runThread, nullptr, runInThread, &sharedData);
 }
 
@@ -223,14 +226,14 @@ void PyRunner::kill()
 
 void PyRunner::stop(bool silent)
 {
-    if (sharedData.runtime) {
-        if (sharedData.lib->stop) {
+    if (m_runThread) {
+        if (sharedData.runtime && sharedData.lib->stop) {
             sharedData.lib->stop(sharedData.runtime);
         }
 
         waitForFinished();
 
-        if (sharedData.lib->destroy) {
+        if (sharedData.runtime && sharedData.lib->destroy) {
             sharedData.lib->destroy(sharedData.runtime);
         }
         sharedData.runtime = nullptr;
@@ -286,6 +289,7 @@ void PyRunner::runRepl()
         sharedData.runtime = nullptr;
     }
 
+    std::lock_guard<std::mutex> lk(sharedData.runMutex);
     pthread_create(&m_runThread, nullptr, runInThread, &sharedData);
 }
 

@@ -58,6 +58,8 @@ private:
 
 void WasmRunnerImpl::init(const WasmRunnerConfig& config)
 {
+    std::lock_guard<std::mutex> lock(shared.runtimeMutex);
+
     shared.configuration = config;
 
     std::cout << "Stack size: " << config.stackSize << std::endl;

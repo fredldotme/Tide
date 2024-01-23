@@ -12,6 +12,12 @@ AutoCompleter::AutoCompleter(QObject *parent)
     QObject::connect(&m_thread, &QThread::started, this, &AutoCompleter::run, Qt::DirectConnection);
 }
 
+AutoCompleter::~AutoCompleter()
+{
+    m_thread.terminate();
+    m_thread.wait();
+}
+
 QStringList AutoCompleter::createHints(const QString& hint)
 {
     QStringList ret;

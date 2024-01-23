@@ -80,6 +80,8 @@ WasmRunnerFastImpl::WasmRunnerFastImpl(WasmRuntimeHost host) :
 
 void WasmRunnerFastImpl::init(const WasmRunnerConfig& config)
 {
+    std::lock_guard<std::mutex> lock(shared.runtimeMutex);
+
     std::cout << "Configuring:" << std::endl;
     std::cout << "Stack size: " << config.stackSize << std::endl;
     std::cout << "Heap size:" << config.heapSize << std::endl;

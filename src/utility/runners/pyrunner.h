@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <pthread.h>
+#include <mutex>
 #include <string>
 
 #include <wasm_c_api.h>
@@ -25,6 +26,7 @@ struct PyRunnerSharedData {
     WasmRuntime runtime = nullptr;
     PyRunner* runner = nullptr;
     SystemGlue* system = nullptr;
+    std::mutex runMutex;
     bool killing = false;
 };
 

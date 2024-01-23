@@ -46,6 +46,7 @@ public:
     };
 
     explicit AutoCompleter(QObject *parent = nullptr);
+    ~AutoCompleter();
     void foundKind(CompletionKind kind, const QString prefix, const QString name, const QString detail);
     void addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang);
 
