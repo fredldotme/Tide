@@ -74,6 +74,16 @@ ApplicationWindow {
     }
     readonly property color mainBackgroundDefaultColor : root.palette.window
     property color mainBackgroundColorOverride : "transparent"
+    onMainBackgroundColorOverrideChanged: {
+        mainBackgroundColorOverrideResetTimer.restart()
+    }
+
+    Timer {
+        id: mainBackgroundColorOverrideResetTimer
+        interval: 3000
+        repeat: false
+        onTriggered: mainBackgroundColorOverride = "transparent"
+    }
 
     readonly property color tintedRunColor : {
         const col = Qt.color("teal")
@@ -620,12 +630,27 @@ ApplicationWindow {
                     elide: Text.ElideRight
                     font.bold: true
                     width: text !== "" ? implicitWidth : 0
-                    height: implicitHeight
+                    height: font.pixelSize
                     property string flashyMessage : ""
                     property string stickyMessage : {
-                        if (consoleView.consoleOutput.length > 0)
-                            return consoleView.consoleOutput[consoleView.consoleOutput.length - 1]
-                        return ""
+                        if (pyRunner.running && pyRunner.isRepl) {
+                            return qsTr("Python REPL running")
+                        }
+
+                        if (consoleView.consoleOutput.count > 0) {
+                            let lastLine = consoleView.consoleOutput.get(consoleView.consoleOutput.count - 1).content
+                            if (lastLine.includes("\n")) {
+                                const lastLineSplit = lastLine.split('\n')
+                                if (lastLineSplit[lastLineSplit.length - 1] === "" &&
+                                        lastLineSplit.length - 2 >= 0)
+                                    lastLine = lastLineSplit[lastLineSplit.length - 2]
+                                else
+                                    lastLine = lastLineSplit[lastLineSplit.length - 1]
+                            }
+                            return qsTr("Console: ") + lastLine
+                        }
+
+                        return qsTr("Tide IDE")
                     }
                     text: {
                         return (flashyMessage !== "") ? flashyMessage : stickyMessage
@@ -1184,6 +1209,7 @@ ApplicationWindow {
             (url, name) => {
                 console.log("Repo cloned")
                 hud.hudLabel.flashMessage(qsTr("Repo '%1' cloned").arg(name))
+                mainBackgroundColorOverride = "teal"
                 root.reloadFilestructure()
             }
         onRepoCloneStarted:
@@ -1194,7 +1220,8 @@ ApplicationWindow {
         onRepoExists:
             (path, name) => {
                 console.log("Repo already exists")
-                hud.hudLabel.flashMessage(qsTr("'%1' already cloned").arg(name))
+                hud.hudLabel.flashMessage(qsTr("'%1' already exists").arg(name))
+                mainBackgroundColorOverride = "red"
             }
     }
 
@@ -1212,7 +1239,7 @@ ApplicationWindow {
             system: iosSystem
             onRunningChanged: {
                 if (running) {
-                    hud.hudLabel.flashMessage(qsTr("Started"))
+                    hud.hudLabel.flashMessageWithDuration(qsTr("Started"), 1000)
                 } else {
                     hud.hudLabel.flashMessage(qsTr("Stopped"))
                 }
@@ -1253,7 +1280,7 @@ ApplicationWindow {
             forceDebugInterpreter: settings.fallbackInterpreter
             onRunningChanged: {
                 if (running) {
-                    hud.hudLabel.flashMessage(qsTr("Started"))
+                    hud.hudLabel.flashMessageWithDuration(qsTr("Started"), 1000)
                 } else {
                     hud.hudLabel.flashMessage(qsTr("Stopped"))
                 }
