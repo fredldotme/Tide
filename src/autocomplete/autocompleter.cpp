@@ -79,6 +79,8 @@ inline static AutoCompleter::CompletionKind getAutoCompleterKind(const CXCursorK
         return AutoCompleter::CompletionKind::Variable;
     case CXCursor_ParmDecl:
         return AutoCompleter::CompletionKind::Parameter;
+    case CXCursor_CXXMethod:
+        return AutoCompleter::CompletionKind::Method;
     default:
         return AutoCompleter::CompletionKind::Unspecified;
     }
@@ -415,7 +417,7 @@ QVariantList AutoCompleter::filteredDecls(const QString str)
     return ret;
 }
 
-void AutoCompleter::foundKind(CompletionKind kind, const QString prefix, const QString name, const QString detail)
+void AutoCompleter::foundKind(const CompletionKind kind, const QString prefix, const QString name, const QString detail)
 {
     if (name.isEmpty())
         return;

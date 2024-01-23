@@ -17,6 +17,7 @@ Item {
 
     AutoCompleter {
         id: autoCompleter
+        pluginsManager: pluginManager
 
         onDeclsChanged: {
             console.log("'Add Breakpoint' decls changed");
@@ -39,7 +40,14 @@ Item {
         //    return;
 
         autoCompleter.setIncludePaths(projectBuilder.includePaths());
-        autoCompleter.reloadAst(projectBuilder.sourceFiles, "", AutoCompleter.Function, 0, 0)
+        autoCompleter.setSysroot(sysroot)
+
+        // TODO: Extend to variables/constants when watchpoints are in
+        autoCompleter.reloadAst(projectBuilder.sourceFiles,
+                                "",
+                                AutoCompleter.Function | AutoCompleter.Method,
+                                /*codeField.currentLine*/ 0,
+                                /*codeField.currentColumn*/ 0)
     }
 
     Item {

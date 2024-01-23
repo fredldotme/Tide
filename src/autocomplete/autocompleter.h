@@ -23,15 +23,16 @@ class AutoCompleter : public QObject
 public:
     enum CompletionKind {
         Unspecified = 0,
-        Variable,
-        Function,
-        Struct,
-        Union,
-        Class,
-        Enum,
-        Field,
-        Constant,
-        Parameter
+        Variable = (1 << 1),
+        Function = (1 << 2),
+        Struct = (1 << 3),
+        Union = (1 << 4),
+        Class = (1 << 5),
+        Enum = (1 << 6),
+        Field = (1 << 7),
+        Constant = (1 << 8),
+        Parameter = (1 << 9),
+        Method = (1 << 10),
     };
     Q_ENUM(CompletionKind)
 
@@ -47,7 +48,7 @@ public:
 
     explicit AutoCompleter(QObject *parent = nullptr);
     ~AutoCompleter();
-    void foundKind(CompletionKind kind, const QString prefix, const QString name, const QString detail);
+    void foundKind(const CompletionKind kind, const QString prefix, const QString name, const QString detail);
     void addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang);
 
     QMutex clangMutex;
