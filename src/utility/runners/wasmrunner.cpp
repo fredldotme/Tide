@@ -224,6 +224,9 @@ void WasmRunner::kill()
         sharedData.debug = false;
     }
 
+    if (!m_running)
+        return;
+
     stop(false);
 }
 

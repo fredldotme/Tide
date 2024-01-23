@@ -224,6 +224,9 @@ void PyRunner::kill()
     }
 #endif
 
+    if (!m_running)
+        return;
+
     stop(false);
 }
 
