@@ -365,7 +365,7 @@ Item {
                     Layout.alignment: Qt.AlignCenter
                     Layout.preferredWidth: parent.width
                     wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                    text: qsTr("Tide IDE")
+                    text: qsTr("Welcome to Tide")
                     font.pixelSize: 26
                     color: root.palette.text
                     horizontalAlignment: Text.AlignHCenter
