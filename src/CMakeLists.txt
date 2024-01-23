@@ -81,7 +81,8 @@ set(CLANGRT ${CLANGRT_DIR}/lib/wasi)
 set(TIDE_SRC_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
 if(IOS)
-    resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
+    resource(CLANG_PARTS ${CLANGRT_DIR} Resources clang.tar)
+    resource(THE_SYSROOT ${CLANGRT_DIR} Resources sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
     resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
@@ -89,7 +90,8 @@ if(IOS)
 endif()
 
 if(APPLE)
-    resource(THE_SYSROOT ${CLANGRT_DIR} Resources the-sysroot.tar)
+    resource(CLANG_PARTS ${CLANGRT_DIR} Resources clang.tar)
+    resource(THE_SYSROOT ${CLANGRT_DIR} Resources sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
     resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
@@ -258,8 +260,9 @@ qt_add_executable(${PROJECT_NAME}
     # tar implementation
     ${MICROTAR_DIR}/src/microtar.c
 
-    # Ship the sysroot
+    # Ship the sysroot & misc parts
     ${THE_SYSROOT}
+    ${CLANG_PARTS}
     ${BOOST_TAR}
     ${CMAKE_MODULES}
     ${PYTHON_WASM}
@@ -789,7 +792,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     else()
         set(LLVM_LIBRARIES "${LLVM_DIR}/${LLVM_BUILD_DIR}/lib")
     endif()
-    install(FILES "${CLANGRT_DIR}/the-sysroot.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
+    install(FILES "${CLANGRT_DIR}/sysroot.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
+    install(FILES "${CLANGRT_DIR}/clang.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
     install(FILES "${CLANGRT_DIR}/boost.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
     install(FILES "${CLANGRT_DIR}/cmake.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
     install(FILES "${CLANGRT_DIR}/python.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)

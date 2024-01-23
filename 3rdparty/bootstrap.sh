@@ -356,7 +356,8 @@ mkdir -p tmp/the-sysroot/Clang/lib/wasi/
 cp -a $OLD_PWD/tmp/wasi-sysroot/* tmp/the-sysroot/Sysroot
 cp -a $OLD_PWD/llvm/$LLVM_BUILD/lib/clang/17/include tmp/the-sysroot/Clang/
 cp -a $OLD_PWD/tmp/lib/wasi/* tmp/the-sysroot/Clang/lib/wasi/
-tar cvf tmp/the-sysroot.tar -C tmp/the-sysroot .
+tar cvf tmp/sysroot.tar -C tmp/the-sysroot Sysroot
+tar cvf tmp/clang.tar -C tmp/the-sysroot Clang
 cd $OLD_PWD
 
 # Rust
