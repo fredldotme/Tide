@@ -42,7 +42,7 @@ Column {
         }
 
         Column {
-            height: parent.height
+            height: implicitHeight
             Label {
                 id: labelControl
                 color: root.palette.text

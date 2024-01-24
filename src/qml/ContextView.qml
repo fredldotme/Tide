@@ -154,6 +154,7 @@ Item {
                     onModelChanged: {
                         contextResultListView.currentIndex = 0
                     }
+                    spacing: root.paddingSmall
                     delegate: ContextViewButton {
                         id: contextResultButton
                         text: modelData.name
