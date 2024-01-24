@@ -382,9 +382,9 @@ ApplicationWindow {
 
     Item {
         id: floatingOverlayHeaderArea
-        y: uiIntegration.insetTop
         height: headerBarHeight
-        parent: Overlay.overlay
+        parent: paddedOverlayArea
+        z: paddedOverlayArea.flashThroughZ
         anchors {
             left: parent.left
             leftMargin: paddingLarge
