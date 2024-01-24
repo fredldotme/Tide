@@ -373,7 +373,7 @@ cd $OLD_PWD
 
 if [ "$BUILD_SNAP" = "1" ]; then
     mkdir -p $CRAFT_PART_INSTALL/resources
-    cp -a tmp/{boost.tar,the-sysroot.tar,python.tar,cmake.tar} $CRAFT_PART_INSTALL/resources
+    cp -a tmp/{boost.tar,clang.tar,sysroot.tar,python.tar,cmake.tar} $CRAFT_PART_INSTALL/resources
     mkdir -p $CRAFT_PART_INSTALL/resources/usr/lib/clang/17/wasi/
     cp -a $CLANG_LIBS/clang/17/lib/wasi/libclang_rt.builtins-wasm32.a $CRAFT_PART_INSTALL/resources/usr/lib/clang/17/wasi/
 fi
