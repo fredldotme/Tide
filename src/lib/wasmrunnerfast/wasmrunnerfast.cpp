@@ -33,18 +33,10 @@
 #if __APPLE__
 #include <TargetConditionals.h>
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-#define SUPPORTS_AOT 0
-#else
-#define SUPPORTS_AOT 0
 #endif
-#else
-#define SUPPORTS_AOT 0
 #endif
 
-#if SUPPORTS_AOT
-#include "aot_export.h"
-#endif
-
+// Shared data between threads responsible for driving the WASM machinery
 struct WasmRunnerFastImplSharedData {
     WasmRunnerHost* host;
     std::string binary;
@@ -55,7 +47,29 @@ struct WasmRunnerFastImplSharedData {
     wasm_exec_env_t exec_env = nullptr;
     bool killing;
     bool killed;
+    bool initialized;
     WasmRunnerConfig configuration;
+
+    // Why a std::vector of characters here?
+    //
+    // As per it's documentation on docs.qt.io, the use of QByteArrays
+    // would result in a zero-terminated ('\0') chunk of memory,
+    // meaning the last character in the the array would always be '\0'.
+    //
+    // This would result in memory being easily passable as C-style strings
+    // (so classic char*) to C functions which would expect strings, which would easily
+    // make an attached debugger or malicious actor allow for inspection of memory
+    // quite easily, because at that point everything treats it as a C-style string.
+    // This would allow for easy print-out using printf() functions, modification
+    // using respective string modification facilities, and so forth.
+    //
+    // This is bad for security and the expectations one would expect from
+    // a sandboxed environment, meaning strict separation between host and guest.
+    //
+    // std::vector<char> however as per it's own documentation also provides contiguous memory,
+    // while not adding the same zero-terminator at the end of the memory.
+    std::vector<unsigned char> pool;
+
     std::mutex runtimeMutex;
 };
 
@@ -69,6 +83,7 @@ public:
     virtual void stop() override;
 
 private:
+    // Shared over thread boundaries
     WasmRunnerFastImplSharedData shared;
 };
 
@@ -81,36 +96,19 @@ WasmRunnerFastImpl::WasmRunnerFastImpl(WasmRuntimeHost host) :
 void WasmRunnerFastImpl::init(const WasmRunnerConfig& config)
 {
     std::lock_guard<std::mutex> lock(shared.runtimeMutex);
+    shared.host = (WasmRunnerHost*)host;
 
-    std::cout << "Configuring:" << std::endl;
+    std::cout << "Configuring..." << std::endl;
     std::cout << "Stack size: " << config.stackSize << std::endl;
     std::cout << "Heap size:" << config.heapSize << std::endl;
     std::cout << "Thread count:" << config.threadCount << std::endl;
-    std::cout << "Flags:" << config.flags;
+    std::cout << "Flags:" << config.flags << std::endl;
 
+    //shared.pool.resize(config.heapSize + config.stackSize);
+    //shared.pool.shrink_to_fit();
+
+    // Prepare config for runtime initialization to properly take place
     shared.configuration = config;
-
-    RuntimeInitArgs init_args;
-    memset(&init_args, 0, sizeof(RuntimeInitArgs));
-
-    init_args.mem_alloc_type = Alloc_With_System_Allocator;
-    init_args.max_thread_num = config.threadCount;
-    if (config.flags & WasmRunnerConfigFlags::JIT) {
-        init_args.llvm_jit_opt_level = 3;
-        init_args.llvm_jit_size_level = 3;
-        init_args.running_mode = Mode_LLVM_JIT;
-    } else {
-        init_args.running_mode = Mode_Interp;
-    }
-
-    wasm_runtime_full_init(&init_args);
-
-    // Register native API bindings
-    //register_wamr_opengles_bindings();
-    //register_wamr_tideui_bindings();
-    //register_wamr_sdl2_bindings();
-
-    shared.host = (WasmRunnerHost*)host;
 }
 
 void* mmap_wamr_file(const char* filename, unsigned int* size, int* fd)
@@ -168,6 +166,7 @@ int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int
     unsigned int siz = 0;
     uint8_t* buf = nullptr;
     int fd = -1;
+    RuntimeInitArgs init_args;
 
     std::lock_guard<std::mutex> lock(shared.runtimeMutex);
 
@@ -178,89 +177,34 @@ int WasmRunnerFastImpl::exec(const std::string& path, int argc, char** argv, int
 
     WasmRunnerHost* hostInterface = static_cast<WasmRunnerHost*>(shared.host);
     if (!hostInterface) {
-        std::cout << "Unable to access plugin host interface" << std::endl;
+        std::cout << "Unable to access the interface of the plugin's host" << std::endl;
         goto fail;
     }
+
+    // Register native API bindings
+    //register_wamr_opengles_bindings();
+    //register_wamr_tideui_bindings();
+    //register_wamr_sdl2_bindings();
+
+    memset(&init_args, 0, sizeof(RuntimeInitArgs));
+
+    init_args.mem_alloc_type = Alloc_With_System_Allocator;
+    //init_args.mem_alloc_option.pool.heap_buf = shared.pool.data();
+    //init_args.mem_alloc_option.pool.heap_size = shared.pool.capacity();
+    init_args.max_thread_num = shared.configuration.threadCount;
+    init_args.running_mode = Mode_Interp;
+
+    if (!wasm_runtime_full_init(&init_args)) {
+        shared.host->reportError("Failed to initialize WASM runtime");
+        goto fail;
+    }
+
+    shared.initialized = true;
 
     std::cout << "Loading wasm: " << path << std::endl;
     for (int i = 0; i < argc; i++) {
         std::cout << "arg: " << argv[i] << std::endl;
     }
-
-#if SUPPORTS_AOT
-    if (shared.configuration.flags & WasmRunnerConfigFlags::AOT) {
-        bool aotSuccess = false;
-        const auto aotpath = path + ".aot";
-        hostInterface->report("Optimizing via AOT...");
-
-        AOTCompOption option = { 0 };
-        option.opt_level = 3;
-        option.size_level = 3;
-        option.output_format = AOT_FORMAT_FILE;
-        option.bounds_checks = 0;
-        option.stack_bounds_checks = 0;
-        option.enable_simd = true;
-        option.enable_aux_stack_check = true;
-        option.enable_bulk_memory = true;
-        option.enable_thread_mgr = true;
-        option.enable_ref_types = true;
-        option.enable_tail_call = true;
-        option.is_indirect_mode = true;
-        option.disable_llvm_intrinsics = true;
-
-        wasm_module_t wasm_module = NULL;
-        aot_comp_data_t comp_data = NULL;
-        aot_comp_context_t comp_ctx = NULL;
-        uint8 *wasm_file = NULL;
-        uint32 wasm_file_size;
-
-        wasm_file = (uint8 *)bh_read_file_to_buffer(exepath.c_str(), &wasm_file_size);
-
-        /* load WASM module */
-        if (!(wasm_module = wasm_runtime_load(wasm_file, wasm_file_size, error_buf,
-                                              sizeof(error_buf)))) {
-            printf("%s\n", error_buf);
-            goto aotFail;
-        }
-
-        if (!(comp_data = aot_create_comp_data(wasm_module))) {
-            printf("%s\n", aot_get_last_error());
-            goto aotFail;
-        }
-
-        if (!(comp_ctx = aot_create_comp_context(comp_data, &option))) {
-            printf("%s\n", aot_get_last_error());
-            goto aotFail;
-        }
-
-        if (aot_compile_wasm(comp_ctx)) {
-            std::cout << "Compiled, saving " << aotpath << std::endl;
-            aotSuccess = aot_emit_llvm_file(comp_ctx, aotpath.c_str());
-        } else {
-            std::cout << aot_get_last_error() << std::endl;
-        }
-
-aotFail:
-        if (wasm_file)
-            BH_FREE(wasm_file);
-        if (comp_ctx)
-            aot_destroy_comp_context(comp_ctx);
-        if (comp_data)
-            aot_destroy_comp_data(comp_data);
-        if (wasm_module)
-            wasm_runtime_unload(wasm_module);
-
-        if (!aotSuccess) {
-            std::string err; err = "AOT compilation failed";
-            hostInterface->reportError(err);
-            goto fail;
-        } else {
-            std::cout << "AOT compilation successful" << std::endl;
-            exepath = aotpath;
-            useMmap = true;
-        }
-    }
-#endif
 
     if (!useMmap) {
         siz = 0;
@@ -366,6 +310,16 @@ fail:
         wasm_runtime_unload(shared.module);
         shared.module = nullptr;
     }
+    if (shared.initialized) {
+        wasm_runtime_destroy();
+        shared.initialized = false;
+    }
+
+
+    // Execution finished, pool not needed anymore
+    shared.pool.clear();
+    shared.pool.resize(0);
+    shared.pool.shrink_to_fit();
 
     return exitCode;
 }
@@ -373,7 +327,10 @@ fail:
 void WasmRunnerFastImpl::destroy()
 {
     std::lock_guard<std::mutex> lock(shared.runtimeMutex);
-    wasm_runtime_destroy();
+    if (shared.initialized) {
+        wasm_runtime_destroy();
+        shared.initialized = false;
+    }
 }
 
 void WasmRunnerFastImpl::stop()

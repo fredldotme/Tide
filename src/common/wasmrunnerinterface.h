@@ -25,9 +25,9 @@ enum WasmRunnerConfigFlags {
 };
 
 struct WasmRunnerConfig {
-    unsigned int threadCount = 32;
-    unsigned int stackSize = 16777216;
-    unsigned int heapSize = 16777216;
+    unsigned int threadCount = 0;
+    unsigned int stackSize = 0;
+    unsigned int heapSize = 0;
     WasmRunnerConfigFlags flags;
     std::vector<std::string> mapDirs;
 };

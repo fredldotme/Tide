@@ -39,6 +39,7 @@ struct WasmRunnerImplSharedData {
     wasm_exec_env_t exec_env = nullptr;
     bool killing;
     bool killed;
+    bool initialized;
     WasmRunnerConfig configuration;
     std::mutex runtimeMutex;
 };
@@ -59,28 +60,11 @@ private:
 void WasmRunnerImpl::init(const WasmRunnerConfig& config)
 {
     std::lock_guard<std::mutex> lock(shared.runtimeMutex);
-
+    shared.host = (WasmRunnerHost*)host;
     shared.configuration = config;
 
     std::cout << "Stack size: " << config.stackSize << std::endl;
     std::cout << "Heap size: " << config.heapSize << std::endl;
-
-    RuntimeInitArgs init_args;
-    memset(&init_args, 0, sizeof(RuntimeInitArgs));
-
-    strcpy(init_args.ip_addr, "127.0.0.1");
-    init_args.instance_port = 0;
-    init_args.mem_alloc_type = Alloc_With_System_Allocator;
-    init_args.max_thread_num = config.threadCount;
-
-    wasm_runtime_full_init(&init_args);
-
-    // Register native API bindings
-    //register_wamr_opengles_bindings();
-    //register_wamr_tideui_bindings();
-    //register_wamr_sdl2_bindings();
-
-    shared.host = (WasmRunnerHost*)host;
 }
 
 WasmRunnerImpl::WasmRunnerImpl(WasmRuntimeHost host) :
@@ -98,6 +82,7 @@ int WasmRunnerImpl::exec(const std::string& path, int argc, char** argv, int std
     uint32_t ns_lookup_pool_size = 1;
     std::vector<const char*> mappedDirs { "/::/" , readableDir.c_str() };
     std::vector<const char*> env;
+    RuntimeInitArgs init_args;
 
     wasm_exec_env_t debug_exec_env;
     uint32_t debug_port;
@@ -111,8 +96,30 @@ int WasmRunnerImpl::exec(const std::string& path, int argc, char** argv, int std
         return exitCode;
     }
 
-    unsigned int siz = 0;
-    uint8_t* buf = (uint8_t*)bh_read_file_to_buffer(path.c_str(), &siz);
+    // Initialize
+    memset(&init_args, 0, sizeof(RuntimeInitArgs));
+
+    strcpy(init_args.ip_addr, "127.0.0.1");
+    init_args.instance_port = 0;
+    init_args.mem_alloc_type = Alloc_With_System_Allocator;
+    init_args.max_thread_num = shared.configuration.threadCount;
+
+    wasm_runtime_full_init(&init_args);
+
+    // Register native API bindings
+    //register_wamr_opengles_bindings();
+    //register_wamr_tideui_bindings();
+    //register_wamr_sdl2_bindings();
+
+    if (!wasm_runtime_full_init(&init_args)) {
+        hostInterface->reportError("Failed to initialize WASM runtime");
+        goto fail;
+    }
+
+    shared.initialized = true;
+
+    unsigned int siz; siz = 0;
+    uint8_t* buf; buf = (uint8_t*)bh_read_file_to_buffer(path.c_str(), &siz);
 
     shared.module = wasm_runtime_load(buf, siz, error_buf, sizeof(error_buf));
     if (!shared.module) {
@@ -194,6 +201,10 @@ fail:
         wasm_runtime_unload(shared.module);
         shared.module = nullptr;
     }
+    if (shared.initialized) {
+        wasm_runtime_destroy();
+        shared.initialized = false;
+    }
 
     return exitCode;
 }
@@ -201,7 +212,10 @@ fail:
 void WasmRunnerImpl::destroy()
 {
     std::lock_guard<std::mutex> lock(shared.runtimeMutex);
-    wasm_runtime_destroy();
+    if (shared.initialized) {
+        wasm_runtime_destroy();
+        shared.initialized = false;
+    }
 }
 
 void WasmRunnerImpl::stop()
