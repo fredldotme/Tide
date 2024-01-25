@@ -28,6 +28,7 @@ struct PyRunnerSharedData {
     SystemGlue* system = nullptr;
     std::mutex runMutex;
     bool killing = false;
+    bool running = false;
 };
 
 class TidePyRunnerHost : public WasmRunnerHost

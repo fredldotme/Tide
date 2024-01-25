@@ -148,7 +148,7 @@ void PyRunner::waitForFinished()
 {
     std::lock_guard<std::mutex> lk(sharedData.runMutex);
     pthread_join(m_runThread, nullptr);
-    m_runThread = nullptr;
+    sharedData.running = false;
 }
 
 int PyRunner::exitCode()
@@ -200,6 +200,8 @@ void PyRunner::start(const QString binary, const QStringList args, const bool de
         config.flags = WasmRunnerConfigFlags::None;
         config.mapDirs.push_back(mapping);
         config.mapDirs.push_back(projectDirMapping);
+        config.heapSize = 256 * 1024 * 1024;
+        config.stackSize = 16 * 1024 * 1024;
 
         sharedData.runtime = sharedData.lib->init(m_runnerHost, (WasmRuntimeConfig)&config);
         std::cout << "Initialization complete: " << sharedData.runtime << std::endl;
@@ -212,6 +214,7 @@ void PyRunner::start(const QString binary, const QStringList args, const bool de
 
     std::lock_guard<std::mutex> lk(sharedData.runMutex);
     pthread_create(&m_runThread, nullptr, runInThread, &sharedData);
+    sharedData.running = true;
 }
 
 void PyRunner::kill()
@@ -232,7 +235,7 @@ void PyRunner::kill()
 
 void PyRunner::stop(bool silent)
 {
-    if (m_runThread) {
+    if (sharedData.running) {
         if (sharedData.runtime && sharedData.lib->stop) {
             sharedData.lib->stop(sharedData.runtime);
         }
@@ -289,6 +292,8 @@ void PyRunner::runRepl()
     if (sharedData.lib->init) {
         WasmRunnerConfig config;
         config.flags = WasmRunnerConfigFlags::None;
+        config.heapSize = 256 * 1024 * 1024;
+        config.stackSize = 16 * 1024 * 1024;
         sharedData.runtime = sharedData.lib->init(m_runnerHost, (WasmRuntimeConfig)&config);
         std::cout << "Initialization complete: " << sharedData.runtime << std::endl;
     } else {
@@ -300,6 +305,7 @@ void PyRunner::runRepl()
 
     std::lock_guard<std::mutex> lk(sharedData.runMutex);
     pthread_create(&m_runThread, nullptr, runInThread, &sharedData);
+    sharedData.running = true;
 }
 
 bool PyRunner::running()

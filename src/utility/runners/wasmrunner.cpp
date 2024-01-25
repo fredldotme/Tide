@@ -120,8 +120,13 @@ void TideWasmRunnerHost::reportDebugPort(const uint32_t port)
 
 void WasmRunner::configure(unsigned int stack, unsigned int heap, unsigned int threads, bool opt)
 {
-    sharedData.config.stackSize = stack;
-    sharedData.config.heapSize = heap;
+    if (stack <= 0)
+        stack = 16;
+    if (heap <= 0)
+        heap = 256;
+
+    sharedData.config.stackSize = stack * 1024 * 1024;
+    sharedData.config.heapSize = heap * 1024 * 1024;
     sharedData.config.threadCount = threads;
 
     // Enable certain properties the WasmRunner plugin should attempt to do,
@@ -147,7 +152,7 @@ void WasmRunner::waitForFinished()
 {
     std::lock_guard<std::mutex> lk(sharedData.runMutex);
     pthread_join(m_runThread, nullptr);
-    m_runThread = nullptr;
+    sharedData.running = false;
 }
 
 int WasmRunner::exitCode()
@@ -157,8 +162,6 @@ int WasmRunner::exitCode()
 
 void WasmRunner::start(const QString binary, const QStringList args, const bool debug)
 {
-    kill();
-
     QString wasmRunner = QStringLiteral("Wasmrunnerfast");
     if (m_forceDebugInterpreter || debug) {
         wasmRunner = QStringLiteral("Wasmrunner");
@@ -214,6 +217,7 @@ void WasmRunner::start(const QString binary, const QStringList args, const bool 
 
     std::lock_guard<std::mutex> lk(sharedData.runMutex);
     pthread_create(&m_runThread, nullptr, runInThread, &sharedData);
+    sharedData.running = true;
 }
 
 void WasmRunner::kill()
@@ -232,7 +236,7 @@ void WasmRunner::kill()
 
 void WasmRunner::stop(bool silent)
 {
-    if (m_runThread) {
+    if (sharedData.running) {
         if (sharedData.runtime && sharedData.lib->stop) {
             sharedData.lib->stop(sharedData.runtime);
         }

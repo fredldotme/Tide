@@ -28,6 +28,7 @@ struct WasmRunnerSharedData {
     SystemGlue* system = nullptr;
     Debugger* debugger = nullptr;
     bool killing = false;
+    bool running = false;
     std::mutex runMutex;
     WasmRunnerConfig config;
 };
