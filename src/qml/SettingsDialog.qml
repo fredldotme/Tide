@@ -362,16 +362,14 @@ TideDialog {
                             Label {
                                 text: qsTr("Stack size (MB): ")
                             }
-                            TextField {
+                            SpinBox {
                                 id: stackSizeTextField
-                                text: settings.stackSize
-                                validator: RegularExpressionValidator {
-                                    regularExpression: /^[d+]$/
+                                value: settings.stackSize
+                                onValueChanged: {
+                                    settings.stackSize = value
                                 }
-                                onAccepted: settings.stackSize = parseInt(text)
-                                Component.onCompleted: {
-                                    imFixer.setupImEventFilter(stackSizeTextField)
-                                }
+                                from: 1
+                                to: 1024
                             }
                         }
                         RowLayout {
@@ -387,15 +385,13 @@ TideDialog {
                             Label {
                                 text: qsTr("Heap size (MB): ")
                             }
-                            TextField {
+                            SpinBox {
                                 id: heapSizeTextField
-                                text: settings.heapSize
-                                validator: RegularExpressionValidator {
-                                    regularExpression: /^[d+]$/
-                                }
-                                onAccepted: settings.heapSize = parseInt(text)
-                                Component.onCompleted: {
-                                    imFixer.setupImEventFilter(heapSizeTextField)
+                                value: settings.heapSize
+                                from: 1
+                                to: 1024
+                                onValueChanged: {
+                                    settings.heapSize = value
                                 }
                             }
                         }

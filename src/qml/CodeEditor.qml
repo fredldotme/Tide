@@ -450,7 +450,7 @@ Item {
                                   -1 :
                                   codeField.implicitWidth + paddingSmall + lineNumbersColumn.width
                 contentHeight: codeField.implicitHeight
-                visible: !codeEditor.invalidated
+                visible: !codeEditor.invalidated && !codeEditor.loading
                 width: parent.width
                 height: parent.height - detailArea.height
                 clip: true

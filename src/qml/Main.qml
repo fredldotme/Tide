@@ -209,8 +209,8 @@ ApplicationWindow {
             return;
 
         consoleView.show();
-        wasmRunner.configure((settings.stackSize * 1024) * 1024,
-                             (settings.heapSize * 1024) * 1024,
+        wasmRunner.configure(settings.stackSize,
+                             settings.heapSize,
                              settings.threads,
                              platformProperties.supportsOptimizations && settings.optimizations);
         wasmRunner.run(projectBuilder.runnableFile(), [])
@@ -236,8 +236,8 @@ ApplicationWindow {
 
         consoleView.show();
         showDebugArea = true;
-        wasmRunner.configure((settings.stackSize * 1024) * 1024,
-                             (settings.heapSize * 1024) * 1024,
+        wasmRunner.configure(settings.stackSize,
+                             settings.heapSize,
                              settings.threads,
                              platformProperties.supportsOptimizations);
         dbugger.debug(projectBuilder.runnableFile(), [])
@@ -3084,8 +3084,8 @@ ApplicationWindow {
             property bool clearConsole: true
             property bool rubberDuck : false
             property bool fallbackInterpreter : false
-            property int stackSize : 536870912
-            property int heapSize : 536870912
+            property int stackSize : 16
+            property int heapSize : 256
             property int threads : 16
             property bool optimizations : platformProperties.supportsOptimizations
         }
