@@ -1006,7 +1006,7 @@ Item {
                                             font.styleName: "Monospace"
                                             font.bold: true
                                             font.pixelSize: 20
-                                            color: index === autoCompletionList.currentIndex ? root.palette.button : root.palette.dark
+                                            color: index === autoCompletionList.currentIndex ? root.palette.button : root.palette.text
                                             elide: Text.ElideRight
                                             onClicked: {
                                                 insertCompletion()
