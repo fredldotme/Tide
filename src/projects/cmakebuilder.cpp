@@ -69,11 +69,11 @@ void CMakeBuilder::build(const bool debug, const bool aot)
 #if defined(Q_OS_MACOS)
     const auto cmakePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                            QStringLiteral("/Library/CMake");
-    const auto cmakeBinPath = QCoreApplication::applicationDirPath();
+    const auto cmakeBinPath = QCoreApplication::applicationDirPath() + QStringLiteral("/");
 #elif defined(Q_OS_IOS)
     const auto cmakePath = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                            QStringLiteral("/Library/CMake");
-    const auto cmakeBinPath = QStringLiteral("/usr/bin");
+    const auto cmakeBinPath = QStringLiteral("/usr/bin/");
 #elif defined(Q_OS_LINUX)
     const auto cmakePath = QStringLiteral("/snap/tide-ide/current/usr/share/cmake-3.27");
     const auto cmakeBinPath = QStringLiteral("");
@@ -90,7 +90,7 @@ void CMakeBuilder::build(const bool debug, const bool aot)
                                           " -DCMAKE_SYSROOT=\"%3\""
                                           " -DCMAKE_C_COMPILER_TARGET=wasm32-wasi-threads"
                                           " -DCMAKE_CXX_COMPILER_TARGET=wasm32-wasi-threads").arg(cmakePath, cmakeBinPath, m_sysroot);
-    const auto cmakeArgs = cmakeRoot + QStringLiteral(" -DCMAKE_SYSTEM_NAME=WASI -DCMAKE_SYSTEM_VERSION=1 -DCMAKE_MAKE_PROGRAM=%1/ninja ").arg(cmakeBinPath);
+    const auto cmakeArgs = cmakeRoot + QStringLiteral(" -DCMAKE_SYSTEM_NAME=WASI -DCMAKE_SYSTEM_VERSION=1 -DCMAKE_MAKE_PROGRAM=%1ninja ").arg(cmakeBinPath);
 
     QStringList buildCommands;
     buildCommands << QStringLiteral("%1/cmake -G Ninja -S \"%2\" -B \"%3\" %4").arg(cmakeBinPath, sourcePath, buildPath, cmakeArgs);
