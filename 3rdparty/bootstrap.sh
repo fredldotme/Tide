@@ -125,7 +125,7 @@ function cmake_wasi_build {
 # LLVM
 cd llvm
 if [ "$BUILD_IOS" = "1" ] || [ "$BUILD_MAC" = "1" ]; then
-    echo "Dere" # ./bootstrap.sh
+    ./bootstrap.sh
 elif [ "$BUILD_LINUX" = "1" ]; then
     mkdir build-linux || true
     cd build-linux
