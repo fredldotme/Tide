@@ -343,11 +343,11 @@ TideDialog {
                 ScrollView {
                     id: runtimeView
                     width: parent.width
-                    contentWidth: -1
 
                     Column {
-                        width: childrenRect.width
-                        height: childrenRect.height
+                        id: runtimeMainColumn
+                        width: implicitWidth
+                        height: implicitHeight
                         spacing: paddingSmall
                         RowLayout {
                             spacing: paddingMedium
@@ -399,7 +399,7 @@ TideDialog {
                             spacing: paddingMedium
                             Slider {
                                 from: 1
-                                to: 64
+                                to: 32
                                 value: settings.threads
                                 onValueChanged: {
                                     settings.threads = value;
@@ -408,15 +408,13 @@ TideDialog {
                             Label {
                                 text: qsTr("Thread count: ")
                             }
-                            TextField {
+                            SpinBox {
                                 id: threadsTextField
-                                text: settings.threads
-                                validator: RegularExpressionValidator {
-                                    regularExpression: /^[d+]$/
-                                }
-                                onAccepted: settings.threads = parseInt(text)
-                                Component.onCompleted: {
-                                    imFixer.setupImEventFilter(threadsTextField)
+                                value: settings.threads
+                                from: 1
+                                to: 32
+                                onValueChanged: {
+                                    settings.threads = value;
                                 }
                             }
                         }

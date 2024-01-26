@@ -22,6 +22,8 @@ Item {
     property bool loading : false
     property bool showAutoCompletor : false
 
+    focus: codeField.focus
+
     function scrollToLine(line) {
         let contentY = 0
         for (let currentLine = 1; currentLine < Math.min(line, lineNumbersHelper.lineCount.length); currentLine++) {

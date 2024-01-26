@@ -2547,6 +2547,18 @@ ApplicationWindow {
                         mouse.accepted = true
                     }
             }
+
+            onVisibleChanged: {
+                if (!visible && !editor.invalidated)
+                    editor.codeField.forceActiveFocus()
+            }
+            Connections {
+                target: editor
+                function onFileChanged() {
+                    if (!editor.invalidated)
+                        editor.codeField.forceActiveFocus()
+                }
+            }
         }
 
         Item {
