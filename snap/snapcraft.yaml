@@ -1,7 +1,7 @@
 name: tide-ide
 version: 1.9.0
 grade: stable
-confinement: strict
+confinement: classic
 base: core22
 summary: The modern approach to WebAssembly development
 description: |
@@ -40,46 +40,13 @@ architectures:
 apps:
   tide-ide:
     environment:
-      LD_LIBRARY_PATH: ${SNAP}/lib:${SNAP}/usr/lib:${SNAP}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}
+      LD_LIBRARY_PATH: ${SNAP}/lib:${SNAP}/usr/lib:${SNAP}/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
       QT_PLUGIN_PATH: ${SNAP}/usr/plugins
       QML_IMPORT_PATH: ${SNAP}/usr/qml
-    command-chain:
-      - bin/desktop-launch
-    extensions: [ gnome ]
+      QT_XKB_CONFIG_ROOT: ${SNAP}/usr/share/X11/xkb
+    command-chain: [ bin/desktop-launch ]
     command: usr/bin/tide-ide
     plugs: [ x11, wayland, desktop, desktop-legacy, opengl, alsa, pulseaudio, home, removable-media, network, network-bind ]
-
-plugs:
-    desktop:
-        mount-host-font-cache: false
-    gtk-3-themes:
-        interface: content
-        target: $SNAP/data-dir/themes
-        default-provider: gtk-common-themes
-    icon-themes:
-        interface: content
-        target: $SNAP/data-dir/icons
-        default-provider: gtk-common-themes
-    sound-themes:
-        interface: content
-        target: $SNAP/data-dir/sounds
-        default-provider: gtk-common-themes
-    gnome-42-2204:
-        interface: content
-        target: $SNAP/gnome-platform
-        default-provider: gnome-42-2204
-
-layout:
-  /usr/share/libdrm:
-    bind: $SNAP/graphics/libdrm
-  /usr/share/drirc.d:
-    symlink: $SNAP/graphics/drirc.d
-  /usr/share/X11/XErrorDB:
-    symlink: $SNAP/graphics/X11/XErrorDB
-  /usr/share/X11/locale:
-    symlink: $SNAP/graphics/X11/locale
-  /usr/share/X11/xkb:
-    symlink: $SNAP/usr/share/X11/xkb
 
 parts:
   bootstrap:
@@ -118,6 +85,9 @@ parts:
       - clang
     stage-packages:
       - libpcre2-16-0
+      - libpcre3
+      - libssl3
+      - openssl
       - fonts-open-sans
       - fonts-ubuntu
     after: [ qt6declarative, bootstrap ]
