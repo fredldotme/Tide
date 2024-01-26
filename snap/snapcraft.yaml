@@ -1,5 +1,5 @@
 name: tide-ide
-version: 1.9.0
+version: 2.0.0
 grade: stable
 confinement: classic
 base: core22
@@ -87,6 +87,8 @@ parts:
       - libpcre2-16-0
       - libpcre3
       - libssl3
+      - libc6
+      - libstdc++6
       - openssl
       - fonts-open-sans
       - fonts-ubuntu
