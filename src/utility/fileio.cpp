@@ -4,8 +4,8 @@
 #include <QDebug>
 #include <QDir>
 #include <QDirIterator>
-
-#include <fstream>
+#include <QMimeDatabase>
+#include <QMimeType>
 
 FileIo::FileIo(QObject *parent)
     : QObject{parent}
@@ -101,12 +101,8 @@ quint64 FileIo::directoryContents(const QString path)
 
 bool FileIo::fileIsTextFile(const QString path)
 {
-    int c;
-    std::ifstream stream(path.toStdString());
-    while ((c = stream.get()) != EOF) {
-        if (c > 1279) // As per Unicode U+04C0 - U+04FF
-            return false;
-    }
-    return true;
+    QMimeDatabase db;
+    QMimeType mime = db.mimeTypeForFile(path);
+    return (mime.inherits("text/plain"));
 }
 

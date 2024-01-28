@@ -1,7 +1,7 @@
 #ifndef SYSTEMGLUE_H
 #define SYSTEMGLUE_H
 
-#include <QtSystemDetection>
+#include <QtGlobal>
 
 #if defined(Q_OS_LINUX)
 #include <unistd.h>

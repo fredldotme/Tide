@@ -65,7 +65,7 @@ ApplicationWindow {
                                                    "file://"
 
     readonly property color borderColor : Qt.tint(mainBackgroundDefaultColor, "#10FF0000")
-    property color headerItemColor : (dialogShadow.visible || mainBackgroundColorOverride !== Qt.color("transparent") || wantContextColor) ?
+    property color headerItemColor : (dialogShadow.visible || mainBackgroundColorOverride !== mainBackgroundDefaultColor || wantContextColor) ?
                                          "white" : root.palette.button
     Behavior on headerItemColor {
         ColorAnimation {
@@ -73,7 +73,7 @@ ApplicationWindow {
         }
     }
     readonly property color mainBackgroundDefaultColor : root.palette.window
-    property color mainBackgroundColorOverride : "transparent"
+    property color mainBackgroundColorOverride : root.palette.window
     onMainBackgroundColorOverrideChanged: {
         mainBackgroundColorOverrideResetTimer.restart()
     }
@@ -82,7 +82,7 @@ ApplicationWindow {
         id: mainBackgroundColorOverrideResetTimer
         interval: 3000
         repeat: false
-        onTriggered: mainBackgroundColorOverride = "transparent"
+        onTriggered: mainBackgroundColorOverride = mainBackgroundDefaultColor
     }
 
     readonly property color tintedRunColor : {
@@ -104,7 +104,7 @@ ApplicationWindow {
                                                    mainBackgroundDefaultColor
     property color mainBackgroundColor : (wantContextColor) ?
                                              contextColor :
-                                             mainBackgroundColorOverride !== "transparent" ?
+                                             mainBackgroundColorOverride !== mainBackgroundDefaultColor ?
                                                  mainBackgroundColorOverride :
                                                  mainBackgroundDefaultColor
     Behavior on mainBackgroundColor {
@@ -1153,6 +1153,19 @@ ApplicationWindow {
     property var projectBuilder : ProjectBuilder {
         id: projectBuilder
 
+        function isLoadable(file) {
+            if (file.name.endsWith(".pro"))
+                return true;
+
+            if (platformProperties.supportsCMake && file.name === "CMakeLists.txt")
+                return true;
+
+            if (platformProperties.supportsSnaps && file.name === "snapcraft.yaml")
+                return true;
+
+            return false;
+        }
+
         onProjectFileChanged: {
             reevaluateDebuggerVisibility()
 
@@ -1427,7 +1440,7 @@ ApplicationWindow {
         editor.file = modelData;
 
         // Also load project in case it's a project
-        if (modelData.path.endsWith(".pro") || (platformProperties.supportsCMake && modelData.name === "CMakeLists.txt"))
+        if (modelData.path.endsWith(".pro") || projectBuilder.isLoadable(modelData))
             projectBuilder.loadProject(modelData.path);
 
         if (root.width < root.height)
@@ -1995,7 +2008,7 @@ ApplicationWindow {
                                                     id: fileListingButton
                                                     readonly property bool isBackButton : (modelData.name === "..")
                                                     readonly property bool isDir : (modelData.type === DirectoryListing.Directory)
-                                                    readonly property bool isProject : (modelData.name.endsWith(".pro") || (platformProperties.supportsCMake && modelData.name === "CMakeLists.txt"))
+                                                    readonly property bool isProject : projectBuilder.isLoadable(modelData)
 
                                                     textColor: root.palette.button
                                                     icon.color: root.palette.button
@@ -2270,7 +2283,7 @@ ApplicationWindow {
 
                                     clip: true
                                     delegate: OpenFileListingButton {
-                                        readonly property bool isProject : modelData.name.endsWith(".pro") || (platformProperties.supportsCMake && modelData.name === "CMakeLists.txt")
+                                        readonly property bool isProject : projectBuilder.isLoadable(modelData)
                                         readonly property bool isActiveProject: modelData.path === projectBuilder.projectFile
                                         radius: roundedCornersRadiusSmall
 
@@ -3395,7 +3408,7 @@ ApplicationWindow {
                 id: colorResetTimer
                 interval: 2000
                 onTriggered: {
-                    mainBackgroundColorOverride = "transparent"
+                    mainBackgroundColorOverride = mainBackgroundDefaultColor
                 }
             }
 

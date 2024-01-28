@@ -23,6 +23,7 @@ void ProjectBuilder::unloadProject()
 
     QObject::disconnect(&m_qmakeBuilder, nullptr, nullptr, nullptr);
     QObject::disconnect(&m_cmakeBuilder, nullptr, nullptr, nullptr);
+    QObject::disconnect(&m_snapcraftBuilder, nullptr, nullptr, nullptr);
 
     this->m_projectFile = "";
     emit projectFileChanged();
@@ -35,6 +36,7 @@ bool ProjectBuilder::loadProject(const QString path)
 
     QObject::disconnect(&m_qmakeBuilder, nullptr, nullptr, nullptr);
     QObject::disconnect(&m_cmakeBuilder, nullptr, nullptr, nullptr);
+    QObject::disconnect(&m_snapcraftBuilder, nullptr, nullptr, nullptr);
 
     if (path.toLower().endsWith(".pro")) {
         m_activeBuilder = &m_qmakeBuilder;
@@ -46,6 +48,10 @@ bool ProjectBuilder::loadProject(const QString path)
         m_cmakeBuilder.iosSystem = m_iosSystem;
         m_cmakeBuilder.setSysroot(m_sysroot);
         QObject::connect(&m_cmakeBuilder, &CMakeBuilder::commandRunnerChanged, this, &ProjectBuilder::commandRunnerChanged, Qt::DirectConnection);
+    } else if (path.endsWith("/snapcraft.yaml")) {
+        m_activeBuilder = &m_snapcraftBuilder;
+        m_snapcraftBuilder.iosSystem = m_iosSystem;
+        QObject::connect(&m_snapcraftBuilder, &SnapcraftBuilder::commandRunnerChanged, this, &ProjectBuilder::commandRunnerChanged, Qt::DirectConnection);
     }
 
     if (!m_activeBuilder) {

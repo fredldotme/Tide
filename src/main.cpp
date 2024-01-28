@@ -79,13 +79,10 @@ int main(int argc, char *argv[])
     const QString runtime = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
                             QStringLiteral("/Runtimes/Linux");
 
-    qputenv("QT_QUICK_CONTROLS_STYLE", "");
+    qputenv("QT_QUICK_CONTROLS_STYLE", "Material");
     qputenv("SYSROOT", sysroot.toUtf8().data());
     qputenv("CLANG_RESOURCE_DIR",
             QStringLiteral("%1/usr/lib/clang/17").arg(library).toStdString().c_str());
-    qputenv("QML_IMPORT_PATH", "./qml");
-    qputenv("QT_PLUGIN_PATH", "./plugins");
-    qputenv("QT_QPA_PLATFORM", "wayland-egl");
     qputenv("QT_QPA_FONTDIR", "/snap/tide-ide/current/usr/share/fonts/truetype");
 
     if (qEnvironmentVariableIsSet("DESKTOP_FILE_HINT")) {
@@ -93,6 +90,14 @@ int main(int argc, char *argv[])
         const auto grid_unit = qgetenv("GRID_UNIT_PX");
         const auto scale = (qreal)grid_unit.toInt() / (qreal) 8;
         qputenv("QT_SCALE_FACTOR", std::to_string(scale).c_str());
+    }
+    if (qEnvironmentVariableIsSet("QT_QPA_PLATFORM")) {
+        const auto platform = qgetenv("QT_QPA_PLATFORM");
+        if (platform == QByteArrayLiteral("ubuntumirclient"))
+            qputenv("QT_QPA_PLATFORM", "xcb");
+    }
+    if (!qEnvironmentVariableIsSet("QT_QPA_PLATFORM")) {
+        qputenv("QT_QPA_PLATFORM", "xcb");
     }
 #endif
 

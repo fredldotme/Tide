@@ -95,6 +95,7 @@ include_directories(${PROJECT_NAME}
     ${LLVM_INCLUDES}
     ${LLVM_FRAMEWORKS}/clang/lib/Format
     ${LLVM_CLANG_INCLUDES}
+    ${SNAP_STAGE}/usr/include
 )
 
 target_link_libraries(${PROJECT_NAME}

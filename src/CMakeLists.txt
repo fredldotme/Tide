@@ -234,6 +234,7 @@ qt_add_executable(${PROJECT_NAME}
     projects/projectcreator.cpp
     projects/cmakebuilder.cpp
     projects/qmakebuilder.cpp
+    projects/snapcraftbuilder.cpp
     projects/builderbackend.h
     plugins/tidepluginmanager.cpp
     plugins/tideplugin.cpp
@@ -335,6 +336,7 @@ include_directories(${PROJECT_NAME}
     ${LLVM_DIR}/lldb/include
     ${LLVM_DIR}/${LLVM_BUILD_DIR}/include
     ${LLVM_DIR}/${LLVM_BUILD_DIR}/tools/clang/include
+    ${SNAP_STAGE}/usr/include
 
     # Platform abstraction
     ${CMAKE_CURRENT_SOURCE_DIR}/platform/ios

@@ -173,9 +173,15 @@ int PosixSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
     posix_spawn_file_actions_adddup2(&action, fileno(copy.std_in), 0);
     posix_spawn_file_actions_adddup2(&action, fileno(copy.std_out), 1);
     posix_spawn_file_actions_adddup2(&action, fileno(copy.std_err), 2);
-    cmdbin = std::string("/snap/tide-ide/current/usr/bin/") + args.at(0);
+    cmdbin = QStandardPaths::findExecutable(QString::fromStdString(args.at(0))).toStdString();
+
+    if (cmdbin.empty()) {
+        qWarning() << "Binary not found";
+        goto done;
+    }
 
     qDebug() << "Run command:" << cmd;
+    qDebug() << "Using bin:" << QString::fromStdString(cmdbin);
 
     status = posix_spawn(&childpid, cmdbin.c_str(), &action, NULL, (char * const*)cargs.data(), environ);
     if (status != 0) {
@@ -215,11 +221,17 @@ void PosixSystemGlue::copyToClipboard(const QString text)
 
 void PosixSystemGlue::share(const QString text, const QUrl url, const QRect pos)
 {
-    if (url.isValid()) {
-        auto splitPath = url.path().split(QDir::separator(), Qt::SkipEmptyParts);
-        splitPath.takeLast();
-        const auto fullPath = QStringLiteral("file:///") + splitPath.join(QDir::separator());
-        qDebug() << "Opening:" << fullPath;
-        QDesktopServices::openUrl(QUrl(fullPath));
-    }
+    qDebug() << Q_FUNC_INFO << url;
+
+    if (!url.isValid())
+        return;
+
+    auto splitPath = url.path().split(QDir::separator(), Qt::SkipEmptyParts);
+    if (splitPath.length() == 0)
+        return;
+
+    splitPath.takeLast();
+    const auto fullPath = QStringLiteral("file:///") + splitPath.join(QDir::separator());
+    qDebug() << "Opening:" << fullPath;
+    QDesktopServices::openUrl(QUrl(fullPath));
 }

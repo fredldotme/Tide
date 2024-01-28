@@ -8,6 +8,7 @@
 
 #include "projects/cmakebuilder.h"
 #include "projects/qmakebuilder.h"
+#include "projects/snapcraftbuilder.h"
 #include "platform/systemglue.h"
 
 class ProjectBuilder : public QObject
@@ -54,6 +55,7 @@ private:
     bool m_building;
     CMakeBuilder m_cmakeBuilder;
     QMakeBuilder m_qmakeBuilder;
+    SnapcraftBuilder m_snapcraftBuilder;
     BuilderBackend* m_activeBuilder;
 
 signals:
