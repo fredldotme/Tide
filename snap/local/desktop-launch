@@ -15,19 +15,6 @@ function ensure_dir_exists() {
   [ -d "$1" ] ||  mkdir -p "$@"
 }
 
-declare -A PIDS
-function async_exec() {
-  "$@" &
-  PIDS[$!]=$*
-}
-
-function wait_for_async_execs() {
-  for pid in "${!PIDS[@]}"
-  do
-    wait "$pid" && continue || echo "ERROR: ${PIDS[$pid]} exited abnormally with status $?"
-  done
-}
-
 source "$SNAP_USER_DATA/.last_revision" 2>/dev/null || true
 if [ "$SNAP_DESKTOP_LAST_REVISION" = "$SNAP_REVISION" ]; then
   needs_update=false
@@ -339,33 +326,6 @@ append_dir LD_LIBRARY_PATH "$SNAP/testability"
 append_dir LD_LIBRARY_PATH "$SNAP/testability/$ARCH"
 append_dir LD_LIBRARY_PATH "$SNAP/testability/$ARCH/mesa"
 
-# Icon themes cache
-if [ "$needs_update" = true ]; then
-  rm -rf "$XDG_DATA_HOME/icons"
-  ensure_dir_exists "$XDG_DATA_HOME/icons"
-  for ((i = 0; i < ${#data_dirs_array[@]}; i++)); do
-    # The runtime and theme content snaps should already contain icon caches
-    # so we skip them to optimise app start time.
-    if [[ "${data_dirs_array[$i]}" == "$SNAP/data-dir" || "${data_dirs_array[$i]}" == "$SNAP/"* ]]; then
-      continue
-    fi  
-    for theme in "${data_dirs_array[$i]}"/icons/*; do
-      if [ -f "$theme/index.theme" ] && [ ! -f "$theme/icon-theme.cache" ]; then
-        theme_dir="$XDG_DATA_HOME/icons/$(basename "$theme")"
-        if [ ! -d "$theme_dir" ]; then
-          ensure_dir_exists "$theme_dir"
-          ln -s "$theme"/* "$theme_dir"
-          if [ -f "$SNAP/usr/sbin/update-icon-caches" ]; then
-            async_exec "$SNAP/usr/sbin/update-icon-caches" "$theme_dir"
-          elif [ -f "$SNAP/usr/sbin/update-icon-cache.gtk2" ]; then
-            async_exec "$SNAP/usr/sbin/update-icon-cache.gtk2" "$theme_dir"
-          fi
-        fi
-      fi
-    done
-  done
-fi
-
 # GTK theme and behavior modifier
 # Those can impact the theme engine used by Qt as well
 gtk_configs=(gtk-3.0/settings.ini gtk-3.0/bookmarks gtk-2.0/gtkfilechooser.ini)
@@ -393,16 +353,16 @@ export QT_XKB_CONFIG_ROOT="$SNAP/usr/share/X11/xkb"
 export QTCHOOSER_NO_GLOBAL_DIR=1
 export QT_SELECT=5
 
-if [ -e "$SNAP/usr/share/i18n" ]; then
-    export I18NPATH="$SNAP/usr/share/i18n"
-    locpath="$XDG_DATA_HOME/locale"
-    ensure_dir_exists "$locpath"
-    export LOCPATH="$locpath:/usr/lib/locale"
-    # TODO_KB: ensure locale-gen is in command-chain
-    LC_ALL=C.UTF-8 async_exec "$SNAP/snap/command-chain/locale-gen"
-fi
-
 export FONTCONFIG_PATH="$SNAP/etc/fonts:$SNAP/usr/share/fonts"
+
+# Qt6
+export QT_PLUGIN_PATH=${SNAP}/usr/lib/${ARCH}/qt6/plugins
+export QML_IMPORT_PATH=${SNAP}/usr/lib/${ARCH}/qt6/qml
+export QT_XKB_CONFIG_ROOT=${SNAP}/usr/share/X11/xkb
+append_dir LD_LIBRARY_PATH "$SNAP/usr/lib/$ARCH/qt6/qml/QtQuick/Controls"
+
+# Misc
+append_dir LIBGL_DRIVERS_PATH "$SNAP/usr/lib/$ARCH/dri"
 
 ###############################
 # Mark update and exec binary #
@@ -410,8 +370,6 @@ export FONTCONFIG_PATH="$SNAP/etc/fonts:$SNAP/usr/share/fonts"
 
 # shellcheck disable=SC2154
 [ "$needs_update" = true ] && echo "SNAP_DESKTOP_LAST_REVISION=$SNAP_REVISION" > "$SNAP_USER_DATA/.last_revision"
-
-wait_for_async_execs
 
 if [ -n "$SNAP_DESKTOP_DEBUG" ]; then
   echo "desktop-launch elapsed time: $(date +%s.%N --date="$START seconds ago")"

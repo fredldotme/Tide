@@ -3,7 +3,7 @@ version: 2.0.0
 grade: stable
 confinement: classic
 base: core22
-summary: The modern approach to WebAssembly development
+summary: The modern approach to WebAssembly development & more
 description: |
   Develop and build WebAssembly code directly on your favorite tablet device!
   Welcome to Tide, the touch-friendly IDE for WebAssembly development.
@@ -23,7 +23,10 @@ description: |
   - Optional WASI threading and socket support
   - Easily release your WebAssembly builds
 
-  Copyright notices
+  Special to Linux:
+  - Ability to build Linux Snap packages when `snapcraft` is also installed
+
+  Copyright notices:
   - LLVM: Apache 2.0 License with LLVM exceptions
   - WAMR: Apache 2.0
   - Wasi SDK: Apache 2.0
@@ -39,19 +42,19 @@ architectures:
 
 apps:
   tide-ide:
-    environment:
-      LD_LIBRARY_PATH: ${SNAP}/lib:${SNAP}/usr/lib:${SNAP}/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
-      QT_PLUGIN_PATH: ${SNAP}/usr/plugins
-      QML_IMPORT_PATH: ${SNAP}/usr/qml
-      QT_XKB_CONFIG_ROOT: ${SNAP}/usr/share/X11/xkb
     command-chain: [ bin/desktop-launch ]
     command: usr/bin/tide-ide
-    plugs: [ x11, wayland, desktop, desktop-legacy, opengl, alsa, pulseaudio, home, removable-media, network, network-bind ]
+
+package-repositories:
+  - type: apt
+    ppa: tobhe/asahi-snap-dependencies
 
 parts:
   bootstrap:
     plugin: cmake
     source: 3rdparty
+    build-attributes:
+      - enable-patchelf
     build-packages:
       - cmake
       - ninja-build
@@ -67,13 +70,43 @@ parts:
     override-build: |
       cd $SNAPCRAFT_PART_SRC
       bash -x bootstrap.sh --linux-snap
+  deps:
+    plugin: nil
+    build-attributes:
+      - no-patchelf
+    stage-snaps:
+      - kde-qt6-sdk
+    stage-packages:
+      - libpcre2-16-0
+      - libpcre3
+      - libssl3
+      - openssl
+      - fonts-open-sans
+      - fonts-ubuntu
+      - libgl1-mesa-dri
+      - libegl1
+      - libffi8
+    stage:
+      - usr/lib
+    prime:
+      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET
+    after: [ bootstrap ]
   tide:
     plugin: cmake
     source: .
+    build-attributes:
+      - enable-patchelf
+    build-environment:
+      - LD_LIBRARY_PATH: /snap/kde-qt6-sdk/current/usr/lib:/snap/kde-qt6-sdk/current/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:/snap/kde-qt6-sdk/current/lib/${SNAPCRAFT_ARCH_TRIPLET}
     cmake-parameters:
+      - -DCMAKE_C_COMPILER=clang
+      - -DCMAKE_CXX_COMPILER=clang++
+      - -DCMAKE_PREFIX_PATH=/snap/kde-qt6-sdk/current/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/cmake/Qt6
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DSNAP=1
       - -DSNAP_STAGE=$CRAFT_STAGE
+    build-snaps:
+      - kde-qt6-sdk
     build-packages:
       - cmake
       - ninja-build
@@ -83,137 +116,20 @@ parts:
       - libcrypt-dev
       - curl
       - clang
-    stage-packages:
-      - libpcre2-16-0
-      - libpcre3
-      - libssl3
-      - libc6
-      - libstdc++6
-      - openssl
-      - fonts-open-sans
-      - fonts-ubuntu
-    after: [ qt6declarative, bootstrap ]
-  qt6:
-    plugin: cmake
-    source: https://github.com/qt/qtbase.git
-    source-branch: 6.6.0
-    cmake-parameters:
-      - -GNinja
-      - -DCMAKE_INSTALL_PREFIX=/usr
-    build-packages:
-      - cmake
-      - ninja-build
-      - build-essential
-      - dpkg-dev
-      - libinput-dev
       - libgl-dev
       - libgles-dev
-      - libfontconfig1-dev
-      - libfreetype6-dev
-      - libx11-dev
-      - libx11-xcb-dev
-      - libxext-dev
-      - libxfixes-dev
-      - libxi-dev
-      - libxrender-dev
-      - libxcb1-dev
-      - libxcb-glx0-dev
-      - libxcb-keysyms1-dev
-      - libxcb-image0-dev
-      - libxcb-shm0-dev
-      - libxcb-icccm4-dev
-      - libxcb-sync-dev
-      - libxcb-xfixes0-dev
-      - libxcb-shape0-dev
-      - libxcb-randr0-dev
-      - libxcb-render-util0-dev
-      - libxcb-util-dev
-      - libxcb-xinerama0-dev
-      - libxcb-xkb-dev
-      - libxkbcommon-dev
-      - libxkbcommon-x11-dev
-    stage-packages:
-      - libxkbcommon0
-      - dmz-cursor-theme
-      - light-themes
-      - adwaita-icon-theme
-      - gnome-themes-standard
-      - shared-mime-info
-      - libgdk-pixbuf2.0-0
-    stage:
-      - usr/*
-  qt6shadertools:
-    plugin: cmake
-    source: https://github.com/qt/qtshadertools.git
-    source-branch: 6.6.0
-    override-build: |
-      mkdir $SNAPCRAFT_PART_BUILD || true
-      cd $SNAPCRAFT_PART_BUILD
-      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_SRC
-      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
-      ninja
-      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
-    override-stage: |
-      cd $SNAPCRAFT_PART_BUILD
-      DESTDIR=$SNAPCRAFT_STAGE ninja install
-    build-packages:
-      - cmake
-      - ninja-build
-      - build-essential
-      - dpkg-dev
-    stage:
-      - usr/*
-    after: [ qt6 ]
-  qt6declarative:
-    plugin: cmake
-    source: https://github.com/qt/qtdeclarative.git
-    source-branch: 6.6.0
-    override-build: |
-      mkdir $SNAPCRAFT_PART_BUILD || true
-      cd $SNAPCRAFT_PART_BUILD
-      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_SRC
-      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
-      ninja
-      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
-    override-stage: |
-      cd $SNAPCRAFT_PART_BUILD
-      DESTDIR=$SNAPCRAFT_STAGE ninja install
-    build-packages:
-      - cmake
-      - ninja-build
-      - build-essential
-      - dpkg-dev
-      - libharfbuzz-dev
-    stage-packages:
-      - libharfbuzz0b
-    stage:
-      - usr/*
-    after: [ qt6shadertools ]
-  qt6wayland:
-    plugin: cmake
-    source: https://github.com/qt/qtwayland.git
-    source-branch: 6.6.0
-    override-build: |
-      mkdir $SNAPCRAFT_PART_BUILD || true
-      cd $SNAPCRAFT_PART_BUILD
-      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_SRC
-      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
-      ninja
-      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
-    override-stage: |
-      cd $SNAPCRAFT_PART_BUILD
-      DESTDIR=$SNAPCRAFT_STAGE ninja install
-    build-packages:
-      - cmake
-      - ninja-build
-      - build-essential
-      - dpkg-dev
-    stage:
-      - usr/*
-    after: [ qt6declarative ]
+      - libpcre2-16-0
+    after: [ deps ]
+  launcher:
+    plugin: dump
+    source: snap/local
+    organize:
+      desktop-launch: bin/desktop-launch
   cmake:
     plugin: cmake
     source: 3rdparty/CMake
+    build-attributes:
+      - enable-patchelf
     override-build: |
       mkdir $SNAPCRAFT_PART_BUILD || true
       cd $SNAPCRAFT_PART_BUILD
@@ -234,6 +150,8 @@ parts:
   ninja:
     plugin: cmake
     source: 3rdparty/ninja
+    build-attributes:
+      - enable-patchelf
     override-build: |
       mkdir $SNAPCRAFT_PART_BUILD || true
       cd $SNAPCRAFT_PART_BUILD
@@ -251,9 +169,3 @@ parts:
       - dpkg-dev
     stage:
       - usr/*
-  launcher:
-    plugin: dump
-    source: snap/local
-    organize:
-      'desktop-launch': bin/desktop-launch
-    after: [ tide ]
