@@ -86,6 +86,7 @@ parts:
       - libgl1-mesa-dri
       - libegl1
       - libffi8
+      - zlib1g
     stage:
       - usr/lib
     prime:
@@ -119,6 +120,7 @@ parts:
       - libgl-dev
       - libgles-dev
       - libpcre2-16-0
+      - zlib1g-dev
     after: [ deps ]
   launcher:
     plugin: dump
