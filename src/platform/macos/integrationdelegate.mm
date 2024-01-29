@@ -8,7 +8,7 @@
 #include <QWindow>
 
 MacosIntegrationDelegate::MacosIntegrationDelegate(QObject *parent)
-    : QObject{parent}, m_oskVisible{false}, m_oskHeight{0}, m_item{nullptr}
+    : QObject{parent}, m_oskVisible{false}, m_oskHeight{0}, m_item{nullptr}, m_hasKeyboard{true}
 {
 }
 

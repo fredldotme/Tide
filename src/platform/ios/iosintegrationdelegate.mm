@@ -112,7 +112,7 @@ static TideAppDelegate* sharedAppDelegate = nil;
 @end
 
 IosIntegrationDelegate::IosIntegrationDelegate(QObject *parent)
-    : QObject{parent}, m_oskVisible{false}, m_oskHeight{0}, m_item{nullptr}
+    : QObject{parent}, m_oskVisible{false}, m_oskHeight{0}, m_item{nullptr}, m_hasKeyboard{false}
 {
     static bool initialized = false;
     if (!initialized) {
