@@ -70,6 +70,7 @@ parts:
     override-build: |
       cd $SNAPCRAFT_PART_SRC
       bash -x bootstrap.sh --linux-snap
+
   deps:
     plugin: nil
     build-attributes:
@@ -92,6 +93,7 @@ parts:
     prime:
       - usr/lib/$SNAPCRAFT_ARCH_TRIPLET
     after: [ bootstrap ]
+
   tide:
     plugin: cmake
     source: .
@@ -123,11 +125,13 @@ parts:
       - libudev-dev
       - zlib1g-dev
     after: [ deps ]
+
   launcher:
     plugin: dump
     source: snap/local
     organize:
       desktop-launch: bin/desktop-launch
+
   cmake:
     plugin: cmake
     source: 3rdparty/CMake
@@ -150,6 +154,7 @@ parts:
       - dpkg-dev
     stage:
       - usr/*
+
   ninja:
     plugin: cmake
     source: 3rdparty/ninja
