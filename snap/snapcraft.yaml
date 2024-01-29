@@ -120,6 +120,7 @@ parts:
       - libgl-dev
       - libgles-dev
       - libpcre2-16-0
+      - libudev-dev
       - zlib1g-dev
     after: [ deps ]
   launcher:
