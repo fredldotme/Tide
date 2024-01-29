@@ -101,6 +101,11 @@ quint64 FileIo::directoryContents(const QString path)
 
 bool FileIo::fileIsTextFile(const QString path)
 {
+    // Hello, young freshling
+    if (QFileInfo(path).size() == 0) {
+        return true;
+    }
+
     QMimeDatabase db;
     QMimeType mime = db.mimeTypeForFile(path);
     return (mime.inherits("text/plain"));
