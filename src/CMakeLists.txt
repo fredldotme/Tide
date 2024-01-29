@@ -190,7 +190,11 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH "${LLVM_DIR}/${LLVM_BUILD_DIR}")
 
 # Qt6
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Sql QuickControls2 VirtualKeyboard)
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Sql QuickControls2)
+if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(Qt6 6.2 REQUIRED COMPONENTS VirtualKeyboard)
+    set(QT6VIRTUALKEYBOARD Qt6::VirtualKeyboard)
+endif()
 
 include_directories(${PROJECT_NAME}
     # QMake parser
@@ -608,7 +612,7 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::QuickControls2
     Qt6::Sql
     Qt6::Widgets
-    Qt6::VirtualKeyboard
+    ${QT6VIRTUALKEYBOARD}
     ${LLVM}
     ${NOSYSTEM}
     ${COMPRESSION}
