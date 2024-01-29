@@ -44,7 +44,6 @@ void SnapcraftBuilder::clean()
     if (!buildDir.exists()) {
         return;
     }
-    
     // TODO: remove snaps
 }
 
@@ -147,6 +146,9 @@ QString SnapcraftBuilder::projectDir()
 
     if (crumbs.isEmpty())
         return "";
+
+    if (!crumbs.isEmpty() && crumbs[crumbs.length() - 1] == QStringLiteral("snap"))
+        crumbs.takeLast();
 
     return QDir::separator() + crumbs.join(QDir::separator());
 }
