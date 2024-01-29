@@ -18,6 +18,7 @@ typedef ProjectDirectoryPicker ProjectPicker;
 typedef PosixIntegrationDelegate PlatformIntegrationDelegate;
 typedef NullInputMethodFixerInstaller InputMethodFixerInstaller;
 typedef PosixProjectList ProjectList;
+
 #elif defined(Q_OS_IOS)
 #include "platform/ios/iossystemglue.h"
 #include "platform/ios/externalprojectpicker.h"
@@ -31,6 +32,7 @@ typedef ExternalProjectPicker ProjectPicker;
 typedef IosIntegrationDelegate PlatformIntegrationDelegate;
 typedef ImFixerInstaller InputMethodFixerInstaller;
 typedef IosProjectList ProjectList;
+
 #elif defined(Q_OS_MACOS)
 #include <unistd.h>
 
@@ -45,6 +47,19 @@ typedef ExternalProjectPicker ProjectPicker;
 typedef MacosIntegrationDelegate PlatformIntegrationDelegate;
 typedef ImFixerInstaller InputMethodFixerInstaller;
 typedef IosProjectList ProjectList;
+
+#elif defined(Q_OS_WASM)
+#include "platform/wasm/wasmsystemglue.h"
+#include "platform/wasm/projectdirectorypicker.h"
+#include "platform/wasm/wasmintegrationdelegate.h"
+#include "platform/wasm/nullinputmethodfixerinstaller.h"
+#include "platform/wasm/wasmprojectlist.h"
+
+typedef PosixSystemGlue SystemGlue;
+typedef ProjectDirectoryPicker ProjectPicker;
+typedef PosixIntegrationDelegate PlatformIntegrationDelegate;
+typedef NullInputMethodFixerInstaller InputMethodFixerInstaller;
+typedef PosixProjectList ProjectList;
 #endif
 
 #endif // SYSTEMGLUE_H
