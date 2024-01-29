@@ -190,7 +190,7 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH "${LLVM_DIR}/${LLVM_BUILD_DIR}")
 
 # Qt6
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Sql QuickControls2)
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Sql QuickControls2 VirtualKeyboard)
 
 include_directories(${PROJECT_NAME}
     # QMake parser
@@ -304,6 +304,7 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/GitLogEntry.qml
     qml/PlatformProperties.qml
     qml/TideScrollBar.qml
+    qml/VirtualKeyboard.qml
 
     NO_LINT
 )
@@ -544,6 +545,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     set (LIBZ z)
     set (OPENSSL crypto ssl)
     set (DL_LIBRARY dl)
+    set (UDEV udev)
 
     qt_add_library(${PROJECT_NAME}-platform
         STATIC
@@ -582,6 +584,7 @@ target_link_libraries(${PROJECT_NAME}-platform
     Qt6::Quick
     Qt6::Widgets
     ${NOSYSTEM}
+    ${UDEV}
 )
 
 if(APPLE OR IOS)
@@ -605,6 +608,7 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::QuickControls2
     Qt6::Sql
     Qt6::Widgets
+    Qt6::VirtualKeyboard
     ${LLVM}
     ${NOSYSTEM}
     ${COMPRESSION}

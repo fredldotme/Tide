@@ -1463,7 +1463,8 @@ ApplicationWindow {
         id: mainContainer
         anchors.top: mainViewHeader.bottom
         width: parent.width
-        height: parent.height - headerBarHeight - (uiIntegration.oskVisible ? uiIntegration.oskHeight : 0)
+        height: parent.height - headerBarHeight - (uiIntegration.oskVisible ? uiIntegration.oskHeight :
+                Qt.inputMethod.visible && inputPanel.inUse ? inputPanel.height : 0)
         focus: true
 
         /*Behavior on height {
@@ -2552,7 +2553,8 @@ ApplicationWindow {
             id: paddedOverlayArea
             width: parent.width
             y: uiIntegration.insetTop
-            height: parent.height - (uiIntegration.oskVisible ? uiIntegration.oskHeight : 0) - headerItemHeight
+            height: parent.height - (uiIntegration.oskVisible ? uiIntegration.oskHeight :
+                    Qt.inputMethod.visible && inputPanel.inUse ? inputPanel.height : 0) - headerItemHeight
             parent: Overlay.overlay
             z: dialogShadow.z + 1
 
@@ -2565,6 +2567,7 @@ ApplicationWindow {
             readonly property int warningZ : z + 7
             readonly property int contextMenuZ : z + 8
             readonly property int flashThroughZ : z + 9
+            readonly property int inputPanelZ : z + 10
 
             Row {
                 id: overlayLandingPad
@@ -3638,5 +3641,16 @@ ApplicationWindow {
                 anchors.fill: parent
             }
         }
+    }
+
+    Loader {
+        id: inputPanel
+        parent: Overlay.overlay
+        readonly property bool inUse: platformProperties.usesBuiltinOsk && !uiIntegration.hasKeyboard
+        z: paddedOverlayArea.inputPanelZ
+        y: Qt.inputMethod.visible ? parent.height - inputPanel.height : parent.height
+        anchors.left: parent.left
+        anchors.right: parent.right
+        source: inUse ? "VirtualKeyboard.qml" : ""
     }
 }

@@ -91,14 +91,9 @@ int main(int argc, char *argv[])
         const auto scale = (qreal)grid_unit.toInt() / (qreal) 8;
         qputenv("QT_SCALE_FACTOR", std::to_string(scale).c_str());
     }
-    if (qEnvironmentVariableIsSet("QT_QPA_PLATFORM")) {
-        const auto platform = qgetenv("QT_QPA_PLATFORM");
-        if (platform == QByteArrayLiteral("ubuntumirclient"))
-            qputenv("QT_QPA_PLATFORM", "xcb");
-    }
-    if (!qEnvironmentVariableIsSet("QT_QPA_PLATFORM")) {
-        qputenv("QT_QPA_PLATFORM", "xcb");
-    }
+    qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
+    qputenv("QT_QPA_PLATFORM", "xcb");
+    qputenv("QT_VIRTUALKEYBOARD_DESKTOP_DISABLE", "1");
 #endif
 
     QThreadPool::globalInstance()->setMaxThreadCount(32);
