@@ -8,7 +8,9 @@
 
 #include <functional>
 
+#if !defined(__EMSCRIPTEN__)
 #include <git2.h>
+#endif
 
 class GitClient : public QObject
 {
@@ -22,17 +24,19 @@ class GitClient : public QObject
 
 public:
     enum GitFileStatus {
-        Current = GIT_STATUS_CURRENT,
-        New = GIT_STATUS_INDEX_NEW,
-        Modified = GIT_STATUS_INDEX_MODIFIED,
-        Deleted = GIT_STATUS_INDEX_DELETED,
-        Renamed = GIT_STATUS_INDEX_RENAMED,
-        Typechange = GIT_STATUS_INDEX_TYPECHANGE,
-        Ignored = GIT_STATUS_IGNORED,
-        Conflicted = GIT_STATUS_CONFLICTED,
-        WorkingDirectoryNew = GIT_STATUS_WT_NEW,
-        WorkingDirectoryDeleted = GIT_STATUS_WT_DELETED
+        Unknown = 0,
+        Current = (1 << 1),
+        New = (1 << 2),
+        Modified = (1 << 3),
+        Deleted = (1 << 4),
+        Renamed = (1 << 5),
+        Typechange = (1 << 6),
+        Ignored = (1 << 7),
+        Conflicted = (1 << 8),
+        WorkingDirectoryNew = (1 << 9),
+        WorkingDirectoryDeleted = (1 << 10)
     };
+    static GitFileStatus translateStatusFromBackend(const int status);
     Q_ENUM(GitFileStatus);
     Q_DECLARE_FLAGS(GitFileStatuses, GitFileStatus);
     Q_FLAG(GitFileStatuses);
@@ -56,12 +60,17 @@ public slots:
 
 private:
     void refreshStage();
+#if !defined(__EMSCRIPTEN__)
     QVariantMap gitEntryToVariant(const git_status_entry *s);
+#endif
 
     bool m_busy;
     QString m_path;
     QVariantMap m_status;
+
+#if !defined(__EMSCRIPTEN__)
     git_repository* m_repo;
+#endif
     QVariantList m_files;
     bool m_hasStagedFiles;
 

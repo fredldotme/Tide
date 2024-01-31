@@ -94,6 +94,15 @@ int main(int argc, char *argv[])
     qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
     qputenv("QT_QPA_PLATFORM", "xcb");
     qputenv("QT_VIRTUALKEYBOARD_DESKTOP_DISABLE", "1");
+#elif defined(Q_OS_WASM)
+    const auto orgName = QStringLiteral("");
+    const auto appName = QStringLiteral("tide.fredldotme");
+    const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                            QStringLiteral("/Library/wasi-sysroot");
+    const QString library = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
+                            QStringLiteral("/Library");
+    const QString runtime = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
+                            QStringLiteral("/Runtimes/Linux");
 #endif
 
     QThreadPool::globalInstance()->setMaxThreadCount(32);
@@ -180,7 +189,7 @@ int main(int argc, char *argv[])
             engine.load(url);
             
             signal(SIGPIPE, SIG_IGN);
-#if !defined(Q_OS_IOS)
+#if !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
             setsid();
 #endif
             ret = app.exec();

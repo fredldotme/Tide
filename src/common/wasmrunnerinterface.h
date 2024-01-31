@@ -57,7 +57,7 @@ struct wamr_runtime {
         interface = nullptr;
     }
     wamr_runtime(const char* path) {
-        handle = dlopen(path, RTLD_NOW);
+        handle = dlopen(path, RTLD_LOCAL);
         if (!handle) {
             return;
         }

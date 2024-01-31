@@ -73,6 +73,23 @@ function(resource VAR SOURCE_PATH DESTINATION PATTERN)
     set(${VAR} ${_LIST} PARENT_SCOPE)
 endfunction()
 
+function(macoscomponent VAR SOURCE_PATH DESTINATION PATTERN)
+    file(GLOB_RECURSE _LIST CONFIGURE_DEPENDS ${SOURCE_PATH}/${PATTERN})
+    message("${SOURCE_PATH}/${PATTERN}")
+    foreach (RESOURCE ${_LIST})
+        message("Setting up macOS component: ${RESOURCE}")
+        get_filename_component(_PARENT ${RESOURCE} DIRECTORY)
+        if (${_PARENT} STREQUAL ${SOURCE_PATH})
+            set(_DESTINATION ${DESTINATION})
+        else ()
+            file(RELATIVE_PATH _DESTINATION ${SOURCE_PATH} ${_PARENT})
+            set(_DESTINATION ${DESTINATION}/${_DESTINATION})
+        endif ()
+        set_property(SOURCE ${RESOURCE} PROPERTY MACOSX_PACKAGE_LOCATION ${_DESTINATION})
+    endforeach (RESOURCE)
+    set(${VAR} ${_LIST} PARENT_SCOPE)
+endfunction()
+
 # Sysroot files
 set(WASI_LIBS ${WASI_DIR}/lib)
 set(WASI_HEADERS ${WASI_DIR}/include)
@@ -89,12 +106,14 @@ if(IOS)
     resource(COMMANDSYAML ${CMAKE_CURRENT_SOURCE_DIR} Resources commands.yaml)
 endif()
 
-if(APPLE)
+if(APPLE AND NOT IOS)
     resource(CLANG_PARTS ${CLANGRT_DIR} Resources clang.tar)
     resource(THE_SYSROOT ${CLANGRT_DIR} Resources sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
     resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
+    macoscomponent(LLVM_RANLIB ${LLVM_TOOLS} Content/MacOS llvm-ranlib)
+    macoscomponent(LLVM_AR ${LLVM_TOOLS} Content/MacOS llvm-ar)
 endif()
 
 # WebAssembly-based plugin support
@@ -273,6 +292,8 @@ qt_add_executable(${PROJECT_NAME}
     ${PYTHON_WASM}
     ${COMMANDSYAML}
 
+    ${TIDE_FORMATTER}
+
     # Assets
     assets.qrc
 )
@@ -323,7 +344,9 @@ set(UNIXY_FRAMEWORK ${UNIXY_DIR}/build-iphoneos/Debug-iphoneos)
 message("NOSYSTEM_FRAMEWORK: ${NOSYSTEM_FRAMEWORK}")
 
 # Include libs after defining a few crucial variables
-add_subdirectory(lib)
+if(NOT EMSCRIPTEN)
+    add_subdirectory(lib)
+endif()
 
 include_directories(${PROJECT_NAME}
     # WAMR AOT compiler
@@ -563,6 +586,19 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     )
 endif()
 
+if(EMSCRIPTEN)
+    qt_add_library(${PROJECT_NAME}-platform
+        STATIC
+
+        # Code
+        platform/wasm/wasmintegrationdelegate.cpp
+        platform/wasm/wasmsystemglue.cpp
+        platform/wasm/projectdirectorypicker.cpp
+        platform/wasm/nullinputmethodfixerinstaller.cpp
+        platform/wasm/wasmprojectlist.cpp
+    )
+endif()
+
 include_directories(${PROJECT_NAME}
     # Wasm3 runtime
     ${WAMR_DIR}/core/iwasm/include
@@ -691,7 +727,7 @@ install(TARGETS ${PROJECT_NAME}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
 
-# Non-resource bundling on macOS
+# Deployment on macOS
 if(APPLE AND NOT IOS)
     set(CMAKE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty/CMake/build-mac/bin)
     set(NINJA_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty/ninja/build-mac)
@@ -727,6 +763,12 @@ if(APPLE AND NOT IOS)
         COMMAND cp -a "${LLVM_TOOLS}/lld" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LLVM_TOOLS}/llvm-ranlib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${LLVM_TOOLS}/llvm-ar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND install_name_tool -change "@rpath/libclang-cpp.dylib" "@rpath/../Frameworks/libclang-cpp.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/lld"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
@@ -741,11 +783,18 @@ if(APPLE AND NOT IOS)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND cp -a "${LLVM_TOOLS}/lldb" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
     )
+
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${LLVM_TOOLS}/llvm-ar" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+        COMMAND cp -a "${CMAKE_CURRENT_BINARY_DIR}/lib/formatter/${PROJECT_NAME}-Formatter.framework" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Frameworks"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${LLVM_TOOLS}/llvm-ranlib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+        COMMAND cp -a "${CMAKE_CURRENT_BINARY_DIR}/lib/wasmrunner/${PROJECT_NAME}-Wasmrunner.framework" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Frameworks"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${CMAKE_CURRENT_BINARY_DIR}/lib/wasmrunnerfast/${PROJECT_NAME}-Wasmrunnerfast.framework" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Frameworks"
+    )
+    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+        COMMAND cp -a "${CMAKE_CURRENT_BINARY_DIR}/lib/wasmrunnerjit/${PROJECT_NAME}-Wasmrunnerjit.framework" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Frameworks"
     )
 
     # lldb
@@ -777,9 +826,9 @@ if(APPLE AND NOT IOS)
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/../Frameworks/libLLVM.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/llvm-ranlib"
     )
-    add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND install_name_tool -add_rpath "@loader_path/../Frameworks" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/llvm-ranlib"
-    )
+    #add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+    #    COMMAND install_name_tool -add_rpath "@loader_path/../Frameworks" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/llvm-ranlib"
+    #)
 
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND cp -a "${CMAKE_PATH}/cmake" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"

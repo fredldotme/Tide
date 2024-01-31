@@ -36,7 +36,9 @@ endif()
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 # libgit2
-add_subdirectory(${GIT2_DIR})
+if(NOT EMSCRIPTEN)
+    add_subdirectory(${GIT2_DIR})
+endif()
 
 if(BUILD_CLICK_METADATA)
     add_subdirectory(click)

@@ -6,12 +6,18 @@
 #include <QThreadPool>
 
 GitClient::GitClient(QObject *parent)
-    : QObject{parent}, m_repo{nullptr}, m_busy{false}
+    : QObject{parent},
+#if !defined(__EMSCRIPTEN__)
+    m_repo{nullptr},
+#endif
+    m_busy{false}
 {
     QObject::connect(this, &GitClient::repoOpened, this,
         [=](const QString path){
             refreshStatus();
         }, Qt::DirectConnection);
+
+#if !defined(__EMSCRIPTEN__)
     QObject::connect(this, &GitClient::pathChanged, this,
         [=]() {
             if (m_repo) {
@@ -28,24 +34,38 @@ GitClient::GitClient(QObject *parent)
             git_repository_open_ext(&m_repo, m_path.toStdString().c_str(), 0, nullptr);
             emit this->repoOpened(m_path);
         }, Qt::DirectConnection);
+#endif
     QObject::connect(this, &GitClient::hasStagedFilesChanged, this, &GitClient::hasCommittableChanged);
 
+#if !defined(__EMSCRIPTEN__)
     git_libgit2_init();
+#endif
 }
 
 GitClient::~GitClient()
 {
+#if !defined(__EMSCRIPTEN__)
     if (m_repo) {
         git_repository_free(m_repo);
         m_repo = nullptr;
     }
     git_libgit2_shutdown();
+#endif
+}
+
+GitClient::GitFileStatus GitClient::translateStatusFromBackend(const int status)
+{
+    switch (status) {
+    default:
+        return Unknown;
+    }
 }
 
 void GitClient::refreshStatus()
 {
     QVariantMap status;
 
+#if !defined(__EMSCRIPTEN__)
     if (!m_repo) {
         m_status = status;
         emit statusChanged();
@@ -108,11 +128,13 @@ void GitClient::refreshStatus()
     status.insert("branches", branchesList);
 
     refreshStage();
+#endif
 
     m_status = status;
     emit statusChanged();
 }
 
+#if !defined(__EMSCRIPTEN__)
 QVariantMap GitClient::gitEntryToVariant(const git_status_entry *s)
 {
     QVariantMap ret;
@@ -134,9 +156,9 @@ QVariantMap GitClient::gitEntryToVariant(const git_status_entry *s)
 
     ret.insert("status", QVariant((int)s->status));
     ret.insert("path", path);
-
     return ret;
 }
+#endif
 
 bool GitClient::hasCommittable()
 {
@@ -153,6 +175,7 @@ bool GitClient::hasCommittable()
 
 void GitClient::refreshStage()
 {
+#if !defined(__EMSCRIPTEN__)
     git_status_list *status;
     git_status_list_new(&status, m_repo, nullptr);
 
@@ -182,10 +205,12 @@ void GitClient::refreshStage()
         m_hasStagedFiles = hasCommittable();
         emit hasStagedFilesChanged();
     }
+#endif
 }
 
 void GitClient::clone(const QString& url, const QString& name)
 {
+#if !defined(__EMSCRIPTEN__)
     if (m_busy) {
         qWarning() << "GitClient is currently busy";
         return;
@@ -235,10 +260,12 @@ void GitClient::clone(const QString& url, const QString& name)
     emit busyChanged();
 
     QThreadPool::globalInstance()->start(func);
+#endif
 }
 
 bool GitClient::hasRepo(const QString& path)
 {
+#if !defined(__EMSCRIPTEN__)
     if (path.isEmpty())
         return false;
 
@@ -250,10 +277,12 @@ bool GitClient::hasRepo(const QString& path)
     } else {
         return false;
     }
+#endif
 }
 
 void GitClient::stage(const QString& path)
 {
+#if !defined(__EMSCRIPTEN__)
     git_index *index;
     git_strarray array = {0};
 
@@ -264,6 +293,7 @@ void GitClient::stage(const QString& path)
 
     git_index_write(index);
     git_index_free(index);
+#endif
 }
 
 void GitClient::unstage(const QString& path)
@@ -278,6 +308,7 @@ void GitClient::resetStage()
 
 void GitClient::commit(const QString& summary, const QString& body)
 {
+#if !defined(__EMSCRIPTEN__)
     const char *opt = summary.toLocal8Bit();
     const char *comment = body.toLocal8Bit();
     int err;
@@ -325,12 +356,14 @@ void GitClient::commit(const QString& summary, const QString& body)
     git_tree_free(tree);
     git_object_free(parent);
     git_reference_free(ref);
+#endif
 }
 
 QVariantList GitClient::logs(const QString branch)
 {
     QVariantList ret;
 
+#if !defined(__EMSCRIPTEN__)
     if (!m_repo)
         return ret;
 
@@ -399,6 +432,7 @@ QVariantList GitClient::logs(const QString branch)
 
     git_pathspec_free(ps);
     git_revwalk_free(walker);
+#endif
 
     return ret;
 }
