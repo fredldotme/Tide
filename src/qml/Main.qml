@@ -29,6 +29,11 @@ ApplicationWindow {
         }
     }
 
+    onClosing:
+        (event) => {
+            Qt.quit();
+        }
+
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
     property alias tidePalette : tidePalette
     property alias dbugger: dbugger
