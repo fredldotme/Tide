@@ -93,8 +93,8 @@ void CMakeBuilder::build(const bool debug, const bool aot)
     const auto cmakeArgs = cmakeRoot + QStringLiteral(" -DCMAKE_SYSTEM_NAME=WASI -DCMAKE_SYSTEM_VERSION=1 -DCMAKE_MAKE_PROGRAM=%1ninja ").arg(cmakeBinPath);
 
     QStringList buildCommands;
-    buildCommands << QStringLiteral("%1/cmake -G Ninja -S \"%2\" -B \"%3\" %4").arg(cmakeBinPath, sourcePath, buildPath, cmakeArgs);
-    buildCommands << QStringLiteral("%1/ninja -C \"%2\" -j1").arg(cmakeBinPath, buildPath);
+    buildCommands << QStringLiteral("%1cmake -G Ninja -S \"%2\" -B \"%3\" %4").arg(cmakeBinPath, sourcePath, buildPath, cmakeArgs);
+    buildCommands << QStringLiteral("%1ninja -C \"%2\" -j1").arg(cmakeBinPath, buildPath);
 
     std::thread buildThread([=]() {
         m_building = true;

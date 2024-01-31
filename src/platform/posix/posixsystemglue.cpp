@@ -33,6 +33,9 @@ PosixSystemGlue::~PosixSystemGlue()
         fwrite("\n", sizeof(char), 1, m_spec.std_err);
         fflush(m_spec.std_err);
     }
+
+    int status;
+    wait(&status);
 }
 
 StdioSpec PosixSystemGlue::consumerSpec()
