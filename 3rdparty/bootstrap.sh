@@ -182,7 +182,7 @@ if [ "$BUILD_IOS" = "1" ]; then
     cd CMake
     cmake_iossystem_build "-DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos"
     cp ios/Info.plist build/Source/cmake.framework/Info.plist
-    tar cvf $OLD_PWD/tmp/cmake.tar Modules
+    tar cvf $OLD_PWD/tmp/cmake.tar Modules Templates
     cd $OLD_PWD
 fi
 
