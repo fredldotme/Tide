@@ -229,12 +229,18 @@ void MacSystemGlue::copyToClipboard(const QString text)
 
 void MacSystemGlue::share(const QString text, const QUrl url, const QRect pos)
 {
-    if (url.isValid()) {
-        auto splitPath = url.path().split(QDir::separator(), Qt::SkipEmptyParts);
-        splitPath.takeLast();
-        const auto fullPath = QStringLiteral("file:///") + splitPath.join(QDir::separator());
-        qDebug() << "Opening:" << fullPath;
-        QDesktopServices::openUrl(QUrl(fullPath));
-    }
+    qDebug() << Q_FUNC_INFO << url;
+
+    if (!url.isValid())
+        return;
+
+    auto splitPath = url.path().split(QDir::separator(), Qt::SkipEmptyParts);
+    if (splitPath.length() == 0)
+        return;
+
+    splitPath.takeLast();
+    const auto fullPath = QStringLiteral("file:///") + splitPath.join(QDir::separator());
+    qDebug() << "Opening:" << fullPath;
+    QDesktopServices::openUrl(QUrl(fullPath));
 }
 
