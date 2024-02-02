@@ -79,6 +79,11 @@ ApplicationWindow {
     }
     readonly property color mainBackgroundDefaultColor : root.palette.window
     property color mainBackgroundColorOverride : root.palette.window
+    Binding on mainBackgroundColorOverride {
+        target: root
+        property: "palette.window"
+        value: root.palette.window
+    }
     onMainBackgroundColorOverrideChanged: {
         mainBackgroundColorOverrideResetTimer.restart()
     }
@@ -108,10 +113,7 @@ ApplicationWindow {
                                                    tintedRunColor :
                                                    mainBackgroundDefaultColor
     property color mainBackgroundColor : (wantContextColor) ?
-                                             contextColor :
-                                             mainBackgroundColorOverride !== mainBackgroundDefaultColor ?
-                                                 mainBackgroundColorOverride :
-                                                 mainBackgroundDefaultColor
+                                             contextColor : mainBackgroundColorOverride
     Behavior on mainBackgroundColor {
         ColorAnimation {
             duration: 300
@@ -1100,7 +1102,7 @@ ApplicationWindow {
                     MenuItem {
                         text: qsTr("Run Python REPL")
                         icon.source: Qt.resolvedUrl("qrc:/assets/repeat.circle.fill@2x.png")
-                        enabled: !runners.atLeastOneRunning
+                        enabled: !runners.atLeastOneRunning && !projectBuilder.building
                         onPressed: {
                             root.attemptReplRun()
                             consoleContextMenu.close()
