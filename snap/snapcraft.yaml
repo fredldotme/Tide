@@ -1,5 +1,5 @@
 name: tide-ide
-version: 2.0.0
+version: 2.0.1
 grade: stable
 confinement: classic
 base: core22
@@ -95,11 +95,6 @@ parts:
       - usr/lib
     prime:
       - usr/lib/$SNAPCRAFT_ARCH_TRIPLET
-    override-prime: |
-      craftctl default
-      update-mime-database ${CRAFT_PART_INSTALL}/usr/share/mime
-      mkdir -p ${CRAFT_PRIME}/usr/share/mime
-      cp -a ${CRAFT_PART_INSTALL}/usr/share/mime ${CRAFT_PRIME}/usr/share/
     after: [ bootstrap ]
 
   tide:
