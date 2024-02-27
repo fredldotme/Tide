@@ -85,13 +85,21 @@ parts:
       - fonts-open-sans
       - fonts-ubuntu
       - libgl1-mesa-dri
+      - libedit2
       - libegl1
       - libffi8
       - zlib1g
+      - mime-support
+      - shared-mime-info
     stage:
       - usr/lib
     prime:
       - usr/lib/$SNAPCRAFT_ARCH_TRIPLET
+    override-prime: |
+      craftctl default
+      update-mime-database ${CRAFT_PART_INSTALL}/usr/share/mime
+      mkdir -p ${CRAFT_PRIME}/usr/share/mime
+      cp -a ${CRAFT_PART_INSTALL}/usr/share/mime ${CRAFT_PRIME}/usr/share/
     after: [ bootstrap ]
 
   tide:
