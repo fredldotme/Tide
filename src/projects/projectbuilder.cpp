@@ -52,6 +52,10 @@ bool ProjectBuilder::loadProject(const QString path)
         m_activeBuilder = &m_snapcraftBuilder;
         m_snapcraftBuilder.iosSystem = m_iosSystem;
         QObject::connect(&m_snapcraftBuilder, &SnapcraftBuilder::commandRunnerChanged, this, &ProjectBuilder::commandRunnerChanged, Qt::DirectConnection);
+    } else if (path.endsWith("/clickable.json") || path.endsWith("/clickable.yaml")) {
+        m_activeBuilder = &m_clickableBuilder;
+        m_clickableBuilder.iosSystem = m_iosSystem;
+        QObject::connect(&m_clickableBuilder, &ClickableBuilder::commandRunnerChanged, this, &ProjectBuilder::commandRunnerChanged, Qt::DirectConnection);
     }
 
     if (!m_activeBuilder) {

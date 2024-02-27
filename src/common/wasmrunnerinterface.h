@@ -1,6 +1,7 @@
 #ifndef WASMRUNNERINTERFACE_H
 #define WASMRUNNERINTERFACE_H
 
+#include <iostream>
 #include <string>
 #include <vector>
 #include <memory>
@@ -57,8 +58,9 @@ struct wamr_runtime {
         interface = nullptr;
     }
     wamr_runtime(const char* path) {
-        handle = dlopen(path, RTLD_LOCAL);
+        handle = dlopen(path, RTLD_NOW);
         if (!handle) {
+            std::cout << "Failed to load WasmRunner: " << dlerror() << std::endl;
             return;
         }
 

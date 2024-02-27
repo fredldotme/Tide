@@ -89,9 +89,7 @@ void ClickableBuilder::cancel()
 
 QString ClickableBuilder::runnableFile()
 {
-    const auto buildDirPath = projectBuildRoot();
-    const auto runnableFilePath = buildDirPath + QDir::separator() + "out.wasm";
-    return runnableFilePath;
+    return projectDir() + QStringLiteral("/snapcraft.yaml");
 }
 
 QStringList ClickableBuilder::includePaths()
@@ -102,22 +100,17 @@ QStringList ClickableBuilder::includePaths()
 
 QString ClickableBuilder::buildRoot()
 {
-    return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
-           QStringLiteral("/Artifacts");
+    return projectDir();
 }
 
 QString ClickableBuilder::sourceRoot()
 {
-    return QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
-           QStringLiteral("/Projects");
+    return projectDir();
 }
 
 QString ClickableBuilder::projectBuildRoot()
 {
-    QString ret = buildRoot() + QDir::separator();
-    QCryptographicHash hash(QCryptographicHash::Sha256);
-    hash.addData(projectName().toUtf8());
-    return ret + QString::fromUtf8(hash.result());
+    return projectDir();
 }
 
 QStringList ClickableBuilder::sourceFiles()

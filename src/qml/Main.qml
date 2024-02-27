@@ -1170,6 +1170,9 @@ ApplicationWindow {
             if (platformProperties.supportsSnaps && file.name === "snapcraft.yaml")
                 return true;
 
+            if (platformProperties.supportsClickable && (file.name === "clickable.json" || file.name === "clickable.yaml"))
+                return true;
+
             return false;
         }
 

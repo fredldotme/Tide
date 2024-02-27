@@ -102,12 +102,15 @@ quint64 FileIo::directoryContents(const QString path)
 bool FileIo::fileIsTextFile(const QString path)
 {
     // Hello, young freshling
-    if (QFileInfo(path).size() == 0) {
+    if (QFileInfo(path).size() == 0)
         return true;
-    }
 
-    QMimeDatabase db;
-    QMimeType mime = db.mimeTypeForFile(path);
+    // Dirty hack until a Qt fork based on 6.6.2 is available by KDE
+    if (path.endsWith(".js") || path.endsWith(".json"))
+        return true;
+
+    static QMimeDatabase db;
+    const QMimeType mime = db.mimeTypeForFile(path);
     return (mime.inherits("text/plain"));
 }
 

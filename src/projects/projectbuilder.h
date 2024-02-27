@@ -8,6 +8,7 @@
 
 #include "projects/cmakebuilder.h"
 #include "projects/qmakebuilder.h"
+#include "projects/clickablebuilder.h"
 #include "projects/snapcraftbuilder.h"
 #include "platform/systemglue.h"
 
@@ -55,6 +56,7 @@ private:
     bool m_building;
     CMakeBuilder m_cmakeBuilder;
     QMakeBuilder m_qmakeBuilder;
+    ClickableBuilder m_clickableBuilder;
     SnapcraftBuilder m_snapcraftBuilder;
     BuilderBackend* m_activeBuilder;
 

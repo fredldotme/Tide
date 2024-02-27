@@ -257,6 +257,7 @@ qt_add_executable(${PROJECT_NAME}
     projects/projectcreator.cpp
     projects/cmakebuilder.cpp
     projects/qmakebuilder.cpp
+    projects/clickablebuilder.cpp
     projects/snapcraftbuilder.cpp
     projects/builderbackend.h
     plugins/tidepluginmanager.cpp
