@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
         <string>at</string>
 	<key>CFBundleDisplayName</key>
-	<string>Tide</string>
+	<string>@TIDE_TITLE@</string>
 	<key>CFBundleExecutable</key>
 	<string>Tide</string>
 	<key>CFBundleIcons</key>
@@ -36,11 +36,11 @@
 		</dict>
 	</dict>
 	<key>CFBundleIdentifier</key>
-	<string>me.fredl.tide</string>
+	<string>@TIDE_IDENTIFIER@</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Tide</string>
+	<string>@TIDE_TITLE@</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

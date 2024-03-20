@@ -18,6 +18,18 @@ set(CMAKE_AUTOMOC ON)
 # Build against mixed Host + Cross environments (ie 6.5.2 macOS Qt with 6.5.3 iOS Qt)
 set(QT_NO_PACKAGE_VERSION_CHECK ON)
 
+# Free vs donation build on the Apple App Store
+if(APPLE AND IOS)
+    option(FREEBIE "Build of Tide without donating to the developer" OFF)
+    if (FREEBIE)
+        set (TIDE_IDENTIFIER "me.fredl.tidegratis")
+        set (TIDE_TITLE "Tide (Gratis edition)")
+    else()
+        set (TIDE_IDENTIFIER "me.fredl.tide")
+        set (TIDE_TITLE "Tide")
+    endif()
+endif()
+
 if(CMAKE_BUILD_TYPE MATCHES "")
     set(CMAKE_BUILD_TYPE "Release")
 endif()
@@ -389,8 +401,8 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
     )
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
-        MACOSX_BUNDLE_GUI_IDENTIFIER me.fredl.tide
-        PRODUCT_BUNDLE_IDENTIFIER me.fredl.tide
+        MACOSX_BUNDLE_GUI_IDENTIFIER ${TIDE_IDENTIFIER}
+        PRODUCT_BUNDLE_IDENTIFIER ${TIDE_IDENTIFIER}
         MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
         MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
         MACOSX_BUNDLE TRUE
