@@ -1,5 +1,5 @@
 name: tide-ide
-version: 2.0.1
+version: 2.0.2
 grade: stable
 confinement: classic
 base: core22
