@@ -350,10 +350,12 @@ export QT_SELECT=5
 export FONTCONFIG_PATH="$SNAP/etc/fonts:$SNAP/usr/share/fonts"
 
 # Qt6
-export QT_PLUGIN_PATH=${SNAP}/usr/lib/${ARCH}/qt6/plugins
-export QML_IMPORT_PATH=${SNAP}/usr/lib/${ARCH}/qt6/qml
+export QT_PLUGIN_PATH=${SNAP}/usr/plugins
+export QML_IMPORT_PATH=${SNAP}/usr/qml
 export QT_XKB_CONFIG_ROOT=${SNAP}/usr/share/X11/xkb
-append_dir LD_LIBRARY_PATH "$SNAP/usr/lib/$ARCH/qt6/qml/QtQuick/Controls"
+append_dir LD_LIBRARY_PATH "$SNAP/usr/qml/QtQuick/Controls"
+
+export QT_QPA_PLATFORM=wayland-egl
 
 # Misc
 append_dir LIBGL_DRIVERS_PATH "$SNAP/usr/lib/$ARCH/dri"

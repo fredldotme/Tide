@@ -70,13 +70,10 @@ parts:
     override-build: |
       cd $SNAPCRAFT_PART_SRC
       bash -x bootstrap.sh --linux-snap
-
   deps:
     plugin: nil
     build-attributes:
       - no-patchelf
-    stage-snaps:
-      - kde-qt6-sdk
     stage-packages:
       - libpcre2-16-0
       - libpcre3
@@ -88,6 +85,7 @@ parts:
       - libedit2
       - libegl1
       - libffi8
+      - libglib2.0-0
       - zlib1g
       - mime-support
       - shared-mime-info
@@ -96,23 +94,156 @@ parts:
     prime:
       - usr/lib/$SNAPCRAFT_ARCH_TRIPLET
     after: [ bootstrap ]
-
+  qt6:
+    plugin: cmake
+    source: https://github.com/qt/qtbase.git
+    source-branch: 6.6.0
+    cmake-parameters:
+      - -GNinja
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DQT_FEATURE_opengl=ON
+      - -DQT_FEATURE_opengles2=ON
+      - -DQT_FEATURE_opengles3=ON
+      - -DQT_FEATURE_opengles31=ON
+      - -DQT_FEATURE_opengles32=ON
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+      - libinput-dev
+      - libgl-dev
+      - libgles-dev
+      - libfontconfig1-dev
+      - libfreetype6-dev
+      - libx11-dev
+      - libx11-xcb-dev
+      - libxext-dev
+      - libxfixes-dev
+      - libxi-dev
+      - libxrender-dev
+      - libxcb1-dev
+      - libxcb-glx0-dev
+      - libxcb-keysyms1-dev
+      - libxcb-image0-dev
+      - libxcb-shm0-dev
+      - libxcb-icccm4-dev
+      - libxcb-sync-dev
+      - libxcb-xfixes0-dev
+      - libxcb-shape0-dev
+      - libxcb-randr0-dev
+      - libxcb-render-util0-dev
+      - libxcb-util-dev
+      - libxcb-xinerama0-dev
+      - libxcb-xkb-dev
+      - libxkbcommon-dev
+      - libxkbcommon-x11-dev
+    stage-packages:
+      - libxkbcommon0
+      - dmz-cursor-theme
+      - light-themes
+      - adwaita-icon-theme
+      - gnome-themes-standard
+      - shared-mime-info
+      - libgdk-pixbuf2.0-0
+    stage:
+      - usr/*
+  qt6shadertools:
+    plugin: cmake
+    source: https://github.com/qt/qtshadertools.git
+    source-branch: 6.6.0
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+    stage:
+      - usr/*
+    after: [ qt6 ]
+  qt6declarative:
+    plugin: cmake
+    source: https://github.com/qt/qtdeclarative.git
+    source-branch: 6.6.0
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+    build-environment:
+      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+      - libharfbuzz-dev
+    stage-packages:
+      - libharfbuzz0b
+    stage:
+      - usr/*
+    after: [ qt6shadertools ]
+  qt6wayland:
+    plugin: cmake
+    source: https://github.com/qt/qtwayland.git
+    source-branch: 6.6.0
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/cmake/Qt6
+    build-environment:
+      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+      - libxkbcommon-dev
+      - libwayland-dev
+    after: [ qt6declarative ]
+  qt6svg:
+    plugin: cmake
+    source: https://github.com/qt/qtsvg.git
+    source-branch: 6.6.0
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+    build-environment:
+      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+    stage:
+      - usr/*
+    after: [ qt6wayland ]
+  qt6virtualkeyboard:
+    plugin: cmake
+    source: https://github.com/qt/qtvirtualkeyboard.git
+    source-branch: 6.6.0
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+    build-environment:
+      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
+    build-packages:
+      - cmake
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+    stage:
+      - usr/*
+    after: [ qt6svg ]
   tide:
     plugin: cmake
     source: .
     build-attributes:
       - enable-patchelf
     build-environment:
-      - LD_LIBRARY_PATH: /snap/kde-qt6-sdk/current/usr/lib:/snap/kde-qt6-sdk/current/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:/snap/kde-qt6-sdk/current/lib/${SNAPCRAFT_ARCH_TRIPLET}
+      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
     cmake-parameters:
       - -DCMAKE_C_COMPILER=clang
       - -DCMAKE_CXX_COMPILER=clang++
-      - -DCMAKE_PREFIX_PATH=/snap/kde-qt6-sdk/current/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/cmake/Qt6
+      - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/cmake/Qt6
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DSNAP=1
       - -DSNAP_STAGE=$CRAFT_STAGE
-    build-snaps:
-      - kde-qt6-sdk
     build-packages:
       - cmake
       - ninja-build
@@ -127,14 +258,12 @@ parts:
       - libpcre2-16-0
       - libudev-dev
       - zlib1g-dev
-    after: [ deps ]
-
+    after: [ qt6virtualkeyboard ]
   launcher:
     plugin: dump
     source: snap/local
     organize:
       desktop-launch: bin/desktop-launch
-
   cmake:
     plugin: cmake
     source: 3rdparty/CMake
