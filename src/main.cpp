@@ -92,7 +92,6 @@ int main(int argc, char *argv[])
         qputenv("QT_SCALE_FACTOR", std::to_string(scale).c_str());
     }
     qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
-    qputenv("QT_QPA_PLATFORM", "xcb");
     qputenv("QT_VIRTUALKEYBOARD_DESKTOP_DISABLE", "1");
 #elif defined(Q_OS_WASM)
     const auto orgName = QStringLiteral("");
