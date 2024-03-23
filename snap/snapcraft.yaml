@@ -45,10 +45,6 @@ apps:
     command-chain: [ bin/desktop-launch ]
     command: usr/bin/tide-ide
 
-package-repositories:
-  - type: apt
-    ppa: tobhe/asahi-snap-dependencies
-
 parts:
   bootstrap:
     plugin: cmake
