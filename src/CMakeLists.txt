@@ -416,33 +416,63 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
         XCODE_ATTRIBUTE_CODE_SIGN_ALLOW_ENTITLEMENTS_MODIFICATION "Yes"
     )
 
-    set_target_properties(${PROJECT_NAME} PROPERTIES
-        QT_IOS_LAUNCH_SCREEN "${CMAKE_CURRENT_SOURCE_DIR}/assets/LaunchScreen.storyboard")
+    if (FREEBIE)
+        set_target_properties(${PROJECT_NAME} PROPERTIES
+            QT_IOS_LAUNCH_SCREEN "${CMAKE_CURRENT_SOURCE_DIR}/assets/LaunchScreen.storyboard")
 
-    target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/assets/Tide@2x.png)
-    set_source_files_properties(
-        ${CMAKE_CURRENT_SOURCE_DIR}/assets/Tide@2x.png
-        PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+        target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/assets/Tide@2x.png)
+        set_source_files_properties(
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets/Tide@2x-freebie.png
+            PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
-    # Asset catalog root
-    target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets")
-    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets" PROPERTIES
-        MACOSX_PACKAGE_LOCATION Resources
-    )
+        # Asset catalog root
+        target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Assets-freebie.xcassets")
+        set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/Assets-freebie.xcassets" PROPERTIES
+            MACOSX_PACKAGE_LOCATION Resources
+        )
 
-    # Asset catalog app icon set
-    list(APPEND app_icon_set "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset")
-    list(APPEND app_icon_set "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset/Contents.json")
-    set_source_files_properties(${app_icon_set} PROPERTIES
-        MACOSX_PACKAGE_LOCATION Resources/Assets.xcassets
-    )
+        # Asset catalog app icon set
+        list(APPEND app_icon_set "${CMAKE_CURRENT_SOURCE_DIR}/Assets-freebie.xcassets/AppIcon.appiconset")
+        list(APPEND app_icon_set "${CMAKE_CURRENT_SOURCE_DIR}/Assets-freebie.xcassets/AppIcon.appiconset/Contents.json")
+        set_source_files_properties(${app_icon_set} PROPERTIES
+            MACOSX_PACKAGE_LOCATION Resources/Assets.xcassets
+        )
 
-    # Asset catalog icon files
-    file(GLOB app_icon_files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset/*.png")
-    list(APPEND app_icon_files "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset/Contents.json")
-    set_source_files_properties(${app_icon_set} PROPERTIES
-        MACOSX_PACKAGE_LOCATION Resources/Assets.xcassets/AppIcon.appiconset
-    )
+        # Asset catalog icon files
+        file(GLOB app_icon_files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Assets-freebie.xcassets/AppIcon.appiconset/*.png")
+        list(APPEND app_icon_files "${CMAKE_CURRENT_SOURCE_DIR}/Assets-freebie.xcassets/AppIcon.appiconset/Contents.json")
+        set_source_files_properties(${app_icon_set} PROPERTIES
+            MACOSX_PACKAGE_LOCATION Resources/Assets.xcassets/AppIcon.appiconset
+        )
+    else()
+        set_target_properties(${PROJECT_NAME} PROPERTIES
+            QT_IOS_LAUNCH_SCREEN "${CMAKE_CURRENT_SOURCE_DIR}/assets/LaunchScreen.storyboard")
+
+        target_sources(${PROJECT_NAME} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/assets/Tide@2x.png)
+        set_source_files_properties(
+            ${CMAKE_CURRENT_SOURCE_DIR}/assets/Tide@2x.png
+            PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+
+        # Asset catalog root
+        target_sources(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets")
+        set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets" PROPERTIES
+            MACOSX_PACKAGE_LOCATION Resources
+        )
+
+        # Asset catalog app icon set
+        list(APPEND app_icon_set "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset")
+        list(APPEND app_icon_set "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset/Contents.json")
+        set_source_files_properties(${app_icon_set} PROPERTIES
+            MACOSX_PACKAGE_LOCATION Resources/Assets.xcassets
+        )
+
+        # Asset catalog icon files
+        file(GLOB app_icon_files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset/*.png")
+        list(APPEND app_icon_files "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets/AppIcon.appiconset/Contents.json")
+        set_source_files_properties(${app_icon_set} PROPERTIES
+            MACOSX_PACKAGE_LOCATION Resources/Assets.xcassets/AppIcon.appiconset
+        )
+    endif()
 
     set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")
 
