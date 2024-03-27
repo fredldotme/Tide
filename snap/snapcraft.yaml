@@ -312,6 +312,7 @@ parts:
     source-branch: tide
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DQt6_DIR=${SNAPCRAFT_STAGE}/usr/lib/cmake/Qt6
       - -Denable-wayland=OFF
       - -Denable-glib=OFF
       - -Denable-tests=OFF
