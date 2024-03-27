@@ -306,12 +306,13 @@ parts:
     stage:
       - usr/*
   maliit:
-    after: [ ninja ]
+    after: [ qt6declarative ]
     plugin: cmake
     source: https://github.com/fredldotme/maliit-framework.git
     source-branch: tide
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/cmake/Qt6
       - -Denable-wayland=OFF
       - -Denable-glib=OFF
       - -Denable-tests=OFF
