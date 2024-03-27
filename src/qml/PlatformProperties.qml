@@ -7,5 +7,5 @@ QtObject {
     readonly property bool supportsClickable : Qt.platform.os === "linux"
     readonly property bool supportsEmbeddedStatusbar : Qt.platform.os === "ios"
     readonly property bool usesHudBusyIndicator : Qt.platform.os === "ios" || Qt.platform.os === "osx"
-    readonly property bool usesBuiltinOsk: Qt.platform.os === "linux"
+    readonly property bool usesBuiltinOsk: false //Qt.platform.os === "linux"
 }

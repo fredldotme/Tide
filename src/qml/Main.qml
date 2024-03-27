@@ -1474,7 +1474,8 @@ ApplicationWindow {
         anchors.top: mainViewHeader.bottom
         width: parent.width
         height: parent.height - headerBarHeight - (uiIntegration.oskVisible ? uiIntegration.oskHeight :
-                Qt.inputMethod.visible && inputPanel.inUse ? inputPanel.height : 0)
+                    Qt.inputMethod.visible && inputPanel.inUse ? inputPanel.height :
+                        (Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height / (gridUnitPx / 8): 0))
         focus: true
 
         /*Behavior on height {
@@ -2576,7 +2577,8 @@ ApplicationWindow {
             width: parent.width
             y: uiIntegration.insetTop
             height: parent.height - (uiIntegration.oskVisible ? uiIntegration.oskHeight :
-                    Qt.inputMethod.visible && inputPanel.inUse ? inputPanel.height : 0) - headerItemHeight
+                        Qt.inputMethod.visible && inputPanel.inUse ? inputPanel.height :
+                            (Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height / (gridUnitPx / 8): 0))
             parent: Overlay.overlay
             z: dialogShadow.z + 1
 

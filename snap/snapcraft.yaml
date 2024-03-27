@@ -53,6 +53,7 @@ parts:
       - enable-patchelf
     build-packages:
       - cmake
+      - ccache
       - ninja-build
       - build-essential
       - dpkg-dev
@@ -282,7 +283,6 @@ parts:
       - dpkg-dev
     stage:
       - usr/*
-
   ninja:
     plugin: cmake
     source: 3rdparty/ninja
@@ -305,3 +305,17 @@ parts:
       - dpkg-dev
     stage:
       - usr/*
+  maliit:
+    after: [ ninja ]
+    plugin: cmake
+    source: https://github.com/fredldotme/maliit-framework.git
+    source-branch: tide
+    cmake-parameters:
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -Denable-wayland=OFF
+      - -Denable-glib=OFF
+      - -Denable-tests=OFF
+      - -Denable-docs=OFF
+      - -Denable-xcb=OFF
+      - -Denable-qt-inputcontext=ON
+      - -Dwith-qt6=ON

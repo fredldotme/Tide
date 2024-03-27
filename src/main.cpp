@@ -35,7 +35,7 @@ int main(int argc, char *argv[])
 #if defined(Q_OS_IOS)
     const auto orgName = QStringLiteral("fredl.me");
     const auto appName = QStringLiteral("Tide");
-
+    const auto gridUnitPx = 8;
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                             QStringLiteral("/Library/wasi-sysroot");
 
@@ -55,6 +55,8 @@ int main(int argc, char *argv[])
 #elif defined(Q_OS_MACOS)
     const auto orgName = QStringLiteral("fredl.me");
     const auto appName = QStringLiteral("Tide");
+    const auto gridUnitPx = 8;
+
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                             QStringLiteral("/Library/wasi-sysroot");
     const QString library = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
@@ -71,6 +73,7 @@ int main(int argc, char *argv[])
 #elif defined(Q_OS_LINUX)
     const auto orgName = QStringLiteral("");
     const auto appName = QStringLiteral("tide.fredldotme");
+    auto gridUnitPx = 8;
 
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                             QStringLiteral("/Library/wasi-sysroot");
@@ -88,14 +91,17 @@ int main(int argc, char *argv[])
     if (qEnvironmentVariableIsSet("DESKTOP_FILE_HINT")) {
         qputenv("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1");
         const auto grid_unit = qgetenv("GRID_UNIT_PX");
-        const auto scale = (qreal)grid_unit.toInt() / (qreal) 8;
+        gridUnitPx = grid_unit.toInt();
+        const auto scale = (qreal)gridUnitPx / (qreal) 8;
         qputenv("QT_SCALE_FACTOR", std::to_string(scale).c_str());
     }
-    qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
+    qputenv("QT_IM_MODULE", "maliit");
     qputenv("QT_VIRTUALKEYBOARD_DESKTOP_DISABLE", "1");
 #elif defined(Q_OS_WASM)
     const auto orgName = QStringLiteral("");
     const auto appName = QStringLiteral("tide.fredldotme");
+    const auto gridUnitPx = 8;
+
     const QString sysroot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                             QStringLiteral("/Library/wasi-sysroot");
     const QString library = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
@@ -177,6 +183,7 @@ int main(int argc, char *argv[])
             engine.rootContext()->setContextProperty("sysroot", sysroot);
             engine.rootContext()->setContextProperty("iosSystem", &iosSystemGlue);
             engine.rootContext()->setContextProperty("pluginManager", &pluginManager);
+            engine.rootContext()->setContextProperty("gridUnitPx", gridUnitPx);
             //engine.rootContext()->setContextProperty("runtime", runtime);
             
             const QUrl url(u"qrc:/Tide/qml/Main.qml"_qs);

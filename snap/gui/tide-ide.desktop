@@ -1,7 +1,12 @@
 [Desktop Entry]
 Type=Application
-Terminal=false
-StartupNotify=true
+Encoding=UTF-8
 Icon=${SNAP}/meta/gui/tide-ide.png
 Exec=tide-ide
 Name=Tide IDE
+Comment=The modern approach to WebAssembly development
+Categories=Development;IDE;
+Keywords=Tide;IDE;Development;Dev
+StartupNotify=true
+Terminal=false
+X-Ubuntu-Touch=true
