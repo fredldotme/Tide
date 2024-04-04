@@ -13,8 +13,6 @@ ApplicationWindow {
     visible: true
     title: qsTr("Tide")
     flags: Qt.Window | Qt.MaximizeUsingFullscreenGeometryHint
-    maximumWidth: Screen.width
-    maximumHeight: Screen.height
     background: Rectangle {
         color: mainBackgroundDefaultColor
         gradient: Gradient {
