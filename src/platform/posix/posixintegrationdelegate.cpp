@@ -38,7 +38,9 @@ PosixIntegrationDelegate::PosixIntegrationDelegate(QObject *parent)
 
     m_kbTimer.setInterval(1000);
     m_kbTimer.setSingleShot(false);
-    m_kbTimer.start();
+
+    // TODO: Reinstate once useful on a platform, in a background thread
+    //m_kbTimer.start();
 }
 
 PosixIntegrationDelegate::~PosixIntegrationDelegate()
