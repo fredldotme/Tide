@@ -3,7 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Tide
 
-Row {
+Column {
     id: itemRoot
 
     property alias text: labelControl.text
@@ -45,7 +45,7 @@ Row {
             width: 48
             height: 48
             flat: true
-            enabled: false
+            enabled: true
         }
 
         Column {
@@ -77,6 +77,7 @@ Row {
         }
     }
 
+    /*
     Item {
         width: parent.width
         height: implicitHeight
@@ -85,7 +86,7 @@ Row {
             id: occurancesListView
             model: itemRoot.searchResult.occurances
             width: parent.width
-            height: implicitHeight
+            height: itemRoot.searchResult.occurances * fixedFont.pixelSize * 5
 
             delegate: CodeEditor {
                 file: itemRoot.openFiles.open(itemRoot.searchResult.path)
@@ -96,10 +97,15 @@ Row {
                 openFiles: itemRoot.openFiles
                 dbugger: itemRoot.dbugger
                 projectBuilder : itemRoot.projectBuilder
-                width: parent.width
+                width: occurancesListView.width
                 height: fixedFont.pixelSize * 5
-                Component.onCompleted: console.log("OCCURANCE THERE " + index)
+                Component.onCompleted: {
+                    console.log("Occurance index " + index +
+                                " with " + itemRoot.searchResult.path)
+                    console.log("Height " + height + " in " + occurancesListView.height)
+                }
             }
         }
     }
+    */
 }
