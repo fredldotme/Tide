@@ -15,6 +15,11 @@ Item {
 
     property bool visibility : false
     property string currentPath : ""
+    property OpenFilesManager openFiles : null
+    property Debugger dbugger : null
+    property ExternalProjectPicker projectPicker: null
+    property FileIo fileIo : null
+    property ProjectBuilder projectBuilder : null
 
     readonly property bool modal : true
 
@@ -165,6 +170,12 @@ Item {
                         isProject: modelData.name.toLowerCase().endsWith(".pro")
                         width: contextResultListView.width
                         height: implicitHeight
+                        searchResult: modelData
+                        openFiles: contextDialog.openFiles
+                        projectPicker: contextDialog.projectPicker
+                        projectBuilder: contextDialog.projectBuilder
+                        fileIo: contextDialog.fileIo
+                        dbugger: contextDialog.dbugger
 
                         onReplaceAll: {
                             let list = []

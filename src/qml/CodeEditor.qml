@@ -49,6 +49,9 @@ Item {
                 return
             }
 
+            if (codeField.readOnly)
+                return;
+
             showAutoCompletor = false
             autoCompletorFrame.compact = true
             codeField.focus = true
@@ -263,6 +266,9 @@ Item {
         // New State: iOS enablement in LLVM has ManagedStatic as thread-local, should not happen as much anymore
         //if (projectBuilder.building)
         //    return;
+
+        if (codeField.readOnly)
+            return;
 
         if (file.name.toLowerCase().endsWith(".cpp") || file.name.toLowerCase().endsWith(".c") ||
                 file.name.toLowerCase().endsWith(".h") || file.name.toLowerCase().endsWith(".hpp") ||
@@ -595,12 +601,16 @@ Item {
                         }
                     }
 
-                    TextEdit {
+                    TextArea {
                         id: codeField
                         Layout.fillHeight: true
                         Layout.fillWidth: settings.wrapEditor
+                        background: Item {}
 
                         text: ""
+                        onTextChanged: {
+                            codeField.update()
+                        }
                         onEditingFinished: {
                             if (codeEditor.loading)
                                 return;

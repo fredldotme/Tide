@@ -48,6 +48,7 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
     endif()
     set(LLVM_TOOLS ${LLVM_DIR}/ios/${LLVM_BUILD_DIR}/Debug-${OS})
     set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
+    message("LLVM tools in: ${LLVM_TOOLS}")
 elseif(APPLE)
     set(LLVM_BUILD_DIR "build_osx")
     set(LLVM_MODE "Release-macos")
@@ -105,7 +106,7 @@ endfunction()
 # Sysroot files
 set(WASI_LIBS ${WASI_DIR}/lib)
 set(WASI_HEADERS ${WASI_DIR}/include)
-set(LLVM_HEADERS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib/clang/17/include)
+set(LLVM_HEADERS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib/clang/18/include)
 set(CLANGRT ${CLANGRT_DIR}/lib/wasi)
 set(TIDE_SRC_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -221,7 +222,7 @@ endif()
 list(APPEND CMAKE_PREFIX_PATH "${LLVM_DIR}/${LLVM_BUILD_DIR}")
 
 # Qt6
-find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Sql QuickControls2)
+find_package(Qt6 6.2 REQUIRED COMPONENTS Core Gui Widgets Qml Quick Sql Network QuickControls2)
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
     find_package(Qt6 6.2 REQUIRED COMPONENTS VirtualKeyboard)
     set(QT6VIRTUALKEYBOARD Qt6::VirtualKeyboard)
@@ -478,8 +479,8 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
 
     # LLVM & ios_system
     find_library(NOSYSTEM REQUIRED NAMES nosystem PATHS ${NOSYSTEM_FRAMEWORK} CMAKE_FIND_ROOT_PATH_BOTH)
-    find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
-
+    find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
+    message(${LLVM})
     find_library(CLANGFW REQUIRED NAMES clang PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(LLDFW REQUIRED NAMES lld PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(LLDBFW REQUIRED NAMES lldb PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
@@ -666,6 +667,7 @@ target_link_libraries(${PROJECT_NAME}-platform
     Qt6::Sql
     Qt6::Quick
     Qt6::Widgets
+    Qt6::Network
     ${NOSYSTEM}
     ${UDEV}
 )
@@ -690,6 +692,7 @@ target_link_libraries(${PROJECT_NAME}
     Qt6::Quick
     Qt6::QuickControls2
     Qt6::Sql
+    Qt6::Network
     Qt6::Widgets
     ${QT6VIRTUALKEYBOARD}
     ${LLVM}
@@ -900,7 +903,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     install(FILES "${CLANGRT_DIR}/cmake.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
     install(FILES "${CLANGRT_DIR}/python.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
 
-    install(FILES "${CLANGRT_DIR}/usr/lib/clang/17/wasi/libclang_rt.builtins-wasm32.a" DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/clang/17/lib/wasi)
+    install(FILES "${CLANGRT_DIR}/usr/lib/clang/18/wasi/libclang_rt.builtins-wasm32.a" DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/clang/18/lib/wasi)
 
     install(FILES "${LLVM_LIBRARIES}/libclang.so" DESTINATION ${CMAKE_INSTALL_LIBDIR})
     install(FILES "${LLVM_LIBRARIES}/libclang.so.17" DESTINATION ${CMAKE_INSTALL_LIBDIR})

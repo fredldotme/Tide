@@ -35,6 +35,7 @@ ApplicationWindow {
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
     property alias tidePalette : tidePalette
     property alias dbugger: dbugger
+    property alias openFiles: openFiles
 
     readonly property alias preview : editor.preview
 
@@ -1466,14 +1467,25 @@ ApplicationWindow {
         property int topPadding : platformProperties.supportsEmbeddedStatusbar ? 0 : paddingMedium
     }
 
+    readonly property int uiIntegrationOskPadding : uiIntegration.oskVisible ? uiIntegration.oskHeight : 0
+    readonly property int vkOskPadding : inputPanel.inUse && Qt.inputMethod.visible ? inputPanel.height : 0
+    readonly property int qtOskPadding : Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height / (gridUnitPx / 8): 0
+    readonly property int actualOskPadding: {
+        if (platformProperties.usesUiDelegateForOskHeight)
+            return uiIntegrationOskPadding
+        else if (platformProperties.usesQtForOskHeight)
+            return qtOskPadding
+        else
+            return vkOskPadding
+    }
+    onActualOskPaddingChanged: console.log("OSK padding: " + actualOskPadding)
+
     // Main container
     Item {
         id: mainContainer
         anchors.top: mainViewHeader.bottom
         width: parent.width
-        height: parent.height - headerBarHeight - (uiIntegration.oskVisible ? uiIntegration.oskHeight :
-                    Qt.inputMethod.visible && inputPanel.inUse ? inputPanel.height :
-                        (Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height / (gridUnitPx / 8): 0))
+        height: parent.height - headerBarHeight - actualOskPadding
         focus: true
 
         /*Behavior on height {
@@ -2574,9 +2586,7 @@ ApplicationWindow {
             id: paddedOverlayArea
             width: parent.width
             y: uiIntegration.insetTop
-            height: parent.height - (uiIntegration.oskVisible ? uiIntegration.oskHeight :
-                        Qt.inputMethod.visible && inputPanel.inUse ? inputPanel.height :
-                            (Qt.inputMethod.visible ? Qt.inputMethod.keyboardRectangle.height / (gridUnitPx / 8): 0))
+            height: parent.height - actualOskPadding
             parent: Overlay.overlay
             z: dialogShadow.z + 1
 
@@ -2601,6 +2611,10 @@ ApplicationWindow {
                 spacing: paddingMedium
                 visible: root.landscapeMode && !dbugger.heatingUp && dbugger.running && consoleView.visible && dbugger.currentLineOfExecution !== ""
                 readonly property bool modal : visible
+
+                Behavior on height {
+                    NumberAnimation { duration: 300; easing.type: Easing.OutCubic; }
+                }
 
                 Item {
                     id: consoleViewLandingPad
@@ -2663,6 +2677,11 @@ ApplicationWindow {
                        0 : // Don't overlap debugger area and ContextView in portraitMode
                        mainView.dialogWidth - (debuggerArea.width / 2)
             height: mainView.dialogHeight - paddedOverlayArea.y
+            projectPicker: projectPicker
+            openFiles: openFiles
+            fileIo: fileIo
+            dbugger: dbugger
+            projectBuilder: projectBuilder
             parent: paddedOverlayArea
             z: paddedOverlayArea.searchAndReplaceZ
             onOpenRequested: {
@@ -2885,7 +2904,7 @@ ApplicationWindow {
 
                             delegate: DebuggerListEntry {
                                 readonly property var dbugger: root.dbugger
-                                readonly property bool frameIndex: modelData.frameIndex
+                                readonly property int frameIndex: modelData.frameIndex
 
                                 radius: roundedCornersRadiusSmall
                                 text: modelData.value
@@ -2908,6 +2927,9 @@ ApplicationWindow {
                                 label.wrapMode: Label.WrapAtWordBoundaryOrAnywhere
                                 outline: true
                                 outlineColor: root.palette.button
+                                onClicked: {
+                                    dbugger.selectFrame(frameIndex)
+                                }
                             }
                         }
                     }
@@ -3418,6 +3440,10 @@ ApplicationWindow {
 
             Behavior on opacity {
                 NumberAnimation { duration: 150 }
+            }
+
+            Behavior on y {
+                NumberAnimation { duration: 300; easing.type: Easing.OutCubic; }
             }
 
             Timer {

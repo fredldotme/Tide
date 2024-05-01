@@ -118,7 +118,7 @@ void SysrootManager::runInThread()
     {
         const QString targetRoot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                                    QStringLiteral("/Library/usr/lib/clang");
-        const QString target = targetRoot + QStringLiteral("/17");
+        const QString target = targetRoot + QStringLiteral("/18");
 
         qDebug() << "Clearing old Clang area";
         QDir targetDir(target);
@@ -171,7 +171,7 @@ void SysrootManager::runInThread()
             const QString source = temporaries + "/Clang/Clang";
             const QString targetRoot = QStandardPaths::writableLocation(QStandardPaths::HomeLocation) +
                                        QStringLiteral("/Library/usr/lib/clang");
-            const QString target = targetRoot + QStringLiteral("/17");
+            const QString target = targetRoot + QStringLiteral("/18");
 
             qDebug() << "Moving bundled Clang headers";
             QDirIterator it(source, QDir::NoDotAndDotDot | QDir::AllEntries, QDirIterator::Subdirectories);

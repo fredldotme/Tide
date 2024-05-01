@@ -44,8 +44,19 @@ QVariantList SearchAndReplace::suggestions(const QString find, QString sourceRoo
 
             const auto buffer = fileToSearch.readAll();
 
-            if (!buffer.contains(find.toUtf8()))
-                continue;
+            const static auto findOccurances = [](const QByteArray& buffer, const QString& needle) {
+                int occurances = 0;
+                const auto buf = buffer.toStdString();
+                const auto ndl = needle.toStdString();
+                if (needle.length() == 0) return 0;
+                for (size_t offset = buf.find(ndl); offset != std::string::npos;
+                     offset = buf.find(ndl, offset + ndl.length())) {
+                    ++occurances;
+                }
+                return occurances;
+            };
+            occurances = findOccurances(buffer, find);
+            qDebug() << "Occurances in" << path << ":" << occurances;
         }
 
         SearchResult* obj = new SearchResult;

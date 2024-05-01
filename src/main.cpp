@@ -49,9 +49,10 @@ int main(int argc, char *argv[])
     {
         ClangCompiler setup;
     }
-    //qputenv("LIBCLANG_DISABLE_CRASH_RECOVERY", "1");
-    //qputenv("LLVM_DISABLE_CRASH_REPORT", "1");
     qputenv("NOSYSTEM_DEBUG", "1");
+
+    // lld codepath enablement that causes proper memory cleanups
+    qputenv("LLD_IN_TEST", "1");
 #elif defined(Q_OS_MACOS)
     const auto orgName = QStringLiteral("fredl.me");
     const auto appName = QStringLiteral("Tide");
@@ -69,7 +70,7 @@ int main(int argc, char *argv[])
     QQuickStyle::setStyle("iOS");
 
     qputenv("CLANG_RESOURCE_DIR",
-            QStringLiteral("%1/usr/lib/clang/17").arg(library).toStdString().c_str());
+            QStringLiteral("%1/usr/lib/clang/18").arg(library).toStdString().c_str());
 #elif defined(Q_OS_LINUX)
     const auto orgName = QStringLiteral("");
     const auto appName = QStringLiteral("tide.fredldotme");
@@ -85,7 +86,7 @@ int main(int argc, char *argv[])
     qputenv("QT_QUICK_CONTROLS_STYLE", "Material");
     qputenv("SYSROOT", sysroot.toUtf8().data());
     qputenv("CLANG_RESOURCE_DIR",
-            QStringLiteral("%1/usr/lib/clang/17").arg(library).toStdString().c_str());
+            QStringLiteral("%1/usr/lib/clang/18").arg(library).toStdString().c_str());
     qputenv("QT_QPA_FONTDIR", "/snap/tide-ide/current/usr/share/fonts/truetype");
 
     if (qEnvironmentVariableIsSet("DESKTOP_FILE_HINT")) {

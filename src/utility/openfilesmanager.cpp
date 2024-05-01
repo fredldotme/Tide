@@ -84,6 +84,7 @@ QVariantList OpenFilesManager::files()
 
 DirectoryListing OpenFilesManager::open(const QString path)
 {
+    qDebug() << "Opening (temporarily):" << path;
     DirectoryListing listing(DirectoryListing::File, path);
     return listing;
 }

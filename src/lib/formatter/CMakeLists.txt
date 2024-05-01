@@ -31,14 +31,18 @@ if(IOS OR CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
     if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
         set(LLVM_BUILD_DIR "build-iphonesimulator")
         set(LLVM_MODE "Release-iphonesimulator")
+        set(OS "iphonesimulator")
     else()
         set(LLVM_BUILD_DIR "build-iphoneos")
         set(LLVM_MODE "Release-iphoneos")
+        set(OS "iphoneos")
     endif()
 
+    set(LLVM_TOOLS ${LLVM_DIR}/ios/${LLVM_BUILD_DIR}/Debug-${OS})
     set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
 
-    find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
+    message("LLVM at: ${LLVM}")
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         FRAMEWORK TRUE

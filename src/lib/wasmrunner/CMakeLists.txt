@@ -41,7 +41,7 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
     set (WAMR_BUILD_EXCE_HANDLING 1)
     set (WAMR_BUILD_WAMR_COMPILER 1)
     set (WAMR_ROOT_DIR ${WAMR_DIR})
-    add_definitions(-DWASM_UINT32_IS_ATOMIC=1 -DWASM_ENABLE_WAMR_COMPILER=1 -DIWASM_AS_LIBRARY=1 -DWASM_ENABLE_LABELS_AS_VALUES=1 -DWASM_ENABLE_TAGS=1)
+    add_definitions(-DWASM_UINT32_IS_ATOMIC=1 -DWASM_ENABLE_LABELS_AS_VALUES=1 -DWASM_ENABLE_TAGS=1)
 endif()
 
 if(APPLE AND NOT IOS)
@@ -108,8 +108,6 @@ if(APPLE OR IOS)
     include(${WAMR_DIR}/core/shared/utils/shared_utils.cmake)
     include(${WAMR_DIR}/core/shared/utils/uncommon/shared_uncommon.cmake)
     include(${WAMR_DIR}/core/shared/platform/${WAMR_BUILD_PLATFORM}/shared_platform.cmake)
-    include(${WAMR_DIR}/core/iwasm/compilation/iwasm_compl.cmake)
-    include(${WAMR_DIR}/core/iwasm/aot/iwasm_aot.cmake)
     include(${WAMR_DIR}/build-scripts/runtime_lib.cmake)
     include(${WAMR_DIR}/core/shared/platform/common/libc-util/platform_common_libc_util.cmake)
 endif()
@@ -130,7 +128,7 @@ if (APPLE OR IOS)
         ${LIB_WASI_THREADS_SOURCE}
         ${IWASM_COMMON_SOURCE}
         ${IWASM_INTERP_SOURCE}
-        ${IWASM_AOT_SOURCE})
+    )
 endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "Linux")
@@ -157,14 +155,17 @@ if(IOS OR CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
     if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator)
         set(LLVM_BUILD_DIR "build-iphonesimulator")
         set(LLVM_MODE "Release-iphonesimulator")
+        set(OS "iphonesimulator")
     else()
         set(LLVM_BUILD_DIR "build-iphoneos")
         set(LLVM_MODE "Release-iphoneos")
+        set(OS "iphoneos")
     endif()
 
+    set(LLVM_TOOLS ${LLVM_DIR}/ios/${LLVM_BUILD_DIR}/Debug-${OS})
     set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
 
-    find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_FRAMEWORKS} CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
 
     set_target_properties(${PROJECT_NAME} PROPERTIES
         FRAMEWORK TRUE

@@ -56,7 +56,8 @@ void clearLineCount(QVariantList& list)
     while(!list.empty()) {
         auto newVar = list.takeLast();
         auto newInfo = newVar.value<LineNumberInfo*>();
-        newInfo->deleteLater();
+        if (newInfo)
+            newInfo->deleteLater();
     }
 }
 

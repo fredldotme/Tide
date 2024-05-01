@@ -31,8 +31,16 @@
 
     CGRect keyboardFrame = [[notification userInfo][UIKeyboardFrameEndUserInfoKey] CGRectValue];
 
-    self->_qtDelegate->setOskRect(keyboardFrame.size.width, 0);
-    self->_qtDelegate->setOskVisible(true);
+    self->_qtDelegate->setOskVisible(keyboardFrame.size.height > 128);
+    self->_qtDelegate->setOskRect(keyboardFrame.size.width, keyboardFrame.size.height);
+}
+
+- (void)keyboardDidShow:(NSNotification*)notification {
+    qDebug() << "DID SHOW!";
+
+    CGRect keyboardFrame = [[notification userInfo][UIKeyboardFrameEndUserInfoKey] CGRectValue];
+
+    self->_qtDelegate->setOskRect(keyboardFrame.size.width, keyboardFrame.size.height);
 }
 
 - (void)keyboardDidChangeFrame:(NSNotification*)notification {
@@ -42,7 +50,7 @@
     qDebug() << keyboardFrame.origin.x << keyboardFrame.origin.y;
     qDebug() << keyboardFrame.size.width << keyboardFrame.size.height;
 
-    self->_qtDelegate->setOskRect(keyboardFrame.size.width, keyboardFrame.size.height);
+    //self->_qtDelegate->setOskRect(keyboardFrame.size.width, keyboardFrame.size.height);
 }
 
 - (void)keyboardWillHide:(NSNotification*)notification {
@@ -51,6 +59,8 @@
 
     qDebug() << keyboardFrame.origin.x << keyboardFrame.origin.y;
     qDebug() << keyboardFrame.size.width << keyboardFrame.size.height;
+
+    self->_qtDelegate->setOskRect(keyboardFrame.size.width, 0);
 }
 - (void)keyboardDidHide:(NSNotification*)notification {
     qDebug() << "DID HIDE!";
@@ -126,6 +136,9 @@ IosIntegrationDelegate::IosIntegrationDelegate(QObject *parent)
                                              selector:@selector (keyboardWillShow:)
                                                  name: UIKeyboardWillShowNotification object: nil];
     [[NSNotificationCenter defaultCenter] addObserver:reactor
+                                             selector:@selector (keyboardDidShow:)
+                                                 name: UIKeyboardDidShowNotification object: nil];
+    [[NSNotificationCenter defaultCenter] addObserver:reactor
                                              selector:@selector (keyboardDidChangeFrame:)
                                                  name: UIKeyboardDidChangeFrameNotification object: nil];
     [[NSNotificationCenter defaultCenter] addObserver:reactor
@@ -149,7 +162,6 @@ void IosIntegrationDelegate::setOskRect(const int width, const int height)
         this->m_oskHeight = height;
         emit oskHeightChanged();
     }
-    setOskVisible(this->m_oskWidth == this->m_item->width() && this->m_oskHeight > 128);
 }
 
 void IosIntegrationDelegate::setOskVisible(const bool val)
@@ -169,7 +181,6 @@ void IosIntegrationDelegate::setItem(QQuickItem* item)
     this->m_item = item;
     emit itemChanged();
 }
-
 
 void IosIntegrationDelegate::hookUpNativeView(QQuickItem* item)
 {

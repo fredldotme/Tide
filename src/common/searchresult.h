@@ -19,6 +19,14 @@ public:
     QString from;
     int occurances;
 
+public slots:
+    QString occurance(const int index) {
+        for (int i = 0; i < index; i++) {
+
+        }
+        return "";
+    };
+
 signals:
     void pathChanged();
     void nameChanged();

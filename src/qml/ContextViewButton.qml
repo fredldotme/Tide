@@ -1,8 +1,9 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Tide
 
-Column {
+Row {
     id: itemRoot
 
     property alias text: labelControl.text
@@ -15,6 +16,12 @@ Column {
     property bool longPressEnabled: true
     property bool replaceEnabled: true
     property bool isProject : false
+    property var searchResult : null
+    property OpenFilesManager openFiles: null
+    property ExternalProjectPicker projectPicker: null
+    property FileIo fileIo : null
+    property Debugger dbugger : null
+    property ProjectBuilder projectBuilder : null
 
     signal replaceAll()
     signal openClicked()
@@ -70,13 +77,28 @@ Column {
         }
     }
 
-    Column {
+    Item {
         width: parent.width
         height: implicitHeight
 
-        Repeater {
-            CodeEditor {
+        ListView {
+            id: occurancesListView
+            model: itemRoot.searchResult.occurances
+            width: parent.width
+            height: implicitHeight
 
+            delegate: CodeEditor {
+                file: itemRoot.openFiles.open(itemRoot.searchResult.path)
+                codeField.readOnly: true
+                focus: false
+                projectPicker: itemRoot.projectPicker
+                fileIo: itemRoot.fileIo
+                openFiles: itemRoot.openFiles
+                dbugger: itemRoot.dbugger
+                projectBuilder : itemRoot.projectBuilder
+                width: parent.width
+                height: fixedFont.pixelSize * 5
+                Component.onCompleted: console.log("OCCURANCE THERE " + index)
             }
         }
     }

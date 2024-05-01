@@ -8,4 +8,6 @@ QtObject {
     readonly property bool supportsEmbeddedStatusbar : Qt.platform.os === "ios"
     readonly property bool usesHudBusyIndicator : Qt.platform.os === "ios" || Qt.platform.os === "osx"
     readonly property bool usesBuiltinOsk: false //Qt.platform.os === "linux"
+    readonly property bool usesUiDelegateForOskHeight: Qt.platform.os === "ios"
+    readonly property bool usesQtForOskHeight: Qt.platform.os === "linux"
 }
