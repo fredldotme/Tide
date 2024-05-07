@@ -119,6 +119,10 @@ ApplicationWindow {
         }
     }
 
+    readonly property bool useExceptions: {
+        return (settings.sysrootType == SysrootManager.ThreadsAndExceptions)
+    }
+
     property font fixedFont: standardFixedFont
     property bool showLeftSideBar: true
     property bool showDebugArea: false
@@ -193,7 +197,7 @@ ApplicationWindow {
 
         // No AOT for releases
         const aot = !releaseRequested && settings.optimizations
-        projectBuilder.build(debugRequested, aot)
+        projectBuilder.build(debugRequested, aot, root.useExceptions)
     }
 
     function attemptRun() {
@@ -219,7 +223,7 @@ ApplicationWindow {
                              settings.heapSize,
                              settings.threads,
                              platformProperties.supportsOptimizations && settings.optimizations);
-        wasmRunner.run(projectBuilder.runnableFile(), [])
+        wasmRunner.run(projectBuilder.runnableFile(), [], root.useExceptions)
     }
 
     function attemptDebug() {
@@ -246,7 +250,7 @@ ApplicationWindow {
                              settings.heapSize,
                              settings.threads,
                              platformProperties.supportsOptimizations);
-        dbugger.debug(projectBuilder.runnableFile(), [])
+        dbugger.debug(projectBuilder.runnableFile(), [], root.useExceptions)
     }
 
     function attemptScriptRun() {
@@ -3148,6 +3152,7 @@ ApplicationWindow {
             property int heapSize : 256
             property int threads : 16
             property bool optimizations : platformProperties.supportsOptimizations
+            property int sysrootType : SysrootManager.Regular
         }
 
         Component {

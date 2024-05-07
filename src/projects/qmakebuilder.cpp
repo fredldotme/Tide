@@ -18,8 +18,6 @@
 #define SUPPORT_AOT 0
 #endif
 
-#define SUPPORT_EXCEPTIONS 0
-
 inline static QString resolveDefaultVariables(const QString& line,
                                               const QString& sourceDir,
                                               const QString& buildDir)
@@ -84,7 +82,7 @@ void QMakeBuilder::clean()
     emit cleaned();
 }
 
-void QMakeBuilder::build(const bool debug, const bool aot)
+void QMakeBuilder::build(const bool debug, const bool aot, const bool exceptions)
 {
     const auto buildDirPath = projectBuildRoot();
     if (buildDirPath.isEmpty()) {
@@ -118,15 +116,19 @@ void QMakeBuilder::build(const bool debug, const bool aot)
         useThreads = (std::find(configs.begin(), configs.end(), "threads") != configs.end());
     }
 
-#if SUPPORT_EXCEPTIONS
-    const auto commonFlags = QStringLiteral(" -fwasm-exceptions ");
-#else
-    const auto commonFlags = QStringLiteral(" -fno-exceptions ");
-#endif
+    const auto commonFlags = exceptions ?
+        QStringLiteral(" -fwasm-exceptions ") : QStringLiteral(" -fno-exceptions ");
+
+    auto targetTriplet = QStringLiteral("wasm32-wasi");
+    if (useThreads && exceptions) {
+        targetTriplet = QStringLiteral("wasm32-wasi-threads-exce");
+    } else if (useThreads && !exceptions) {
+        targetTriplet = QStringLiteral("wasm32-wasi-threads");
+    }
 
     const auto threadFlags = (useThreads ?
-                                  QStringLiteral(" --target=wasm32-wasi-threads -ftls-model=local-exec -pthread ") :
-                                  QStringLiteral(" --target=wasm32-wasi "));
+                                  QStringLiteral(" --target=%1 -ftls-model=local-exec -pthread ").arg(targetTriplet) :
+                                  QStringLiteral(" --target=%1 ").arg(targetTriplet));
 
     const auto defaultFlags = threadFlags;
     const auto defaultLinkFlags = threadFlags +
@@ -238,8 +240,8 @@ void QMakeBuilder::build(const bool debug, const bool aot)
 
     const auto undefinedSymbolsFile =
         useThreads ?
-            QStringLiteral("%1/share/wasm32-wasi-threads/undefined-symbols.txt").arg(m_sysroot) :
-            QStringLiteral("%1/share/wasm32-wasi/undefined-symbols.txt").arg(m_sysroot);
+            QStringLiteral("%1/share/%2/undefined-symbols.txt").arg(m_sysroot, targetTriplet) :
+            QStringLiteral("%1/share/%2/undefined-symbols.txt").arg(m_sysroot, targetTriplet);
     const auto undefinedSymbolsLinkFlags =
         QStringLiteral(" -Wl,--allow-undefined-file=%1 ").arg(undefinedSymbolsFile);
     const QString linkCommand = QStringLiteral("clang++") +

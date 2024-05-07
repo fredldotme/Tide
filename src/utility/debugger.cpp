@@ -269,7 +269,7 @@ void Debugger::readError()
     read(m_stdioPair.second.std_err);
 }
 
-void Debugger::debug(const QString binary, const QStringList args)
+void Debugger::debug(const QString binary, const QStringList args, const bool exceptions)
 {
     if (!m_runner) {
         qWarning() << "No runner assigned, cannot debug.";
@@ -280,7 +280,7 @@ void Debugger::debug(const QString binary, const QStringList args)
     m_args = args;
 
     m_runner->registerDebugger(this);
-    m_runner->debug(m_binary, m_args);
+    m_runner->debug(m_binary, m_args, exceptions);
 
     m_running = true;
     emit runningChanged();

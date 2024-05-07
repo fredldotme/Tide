@@ -64,8 +64,8 @@ public:
 
 public slots:
     void configure(unsigned int stack, unsigned int heap, unsigned int threads, bool opt);
-    void run(const QString binary, const QStringList args);
-    void debug(const QString binary, const QStringList args);
+    void run(const QString binary, const QStringList args, const bool exceptions);
+    void debug(const QString binary, const QStringList args, const bool exceptions);
     void waitForFinished();
     int exitCode();
     void kill();
@@ -73,7 +73,7 @@ public slots:
     void registerDebugger(Debugger* debugger);
 
 private:
-    void start(const QString binary, const QStringList args, const bool debug);
+    void start(const QString binary, const QStringList args, const bool debug, const bool exceptions);
     void stop(bool silent);
 
     StdioSpec m_spec;

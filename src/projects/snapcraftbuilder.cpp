@@ -47,7 +47,7 @@ void SnapcraftBuilder::clean()
     // TODO: remove snaps
 }
 
-void SnapcraftBuilder::build(const bool debug, const bool aot)
+void SnapcraftBuilder::build(const bool debug, const bool aot, const bool exceptions)
 {
     const auto sourcePath = projectDir();
 

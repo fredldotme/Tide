@@ -11,6 +11,13 @@ class SysrootManager : public QObject
     Q_PROPERTY(qreal progress MEMBER m_progress NOTIFY progressChanged FINAL)
 
 public:
+    enum SysrootType {
+        Regular = 0,
+        ThreadsNoExceptions,
+        ThreadsAndExceptions
+    };
+    Q_ENUM(SysrootType);
+
     explicit SysrootManager(QObject *parent = nullptr);
     ~SysrootManager();
 

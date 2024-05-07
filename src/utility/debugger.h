@@ -35,7 +35,7 @@ public:
     void connectToRemote(const int port);
 
 public slots:
-    void debug(const QString binary, const QStringList args);
+    void debug(const QString binary, const QStringList args, const bool exceptions);
     void runDebugSession();
     void addBreakpoint(const QString& breakpoint);
     void addWatchpoint(const QString& watchpoint);

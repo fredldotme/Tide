@@ -51,7 +51,7 @@ void ClickableBuilder::clean()
     }
 }
 
-void ClickableBuilder::build(const bool debug, const bool aot)
+void ClickableBuilder::build(const bool debug, const bool aot, const bool exceptions)
 {
     const auto sourcePath = projectDir();
     const auto buildPath = buildRoot() + QDir::separator() + projectName();

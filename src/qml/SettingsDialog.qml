@@ -521,6 +521,31 @@ TideDialog {
                         width: childrenRect.width
                         height: childrenRect.height
                         spacing: paddingSmall
+
+                        RowLayout {
+                            Label {
+                                text: qsTr("Sysroot:")
+                            }
+                            ComboBox {
+                                id: sysrootComboBox
+                                editable: false
+                                model: ListModel {
+                                    ListElement {
+                                        text: "No threads, no exceptions"
+                                    }
+                                    ListElement {
+                                        text: "Threads, no exceptions"
+                                    }
+                                    ListElement {
+                                        text: "Threads and exceptions"
+                                    }
+                                }
+                                currentIndex: settings.sysrootType
+                                onCurrentIndexChanged: {
+                                    settings.sysrootType = currentIndex
+                                }
+                            }
+                        }
                         Switch {
                             text: qsTr("Wiggle hints")
                             checked: settings.wiggleHints

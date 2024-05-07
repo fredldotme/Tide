@@ -98,14 +98,14 @@ void ProjectBuilder::clean()
     m_activeBuilder->clean();
 }
 
-void ProjectBuilder::build(const bool debug, const bool aot)
+void ProjectBuilder::build(const bool debug, const bool aot, const bool exceptions)
 {
     if (!m_activeBuilder) {
         qWarning() << "No active builder!";
         return;
     }
 
-    m_activeBuilder->build(debug, aot);
+    m_activeBuilder->build(debug, aot, exceptions);
 }
 
 void ProjectBuilder::cancel()

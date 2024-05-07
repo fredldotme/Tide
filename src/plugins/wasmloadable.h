@@ -57,7 +57,7 @@ public:
             }
         }
 
-        wasm_function_inst_t func = wasm_runtime_lookup_function(module_inst, funcName.toLocal8Bit().data(), NULL);
+        wasm_function_inst_t func = wasm_runtime_lookup_function(module_inst, funcName.toLocal8Bit().data());
         if (!func) {
             wasm_val_t ret;
             memset(&ret, 0, sizeof(ret));

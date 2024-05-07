@@ -138,14 +138,14 @@ void WasmRunner::configure(unsigned int stack, unsigned int heap, unsigned int t
         sharedData.config.flags = WasmRunnerConfigFlags::None;
 }
 
-void WasmRunner::run(const QString binary, const QStringList args)
+void WasmRunner::run(const QString binary, const QStringList args, const bool exceptions)
 {
-    start(binary, args, false);
+    start(binary, args, false, exceptions);
 }
 
-void WasmRunner::debug(const QString binary, const QStringList args)
+void WasmRunner::debug(const QString binary, const QStringList args, const bool exceptions)
 {
-    start(binary, args, true);
+    start(binary, args, true, exceptions);
 }
 
 void WasmRunner::waitForFinished()
@@ -160,10 +160,10 @@ int WasmRunner::exitCode()
     return this->sharedData.main_result;
 }
 
-void WasmRunner::start(const QString binary, const QStringList args, const bool debug)
+void WasmRunner::start(const QString binary, const QStringList args, const bool debug, const bool exceptions)
 {
     QString wasmRunner = QStringLiteral("Wasmrunnerfast");
-    if (m_forceDebugInterpreter || debug) {
+    if (m_forceDebugInterpreter || debug || exceptions) {
         wasmRunner = QStringLiteral("Wasmrunner");
     } else if (sharedData.config.flags & JIT) {
         wasmRunner = QStringLiteral("Wasmrunnerjit");

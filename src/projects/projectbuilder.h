@@ -35,7 +35,7 @@ public slots:
     void reloadProperties();
 
     void clean();
-    void build(const bool debug, const bool aot);
+    void build(const bool debug, const bool aot, const bool exceptions);
     void cancel();
 
     QString runnableFile();
