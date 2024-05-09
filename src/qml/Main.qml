@@ -150,6 +150,9 @@ ApplicationWindow {
             return
 
         const file = editor.file
+        if (file.path === "")
+            return
+
         console.log("File to save: " + file.path);
         if (!fileIo.fileIsTextFile(file.path) || root.fileIsImageFile(file.path)) {
             hud.hudLabel.flashMessage(qsTr("Not saving binary file..."))
@@ -639,7 +642,7 @@ ApplicationWindow {
                     color: headerItemColor
                     elide: Text.ElideRight
                     font.bold: true
-                    width: text !== "" ? implicitWidth : 0
+                    width: text !== "" ? Math.min(implicitWidth, headerRow.width / 3) : 0
                     height: font.pixelSize
                     property string flashyMessage : ""
                     property string stickyMessage : {
@@ -956,7 +959,6 @@ ApplicationWindow {
                                 }
                             }
                         }
-
                     }
                     MenuItem {
                         enabled: dbugger.running
@@ -1092,13 +1094,30 @@ ApplicationWindow {
                     id: consoleContextMenu
                     z: debuggerArea.z + 1 // Otherwise the debuggerArea overlaps the contextMenu
                     MenuItem {
-                        text: consoleView.visibility ? qsTr("Hide console") : qsTr("Show console")
+                        text: {
+                            if (!consoleView.integratedMode) {
+                                if (consoleView.visibility)
+                                    return qsTr("Hide console")
+                                else
+                                    return qsTr("Show console")
+                            } else {
+                                if (settings.integratedConsole)
+                                    return qsTr("Pop-out console")
+                                else
+                                    return qsTr("Pop-in console")
+                            }
+                        }
                         icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
                         onPressed: {
-                            if (consoleView.visibility)
-                                consoleView.hide()
-                            else
+                            if (!consoleView.integratedMode) {
+                                if (consoleView.visibility)
+                                    consoleView.hide()
+                                else
+                                    consoleView.show()
+                            } else {
+                                settings.integratedConsole = !settings.integratedConsole
                                 consoleView.show()
+                            }
                             consoleContextMenu.close()
                         }
                     }
@@ -1596,9 +1615,8 @@ ApplicationWindow {
             }
         }
 
-        Row {
+        Item {
             id: mainView
-            spacing: 1
             visible: projectList.projects.length > 0
             opacity: projectList.projects.length > 0 ? 1.0 : 0.0
             onVisibleChanged: mainView.forceLayout()
@@ -1606,7 +1624,7 @@ ApplicationWindow {
             x: !centered ? 0 : ((parent.width - width) / 2)
             y: !centered ? uiIntegration.topPadding : ((parent.height - height) / 2)
             width: !centered ? parent.width : dialogWidth
-            height: !centered ? parent.height : dialogHeight
+            height: (!centered ? parent.height : dialogHeight) - paddingLarge
 
             readonly property bool centered : editor.invalidated
             Behavior on x {
@@ -1654,7 +1672,7 @@ ApplicationWindow {
                     id: projectsArea
                     x: paddingMedium
                     width: parent.width - paddingMedium
-                    height: parent.height - (paddingMedium * 2)
+                    height: parent.height - paddingTiny
                     readonly property int spaceBetweenSections : openFiles.files.length > 0 ? paddingTiny : 0
 
                     property var project : null
@@ -2457,18 +2475,31 @@ ApplicationWindow {
 
             Item {
                 id: editorContainer
-                width: parent.width - leftSideBar.width - debuggerArea.width
-                height: parent.height - (paddingMedium) - (openFiles.files.length > 0 ? 0 : paddingSmall)
+                height: parent.height - paddingTiny
                 visible: projectList.projects.length > 0
+                anchors {
+                    top: parent.top
+                    left: leftSideBar.right
+                    right: parent.right
+                    rightMargin: showDebugArea ? debuggerArea.width + paddingSmall : paddingMedium
+                    leftMargin: showLeftSideBar ? paddingSmall : paddingMedium
+                }
 
                 CodeEditor {
                     id: editor
-                    anchors.fill: parent
+
+                    readonly property int heightPadding : (openFiles.files.length === 0 ? paddingTiny : 0)
+                    readonly property int integratedModeHeight :
+                        consoleView.expanded ? ((parent.height / 3) * 2) :
+                                               parent.height - root.toolBarHeight - paddingLarge
+
+                    height: consoleView.integratedMode ? integratedModeHeight : parent.height - paddingMedium
                     parent: editorContainer
                     anchors {
-                        rightMargin: showDebugArea ? paddingSmall : paddingMedium
-                        leftMargin: showLeftSideBar ? paddingSmall : paddingMedium
-                        bottomMargin: paddingMedium + paddingSmall
+                        top: parent.top
+                        right: parent.right
+                        left: parent.left
+                        bottomMargin: consoleView.integratedMode ? paddingMedium * 2 : paddingMedium
                     }
 
                     fileIo: fileIo
@@ -2497,6 +2528,46 @@ ApplicationWindow {
                     }
 
                     readonly property bool isRunnableScript : runMenuItem.isRunnableScript
+
+                    Connections {
+                        target: dbugger
+                        function onCurrentLineOfExecutionChanged() {
+                            if (!consoleView.integratedMode)
+                                return
+
+                            const fileListing = dbugger.getFileForActiveLine()
+                            if (fileListing.path === "")
+                                return
+
+                            const line = dbugger.currentLineOfExecution.split(':')
+                            if (line.length == 0)
+                                return
+
+                            openEditor(fileListing)
+                            editor.scrollToLine(line[line.length - 1])
+                        }
+                    }
+
+                    Behavior on height {
+                        enabled: consoleView.integratedMode
+                        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                    }
+                }
+
+                Item {
+                    id: consoleViewIntegratedLandingPad
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.top: editor.bottom
+                    anchors.topMargin: paddingSmall
+                    height: consoleView.expanded ?
+                                (parent.height / 3) - paddingLarge :
+                                root.toolBarHeight
+
+                    Behavior on height {
+                        enabled: consoleView.integratedMode
+                        NumberAnimation { duration: 200; easing.type: Easing.OutCubic }
+                    }
                 }
             }
         }
@@ -2524,16 +2595,19 @@ ApplicationWindow {
             opacity: {
                 // Bindings for reevaluation
                 paddedOverlayArea.children.length;
+                settings.integratedConsole;
                 consoleView.visible;
                 gitDialog.visible;
                 overlayLandingPad.visible;
 
-                console.log("Reevaluating dialog shadow opacity: " + overlayLandingPad.visible + " " + consoleView.visible)
+                console.log("Reevaluating dialog shadow opacity: " +
+                            overlayLandingPad.visible + " " +
+                            (!consoleView.integratedMode && consoleView.visible))
 
                 if (overlayLandingPad.visible)
                     return 1.0
 
-                if (consoleView.visible)
+                if (!consoleView.integratedMode && consoleView.visible)
                     return 1.0
 
                 if (gitDialog.visible)
@@ -2613,7 +2687,9 @@ ApplicationWindow {
                 width: paddedOverlayArea.width - debuggerArea.width - (paddingLarge * 2)
                 height: paddedOverlayArea.height - headerBarHeight - (paddingLarge * 2)
                 spacing: paddingMedium
-                visible: root.landscapeMode && !dbugger.heatingUp && dbugger.running && consoleView.visible && dbugger.currentLineOfExecution !== ""
+                visible: root.landscapeMode && !dbugger.heatingUp && dbugger.running &&
+                         consoleView.visible && !consoleView.integratedMode &&
+                         dbugger.currentLineOfExecution !== ""
                 readonly property bool modal : visible
 
                 Behavior on height {
@@ -2621,9 +2697,9 @@ ApplicationWindow {
                 }
 
                 Item {
-                    id: consoleViewLandingPad
+                    id: consoleViewDialogLandingPad
                     width: (parent.width / 2) - (paddingMedium / 2)
-                    height: parent.height
+                    height: parent.height - paddingLarge
                 }
 
                 CodeEditor {
@@ -2632,7 +2708,7 @@ ApplicationWindow {
                     height: parent.height
                     y: consoleView.y
                     codeField.readOnly: true
-                    opacity: consoleView.visibility && dbugger.paused && !dbugger.heatingUp ? 1.0 : 0.0
+                    opacity: !consoleView.integratedMode && consoleView.visibility && dbugger.paused && !dbugger.heatingUp ? 1.0 : 0.0
                     file: {
                         dbugger.currentLineOfExecution;
                         return dbugger.getFileForActiveLine()
@@ -2651,6 +2727,9 @@ ApplicationWindow {
                     Connections {
                         target: dbugger
                         function onCurrentLineOfExecutionChanged() {
+                            if (consoleView.integratedMode)
+                                return
+
                             let line = dbugger.currentLineOfExecution.split(':')
                             if (line.length == 0)
                                 return
@@ -2663,15 +2742,20 @@ ApplicationWindow {
 
         ConsoleView {
             id: consoleView
-            width: parent == consoleViewLandingPad ?
+            width: parent == consoleViewDialogLandingPad || parent == consoleViewIntegratedLandingPad ?
                        parent.width:
                        !landscapeMode && showDebugArea ?
                            0 : // Don't overlap debugger area and ConsoleView in portraitMode
                            mainView.dialogWidth - (debuggerArea.width / 2)
-            height: parent == consoleViewLandingPad ? parent.height : mainView.dialogHeight - parent.y
+            height: parent == consoleViewDialogLandingPad || parent == consoleViewIntegratedLandingPad ?
+                        parent.height : mainView.dialogHeight - parent.y
+            integratedMode: settings.integratedConsole && root.landscapeMode
             opacityOverride: 1.0
-            parent: overlayLandingPad.visible ? consoleViewLandingPad : paddedOverlayArea
-            z: paddedOverlayArea.consoleZ
+            parent: settings.integratedConsole && integratedMode ?
+                        consoleViewIntegratedLandingPad :
+                        overlayLandingPad.visible ? consoleViewDialogLandingPad :
+                                                    paddedOverlayArea
+            z: integratedMode ? 0 : paddedOverlayArea.consoleZ
             inputEnabled: wasmRunner.running || pyRunner.running
         }
 
@@ -2698,7 +2782,7 @@ ApplicationWindow {
         Item {
             id: debuggerArea
             width: showDebugArea ? (sideBarWidth - paddingMedium) : 0
-            height: mainContainer.height - (paddingMedium * 2) // TODO: Commonalize
+            height: mainContainer.height - (paddingMedium * 2) - paddingTiny // TODO: Commonalize
             anchors.top: parent.top
             anchors.topMargin: headerBarHeight + uiIntegration.topPadding
             anchors.right: parent.right
@@ -3153,6 +3237,7 @@ ApplicationWindow {
             property int threads : 16
             property bool optimizations : platformProperties.supportsOptimizations
             property int sysrootType : SysrootManager.Regular
+            property bool integratedConsole : false
         }
 
         Component {

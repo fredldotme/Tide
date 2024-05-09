@@ -347,76 +347,98 @@ Item {
             }
         }
 
-        Column {
-            anchors.centerIn: parent
-            width: parent.width
-            spacing: paddingMedium
-            enabled: opacity > 0.0
-            visible: opacity > 0.0
-
-            opacity: invalidated ? 1.0 : 0.0
-            Behavior on opacity {
-                NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
-            }
+        ScrollView {
+            id: welcomeScrollView
+            anchors.fill: parent
+            contentWidth: -1
+            contentHeight: welcomeColumn.height
 
             ColumnLayout {
+                id: welcomeColumn
+                anchors.centerIn: parent
                 width: parent.width
-                spacing: 0
+                height: implicitHeight
+                spacing: paddingMedium
+                enabled: opacity > 0.0
+                visible: opacity > 0.0
 
-                Image {
-                    Layout.alignment: Qt.AlignCenter
-                    source: Qt.resolvedUrl("qrc:/assets/TideNaked@2x.png")
-                    Layout.preferredWidth: Math.min(128, parent.width)
-                    Layout.preferredHeight: width
+                opacity: invalidated ? 1.0 : 0.0
+                Behavior on opacity {
+                    NumberAnimation { duration: 500; easing.type: Easing.OutCubic }
                 }
-                Label {
-                    Layout.alignment: Qt.AlignCenter
-                    Layout.preferredWidth: parent.width
-                    wrapMode: Text.WrapAtWordBoundaryOrAnywhere
-                    text: qsTr("Welcome to Tide")
-                    font.pixelSize: 26
-                    color: root.palette.text
-                    horizontalAlignment: Text.AlignHCenter
-                }
-            }
 
-            ColumnLayout {
-                width: parent.width
-                spacing: 0
-                Button {
-                    Layout.alignment: Qt.AlignCenter
-                    Layout.preferredWidth: parent.width
-                    flat: true
-                    text: qsTr("Examples")
-                    spacing: 8
-                    icon.source: Qt.resolvedUrl("qrc:/assets/link@2x.png")
-                    font.pixelSize: 20
-                    onClicked: {
-                        git.clone("https://github.com/fredldotme/TideExamples", "TideExamples");
+                // Top padding
+                Item {
+                    Layout.preferredWidth: 1
+                    Layout.preferredHeight:
+                        ((welcomeScrollView.height - logoColumn.height - buttonsColumn.height) / 2) - paddingLarge
+                }
+
+                ColumnLayout {
+                    id: logoColumn
+                    Layout.preferredWidth: implicitWidth
+                    Layout.preferredHeight: implicitHeight
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: 0
+
+                    Image {
+                        Layout.alignment: Qt.AlignCenter
+                        source: Qt.resolvedUrl("qrc:/assets/TideNaked@2x.png")
+                        Layout.preferredWidth: Math.min(128, parent.width)
+                        Layout.preferredHeight: width
+                    }
+                    Label {
+                        Layout.alignment: Qt.AlignCenter
+                        Layout.preferredWidth: implicitWidth
+                        wrapMode: Text.WrapAtWordBoundaryOrAnywhere
+                        text: qsTr("Welcome to Tide")
+                        font.pixelSize: 26
+                        color: root.palette.text
+                        horizontalAlignment: Text.AlignHCenter
                     }
                 }
-                Button {
-                    Layout.alignment: Qt.AlignCenter
-                    Layout.preferredWidth: parent.width
-                    flat: true
-                    text: qsTr("Settings")
-                    spacing: 8
-                    icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
-                    font.pixelSize: 20
-                    onClicked: {
-                        root.toggleSettingsDialog()
+
+                ColumnLayout {
+                    id: buttonsColumn
+                    Layout.preferredWidth: implicitWidth
+                    Layout.preferredHeight: implicitHeight
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: 0
+                    Button {
+                        Layout.alignment: Qt.AlignCenter
+                        Layout.preferredWidth: implicitWidth
+                        flat: true
+                        text: qsTr("Examples")
+                        spacing: 8
+                        icon.source: Qt.resolvedUrl("qrc:/assets/link@2x.png")
+                        font.pixelSize: 20
+                        onClicked: {
+                            git.clone("https://github.com/fredldotme/TideExamples", "TideExamples");
+                        }
                     }
-                }
-                Button {
-                    Layout.alignment: Qt.AlignCenter
-                    Layout.preferredWidth: parent.width
-                    flat: true
-                    text: qsTr("Help")
-                    spacing: 8
-                    icon.source: Qt.resolvedUrl("qrc:/assets/questionmark.circle.fill@2x.png")
-                    font.pixelSize: 20
-                    onClicked: {
-                        root.toggleHelpDialog()
+                    Button {
+                        Layout.alignment: Qt.AlignCenter
+                        Layout.preferredWidth: implicitWidth
+                        flat: true
+                        text: qsTr("Settings")
+                        spacing: 8
+                        icon.source: Qt.resolvedUrl("qrc:/assets/gearshape.fill@2x.png")
+                        font.pixelSize: 20
+                        onClicked: {
+                            root.toggleSettingsDialog()
+                        }
+                    }
+                    Button {
+                        Layout.alignment: Qt.AlignCenter
+                        Layout.preferredWidth: implicitWidth
+                        flat: true
+                        text: qsTr("Help")
+                        spacing: 8
+                        icon.source: Qt.resolvedUrl("qrc:/assets/questionmark.circle.fill@2x.png")
+                        font.pixelSize: 20
+                        onClicked: {
+                            root.toggleHelpDialog()
+                        }
                     }
                 }
             }

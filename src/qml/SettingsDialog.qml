@@ -69,7 +69,7 @@ TideDialog {
 
             ListView {
                 id: categories
-                width: visibility ? 128 : 0
+                width: visibility ? 164 : 0
                 height: parent.height
                 spacing: paddingSmall
                 currentIndex: 0
@@ -93,7 +93,7 @@ TideDialog {
 
                 model: ListModel {
                     ListElement {
-                        category: qsTr("Editor")
+                        category: qsTr("Appearance")
                         categoryIcon: "qrc:/assets/doc.plaintext@2x.png"
                     }
                     /*ListElement {
@@ -151,7 +151,7 @@ TideDialog {
                 }
                 currentIndex: categories.currentIndex
 
-                // Editor settings
+                // Appearance settings
                 ScrollView {
                     width: parent.width
                     contentWidth: -1
@@ -272,6 +272,13 @@ TideDialog {
                             checked: settings.wrapEditor
                             onCheckedChanged: {
                                 settings.wrapEditor = checked
+                            }
+                        }
+                        Switch {
+                            text: qsTr("Pop-out console")
+                            checked: !settings.integratedConsole
+                            onCheckedChanged: {
+                                settings.integratedConsole = !checked
                             }
                         }
                     }
