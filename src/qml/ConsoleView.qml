@@ -5,7 +5,7 @@ import QtQuick.Effects
 
 Item {
     id: consoleView
-
+    
     readonly property int debuggerPaddingX :
         integratedMode ? 0 : parent != consoleViewDialogLandingPad ? debuggerArea.width : 0
     readonly property int headerPaddingY :
@@ -21,7 +21,7 @@ Item {
     y: integratedMode ? 0 : visibility ? ((parent.height - height) / 2) + headerPaddingY : parent.height
     opacity: visibility ? opacityOverride : 0.0
     visible: opacity > 0.0
-
+    
     property alias consoleOutput : consoleOutput
     property alias consoleScrollView : consoleScrollView
 
@@ -30,17 +30,20 @@ Item {
     property real opacityOverride : 1.0
     property bool inputEnabled : false
     property bool fullScreenMode : false
-
+    
     readonly property bool modal : true
-
+    
     function show() {
         if (integratedMode)
             expanded = true
 
         visibility = true;
         hideStdOut = false
-    }
 
+        if (consoleInputField.enabled)
+            consoleInputField.forceActiveFocus()
+    }
+    
     function hide() {
         if (integratedMode)
             expanded = false
@@ -50,22 +53,6 @@ Item {
 
     ListModel {
         id: consoleOutput
-        onCountChanged: {
-            if (consoleView.visibility && inputEnabled) {
-                consoleInputField.focus = true
-            }
-        }
-    }
-
-    Timer {
-        id: delayedRefocus
-        interval: 50
-        repeat: false
-        onTriggered: {
-            if (consoleView.visibility && inputEnabled) {
-                consoleInputField.focus = true
-            }
-        }
     }
 
     Behavior on y {
@@ -88,7 +75,7 @@ Item {
             easing.type: Easing.OutCubic
         }
     }
-
+    
     Rectangle {
         id: consoleRect
         anchors.fill: parent
@@ -97,17 +84,17 @@ Item {
         border.width: 1
         radius: roundedCornersRadiusMedium
         clip: true
-
+        
         Column {
             id: consoleRectColumn
             anchors.fill: parent
             clip: true
-
+            
             Item {
                 id: consoleToolBar
                 width: parent.width
                 height: root.toolBarHeight
-
+                
                 RowLayout {
                     anchors.fill: parent
                     TideToolButton {
@@ -131,7 +118,7 @@ Item {
                             consoleView.hideStdOut = !consoleView.hideStdOut
                         }
                     }
-
+                    
                     Label {
                         Layout.fillWidth: true
                         color: root.palette.text
@@ -141,7 +128,7 @@ Item {
                         horizontalAlignment: Label.AlignHCenter
                         verticalAlignment: Label.AlignVCenter
                     }
-
+                    
                     ToolButton {
                         text: qsTr("Stop")
                         enabled: !integratedMode
@@ -184,7 +171,7 @@ Item {
                     }
                 }
             }
-
+            
             ScrollView {
                 width: parent.width
                 height: parent.height - consoleToolBar.height - consoleInputField.height - (paddingSmall*2)
@@ -205,7 +192,7 @@ Item {
                         height: isAllowedLine ? contentHeight : 0
                         opacity: isAllowedLine ? 1.0 : 0.0
                         visible: height > 0
-
+                        
                         Behavior on height {
                             NumberAnimation {
                                 duration: 100
@@ -218,7 +205,7 @@ Item {
                                 easing.type: Easing.OutCubic
                             }
                         }
-
+                        
                         Connections {
                             target: consoleView
                             function onHideStdOutChanged() {
@@ -230,7 +217,7 @@ Item {
                     }
                 }
             }
-
+            
             TextField {
                 id: consoleInputField
                 font: fixedFont
@@ -240,8 +227,8 @@ Item {
                 visible: height > 0
                 background: Item { }
                 placeholderText: qsTr("Input:")
-                focus: consoleView.visibility && enabled
-
+                focus: (consoleView.visibility || consoleView.expanded) && enabled
+                
                 Behavior on height {
                     NumberAnimation {
                         easing.type: Easing.OutQuint
@@ -249,6 +236,17 @@ Item {
                     }
                 }
 
+                onEnabledChanged: {
+                    if (enabled)
+                        forceActiveFocus()
+                }
+
+                onActiveFocusChanged: {
+                    if (!activeFocus) {
+                        if (enabled)
+                            forceActiveFocus()
+                    }
+                }
                 onAccepted: {
                     consoleHandler.write(text + "\n")
                     if (consoleOutput.count > 0) {
@@ -257,14 +255,13 @@ Item {
                         consoleOutput.append({"content": text, "stdout": true})
                     }
                     clear()
-                    delayedRefocus.restart()
                 }
                 Component.onCompleted: {
                     imFixer.setupImEventFilter(consoleInputField)
                 }
             }
         }
-
+        
         Label {
             font: fixedFont
             text: !inputEnabled ? qsTr("Nothing running in the console yet.") :
@@ -276,7 +273,7 @@ Item {
             wrapMode: Label.WrapAnywhere
         }
     }
-
+    
     MultiEffect {
         source: consoleRect
         anchors.fill: consoleRect

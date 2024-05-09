@@ -52,7 +52,7 @@ int main(int argc, char *argv[])
     qputenv("NOSYSTEM_DEBUG", "1");
 
     // lld codepath enablement that causes proper memory cleanups
-    qputenv("LLD_IN_TEST", "1");
+    //qputenv("LLD_IN_TEST", "1");
 #elif defined(Q_OS_MACOS)
     const auto orgName = QStringLiteral("fredl.me");
     const auto appName = QStringLiteral("Tide");

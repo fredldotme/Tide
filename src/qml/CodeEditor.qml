@@ -628,6 +628,8 @@ Item {
                         Layout.fillHeight: true
                         Layout.fillWidth: settings.wrapEditor
                         background: Item {}
+                        persistentSelection: true
+                        renderType: TextInput.CurveRendering
 
                         text: ""
                         onTextChanged: {
