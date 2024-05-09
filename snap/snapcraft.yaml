@@ -94,7 +94,7 @@ parts:
   qt6:
     plugin: cmake
     source: https://github.com/qt/qtbase.git
-    source-branch: 6.6.0
+    source-branch: 6.7.0
     cmake-parameters:
       - -GNinja
       - -DCMAKE_INSTALL_PREFIX=/usr
@@ -148,7 +148,7 @@ parts:
   qt6shadertools:
     plugin: cmake
     source: https://github.com/qt/qtshadertools.git
-    source-branch: 6.6.0
+    source-branch: 6.7.0
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
     build-packages:
@@ -162,7 +162,7 @@ parts:
   qt6declarative:
     plugin: cmake
     source: https://github.com/qt/qtdeclarative.git
-    source-branch: 6.6.0
+    source-branch: 6.7.0
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
     build-environment:
@@ -181,7 +181,7 @@ parts:
   qt6wayland:
     plugin: cmake
     source: https://github.com/qt/qtwayland.git
-    source-branch: 6.6.0
+    source-branch: 6.7.0
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/cmake/Qt6
@@ -198,7 +198,7 @@ parts:
   qt6svg:
     plugin: cmake
     source: https://github.com/qt/qtsvg.git
-    source-branch: 6.6.0
+    source-branch: 6.7.0
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
     build-environment:
@@ -214,7 +214,7 @@ parts:
   qt6virtualkeyboard:
     plugin: cmake
     source: https://github.com/qt/qtvirtualkeyboard.git
-    source-branch: 6.6.0
+    source-branch: 6.7.0
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
     build-environment:
