@@ -223,21 +223,31 @@ make CC=$CLANG_BINS/clang \
 rm -rf $OLD_PWD/tmp/wasi-sysroot
 cp -a sysroot $OLD_PWD/tmp/wasi-sysroot
 cp -a sysroot-threads/lib/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/lib/
+cp -a sysroot-threads/lib/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads-exce
 cp -a sysroot-threads/include $OLD_PWD/tmp/wasi-sysroot/
 cp -a sysroot-threads/share $OLD_PWD/tmp/wasi-sysroot/
+cp -a $OLD_PWD/tmp/wasi-sysroot/share/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/share/wasm32-wasi-threads-exce
 cd $OLD_PWD
 
 # wasi-sdk
 cd wasi-sdk
 mkdir -p $OLD_PWD/tmp/wasi-sysroot/lib
+
+# No exceptions, no threads
 rm -rf build || true
-NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi TARGET_TRIPLE=wasm32-wasi THREADING=OFF EXCEPTIONS=OFF EXCEPTIONS_FLAGS="-fno-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-tide.BUILT
+NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi TARGET_TRIPLE=wasm32-wasi THREADING=OFF EXCEPTIONS=OFF EXCEPTIONS_FLAGS="" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-tide.BUILT
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi $OLD_PWD/tmp/wasi-sysroot/lib/
+
+# Threads, no exceptions
 rm -rf build
-NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET_TRIPLE=wasm32-wasi-threads EXCEPTIONS=OFF EXCEPTIONS_FLAGS="-fno-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-tide.BUILT
+NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET_TRIPLE=wasm32-wasi-threads EXCEPTIONS=OFF EXCEPTIONS_FLAGS="" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-tide.BUILT
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/lib/
-# cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/libunwind.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
-# cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/libunwind.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
+
+# Threads and exceptions
+rm -rf build || true
+NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi TARGET_TRIPLE=wasm32-wasi-threads-exce THREADING=ON EXCEPTIONS=ON EXCEPTIONS_FLAGS="-fwasm-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-exce-tide.BUILT
+cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi-threads-exce $OLD_PWD/tmp/wasi-sysroot/lib/
+
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/include/* $OLD_PWD/tmp/wasi-sysroot/include/
 cd $OLD_PWD
 
@@ -255,6 +265,7 @@ cd openssl-wasm
 cp -a precompiled/include $OLD_PWD/tmp/wasi-sysroot/
 cp -a precompiled/lib/* $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
 cp -a precompiled/lib/* $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
+cp -a precompiled/lib/* $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads-exce/
 cd $OLD_PWD
 
 # Posix/Berkely socket support
@@ -263,6 +274,8 @@ cmake_wasi_build wasm32-wasi ""
 cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
 cmake_wasi_build wasm32-wasi-threads "-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory"
 cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
+cmake_wasi_build wasm32-wasi-threads-exce "-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory -fwasm-exceptions"
+cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads-exce/
 cp $OLD_PWD/wamr/core/iwasm/libraries/lib-socket/inc/wasi_socket_ext.h $OLD_PWD/tmp/wasi-sysroot/include/
 cd $OLD_PWD
 
@@ -273,6 +286,8 @@ cmake_wasi_build wasm32-wasi ""
 cp $OLD_PWD/json-c/build/libjson-c.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
 cmake_wasi_build wasm32-wasi-threads "-pthread -ftls-model=local-exec -mbulk-memory"
 cp $OLD_PWD/json-c/build/libjson-c.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
+cmake_wasi_build wasm32-wasi-threads-exce "-pthread -ftls-model=local-exec -mbulk-memory -fwasm-exceptions"
+cp $OLD_PWD/json-c/build/libjson-c.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads-exce/
 find $OLD_PWD/json-c -name "*.h" -exec cp {} $OLD_PWD/tmp/wasi-sysroot/include/json-c/ \;
 cd $OLD_PWD
 
@@ -282,17 +297,17 @@ cmake_wasi_build wasm32-wasi ""
 cp $OLD_PWD/libyaml/build/libyaml.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
 cmake_wasi_build wasm32-wasi-threads "-pthread -ftls-model=local-exec -mbulk-memory"
 cp $OLD_PWD/libyaml/build/libyaml.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
+cmake_wasi_build wasm32-wasi-threads-exce "-pthread -ftls-model=local-exec -mbulk-memory -fwasm-exceptions"
+cp $OLD_PWD/libyaml/build/libyaml.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads-exce/
 cp $OLD_PWD/libyaml/include/yaml.h $OLD_PWD/tmp/wasi-sysroot/include/
 cd $OLD_PWD
 
 # YAML library C++
-# cd 3rdparty/yaml-cpp
-# cmake_wasi_build wasm32-wasi "-fwasm-exceptions"
-# cp $OLD_PWD/yaml-cpp/build/libyaml-cpp.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
-# cmake_wasi_build wasm32-wasi-threads "-fwasm-exceptions -pthread -ftls-model=local-exec -mbulk-memory"
-# cp $OLD_PWD/yaml-cpp/build/libyaml-cpp.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
-# cp -a 3rdparty/yaml-cpp/include/yaml-cpp $OLD_PWD/tmp/wasi-sysroot/include/
-# cd $OLD_PWD
+#cd yaml-cpp
+#cmake_wasi_build wasm32-wasi-threads-exce "-fwasm-exceptions -pthread -ftls-model=local-exec -mbulk-memory -fwasm-exceptions"
+#cp $OLD_PWD/yaml-cpp/build/libyaml-cpp.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads-exce/
+#cp -a 3rdparty/yaml-cpp/include/yaml-cpp $OLD_PWD/tmp/wasi-sysroot/include/
+#cd $OLD_PWD
 
 # Boost header-only libraries
 cd tmp
@@ -343,6 +358,7 @@ for f in $(ls *.tar.gz); do
 done
 cd ..
 cp -a unpacked/lib/wasm32-wasi unpacked/lib/wasm32-wasi-threads
+cp -a unpacked/lib/wasm32-wasi unpacked/lib/wasm32-wasi-threads-exce
 cp -a unpacked/* $OLD_PWD/tmp/wasi-sysroot/
 cd $OLD_PWD
 
