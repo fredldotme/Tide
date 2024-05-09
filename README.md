@@ -26,6 +26,18 @@ Tide IDE is a WebAssembly development environment for all kinds of form factors,
 
 This project uses LLVM + Clang and the Wasi SDK to provide a compiler toolchain for C & C++ projects. For the WebAssembly runtime it uses WAMR.
 
+## Building Tide
+
+### iPadOS
+
+Building Tide requires a recent Xcode and QtCreator and prerequisite components built:
+
+```
+./bootstrap.sh
+```
+
+Afterwards you can open the CMake project in QtCreator.
+
 
 ## Supporting Tide
 
