@@ -174,7 +174,7 @@ Item {
                                                           qsTr("in %1").arg(autoCompletorRoot.projectName)
                         font.styleName: "Monospace"
                         font.bold: true
-                        font.pixelSize: 20
+                        font.pixelSize: settings.fontSize
                         color: index === autoCompletionList.currentIndex ? root.palette.button : root.palette.text
                         elide: Text.ElideRight
                         onClicked: {

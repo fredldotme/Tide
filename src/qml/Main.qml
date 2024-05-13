@@ -48,7 +48,7 @@ ApplicationWindow {
     readonly property int roundedCornersRadius: 12
     readonly property int roundedCornersRadiusMedium: 18
     readonly property int sideBarStartWidth : (mainView.width / 2)
-    readonly property int sideBarExpandedWidth : 300
+    readonly property int sideBarExpandedWidth : 256
     readonly property int sideBarExpandedDefault: openFiles.files.length === 0 ?
                                                       sideBarStartWidth : sideBarExpandedWidth
     readonly property bool landscapeMode : width > height
@@ -1662,7 +1662,8 @@ ApplicationWindow {
                 width: showLeftSideBar ?
                            (sideBarWidth - (root.landscapeMode ? 0 : paddingMedium)) :
                            0
-                height: parent.height
+                height: parent.height -
+                        (!root.landscapeMode && openFiles.files.length === 0 ? paddingMedium : 0)
 
                 Behavior on width {
                     NumberAnimation { duration: 250; easing.type: Easing.OutCubic; }
@@ -1755,11 +1756,14 @@ ApplicationWindow {
                                                     width: projectNavigationStack.width
                                                     height: root.toolBarHeight
                                                     RowLayout {
+                                                        id: projectListHeaderRow
                                                         anchors.fill: parent
                                                         spacing: paddingSmall * 2
+                                                        readonly property bool showText : (width > 300)
+
                                                         ToolButton {
                                                             Layout.leftMargin: paddingSmall
-                                                            text: qsTr("Create")
+                                                            text: projectListHeaderRow.showText ? qsTr("Create") : ""
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/plus.circle@2x.png")
                                                             icon.color: root.palette.button
                                                             icon.width: headerItemHeight
@@ -1769,7 +1773,7 @@ ApplicationWindow {
                                                             }
                                                         }
                                                         ToolButton {
-                                                            text: qsTr("Clone")
+                                                            text: projectListHeaderRow.showText ? qsTr("Clone") : ""
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/icloud.and.arrow.down@2x.png")
                                                             icon.color: root.palette.button
                                                             icon.width: headerItemHeight
@@ -1780,7 +1784,7 @@ ApplicationWindow {
                                                         }
                                                         ToolButton {
                                                             Layout.rightMargin: paddingSmall
-                                                            text: qsTr("Import")
+                                                            text: projectListHeaderRow.showText ? qsTr("Import") : ""
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/square.and.arrow.down.on.square@2x.png")
                                                             icon.color: root.palette.button
                                                             icon.width: headerItemHeight
@@ -1792,6 +1796,7 @@ ApplicationWindow {
 
                                                 ScrollBar.vertical: TideScrollBar {
                                                     parent: projectListView
+                                                    anchors.rightMargin: -paddingMedium
                                                 }
 
                                                 Connections {
@@ -1819,12 +1824,16 @@ ApplicationWindow {
                                                     }
                                                 }
 
-                                                width: parent.width
+                                                anchors {
+                                                    left: parent.left
+                                                    right: parent.right
+                                                    leftMargin: paddingMedium
+                                                    rightMargin: paddingMedium
+                                                }
                                                 height: parent.height
                                                 spacing: paddingSmall
                                                 model: projectList.projects
                                                 topMargin: paddingMedium
-                                                clip: true
 
                                                 delegate: FileListingButton {
                                                     id: bookmarkButton
@@ -1832,22 +1841,36 @@ ApplicationWindow {
                                                               projectPicker.getDirNameForBookmark(modelData.bookmark) :
                                                               modelData.name
                                                     font.pixelSize: 16
-                                                    width: parent.width
-                                                    height: font.pixelSize + (paddingMid * 2)
+                                                    width: projectListView.width
+                                                    height: contentItem.height
+                                                    x: padding
                                                     iconWidth: 16
                                                     iconHeight: 16
                                                     textColor: root.palette.button
                                                     icon.source: modelData.isBookmark ?
                                                                      Qt.resolvedUrl("qrc:/assets/bookmark@2x.png") :
                                                                      Qt.resolvedUrl("qrc:/assets/folder@2x.png")
+                                                    showTrailingSeparator: index !== (projectListView.model.length - 1)
 
-                                                    anchors {
-                                                        left: parent.left
-                                                        leftMargin: paddingMedium
-                                                        right: parent.right
-                                                        rightMargin: paddingMedium
-                                                        bottomMargin: paddingMedium
+                                                    function getDetailText() {
+                                                        if (!git.hasRepo(modelData.path))
+                                                            return modelData.isBookmark ?
+                                                                        qsTr("Bookmark") :
+                                                                        qsTr("Project")
+
+                                                        var texts = []
+
+                                                        const branch = git.branch(modelData.path)
+                                                        if (branch !== "")
+                                                            texts.push(branch)
+
+                                                        if (git.hasUncommitted(modelData.path))
+                                                            texts.push(qsTr("uncommitted changes"))
+
+                                                        return texts.join(", ")
                                                     }
+
+                                                    detailText: getDetailText()
 
                                                     onClicked: {
                                                         git.path = projectsArea.getRepoPathFromProject(modelData)
@@ -1922,13 +1945,18 @@ ApplicationWindow {
 
                                             ListView {
                                                 id: directoryListView
-                                                width: parent.width
+                                                anchors {
+                                                    left: parent.left
+                                                    right: parent.right
+                                                    leftMargin: paddingMedium
+                                                    rightMargin: paddingMedium
+                                                }
                                                 height: parent.height
                                                 spacing: paddingSmall
-                                                clip: true
 
                                                 ScrollBar.vertical: TideScrollBar {
                                                     parent: directoryListView
+                                                    anchors.rightMargin: -paddingMedium
                                                 }
 
                                                 property var project : null
@@ -1994,7 +2022,7 @@ ApplicationWindow {
 
                                                 headerPositioning: ListView.PullBackHeader
                                                 header: Rectangle {
-                                                    width: projectNavigationStack.width
+                                                    width: projectNavigationStack.width - paddingMedium
                                                     height: root.toolBarHeight
                                                     clip: true
                                                     color: "transparent"
@@ -2066,6 +2094,7 @@ ApplicationWindow {
                                                     detailText: isBackButton ? "" : directoryListView.getDetailText(modelData)
                                                     pressAnimation: !isBackButton
                                                     longPressEnabled: !isBackButton
+                                                    showTrailingSeparator: !isBackButton && index !== (directoryListView.model.length - 1)
 
                                                     Connections {
                                                         target: root
@@ -2078,15 +2107,9 @@ ApplicationWindow {
                                                         }
                                                     }
 
-                                                    anchors {
-                                                        left: parent.left
-                                                        leftMargin: paddingMedium
-                                                        right: parent.right
-                                                        rightMargin: paddingMedium
-                                                    }
-
                                                     font.pixelSize: 16
-                                                    height: font.pixelSize + detailControl.font.pixelSize + (paddingSmall * 2)
+                                                    height: contentItem.height
+                                                    width: directoryListView.width
 
                                                     onClicked: {
                                                         if (isBackButton) {
@@ -2361,7 +2384,6 @@ ApplicationWindow {
                                                        root.palette.button
                                         text: modelData.name
                                         detailText: getDetailText()
-                                        height: mainArea.height
                                         font.pixelSize: 16
                                         onClicked: {
                                             if (modelData.name.endsWith(".pro") &&

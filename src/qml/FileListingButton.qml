@@ -14,19 +14,20 @@ Item {
     property alias iconHeight: iconControl.icon.height
     property alias detailText: detailControl.text
     property alias detailControl: detailControl
+    property alias contentItem: mainColumn
     property bool flat: true
     property bool pressAnimation : true
     property bool longPressEnabled: true
+    property bool showTrailingSeparator : false
+
     readonly property bool pressed: iconControl.pressed || mainMouseArea.pressed
+    readonly property int padding: root.paddingSmall
 
     signal clicked()
     signal pressAndHold()
 
     scale: pressed ? 0.9 : 1.0
     opacity: pressed || !enabled ? 0.5 : 1.0
-
-    width: mainLayout.width
-    height: mainLayout.height
 
     Behavior on scale {
         NumberAnimation {
@@ -41,37 +42,60 @@ Item {
         }
     }
 
-    RowLayout {
-        id: mainLayout
-        spacing: root.paddingSmall
-        Button {
-            id: iconControl
-            flat: itemRoot.flat
-            onClicked: itemRoot.clicked()
-            onPressAndHold: {
-                if (!longPressEnabled) {
-                    itemRoot.clicked()
-                    return
+    Column {
+        id: mainColumn
+        width: parent.width
+        height: implicitHeight - itemRoot.padding
+
+        RowLayout {
+            id: mainLayout
+            spacing: root.paddingSmall
+            width: parent.width
+            height: implicitHeight
+
+            Button {
+                id: iconControl
+                flat: itemRoot.flat
+                onClicked: itemRoot.clicked()
+                onPressAndHold: {
+                    if (!longPressEnabled) {
+                        itemRoot.clicked()
+                        return
+                    }
+                    itemRoot.pressAndHold()
                 }
-                itemRoot.pressAndHold()
+            }
+
+            ColumnLayout {
+                Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+                Layout.fillWidth: true
+
+                Label {
+                    id: labelControl
+                    wrapMode: Label.WrapAtWordBoundaryOrAnywhere
+                    Layout.fillWidth: true
+                }
+
+                Label {
+                    id: detailControl
+                    font.pixelSize: detailControl.text === "" ? 0 : 12
+                    visible: detailControl.text !== ""
+                    color: root.palette.text
+                    Layout.fillWidth: true
+                }
             }
         }
 
-        ColumnLayout {
-            Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
-            Layout.fillWidth: true
+        Item {
+            width: parent.width
+            height: itemRoot.padding * 2
 
-            Label {
-                id: labelControl
-                Layout.fillWidth: true
-            }
-
-            Label {
-                id: detailControl
-                font.pixelSize: detailControl.text === "" ? 0 : 12
-                visible: detailControl.text !== ""
-                color: root.palette.text
-                Layout.fillWidth: true
+            Rectangle {
+                visible: itemRoot.showTrailingSeparator
+                width: parent.width - (paddingMedium * 2)
+                height: 1
+                anchors.centerIn: parent
+                color: root.palette.midlight
             }
         }
     }
