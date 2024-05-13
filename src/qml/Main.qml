@@ -2021,12 +2021,10 @@ ApplicationWindow {
                                                 }
 
                                                 headerPositioning: ListView.PullBackHeader
-                                                header: Rectangle {
-                                                    width: projectNavigationStack.width - paddingMedium
+                                                header: Item {
+                                                    width: projectNavigationStack.width - (paddingMedium * 2)
                                                     height: root.toolBarHeight
                                                     clip: true
-                                                    color: "transparent"
-                                                    radius: roundedCornersRadiusMedium
                                                     RowLayout {
                                                         anchors.fill: parent
                                                         spacing: paddingSmall * 2
