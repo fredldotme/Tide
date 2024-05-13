@@ -47,6 +47,8 @@ public:
 public slots:
     // Generic methods
     bool hasRepo(const QString& path);
+    bool hasUncommitted(const QString& path);
+    QString branch(const QString& path);
     void clone(const QString& url, const QString& name);
 
     // Methods working on a specifically selected repository

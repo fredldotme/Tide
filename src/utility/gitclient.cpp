@@ -278,6 +278,72 @@ bool GitClient::hasRepo(const QString& path)
         return false;
     }
 #endif
+    return false;
+}
+
+bool GitClient::hasUncommitted(const QString& path)
+{
+#if !defined(__EMSCRIPTEN__)
+    if (path.isEmpty())
+        return false;
+
+    git_repository* repo;
+    git_repository_open_ext(&repo, path.toStdString().c_str(), 0, nullptr);
+    if (repo) {
+        git_status_list *status;
+        git_status_list_new(&status, repo, nullptr);
+
+        size_t i, maxi = git_status_list_entrycount(status);
+        int changes_in_index = 0;
+        const git_status_entry *s;
+        bool hasUncommitted = false;
+
+        for (i = 0; i < maxi; ++i) {
+            s = git_status_byindex(status, i);
+
+            if (s->status == GIT_STATUS_CURRENT)
+                continue;
+
+            hasUncommitted = true;
+            break;
+        }
+
+        git_repository_free(repo);
+        return hasUncommitted;
+    } else {
+        return false;
+    }
+#endif
+    return false;
+}
+
+QString GitClient::branch(const QString& path)
+{
+#if !defined(__EMSCRIPTEN__)
+    if (path.isEmpty())
+        return QString();
+
+    git_repository* repo;
+    git_repository_open_ext(&repo, path.toStdString().c_str(), 0, nullptr);
+    if (repo) {
+        git_reference *head = NULL;
+        int error = git_repository_head(&head, repo);
+
+        if (error) {
+            git_repository_free(repo);
+            return QString();
+        }
+
+        const auto branch = git_reference_shorthand(head);
+        const auto branchName = QString::fromUtf8(branch);
+
+        git_repository_free(repo);
+        return branchName;
+    } else {
+        return QString();
+    }
+#endif
+    return QString();
 }
 
 void GitClient::stage(const QString& path)
