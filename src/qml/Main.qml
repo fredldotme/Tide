@@ -2919,7 +2919,7 @@ ApplicationWindow {
                             model: dbugger.waitingpoints
                             header: Item {
                                 x: paddingMedium
-                                width: sideBarExpandedWidth - (paddingMedium * 2)
+                                width: parent.width
                                 height: root.headerBarHeight
 
                                 RowLayout {
@@ -2930,6 +2930,8 @@ ApplicationWindow {
                                         icon.width: 16
                                         icon.height: 16
                                         enabled: dbugger.running
+                                        Layout.leftMargin: paddingMedium
+                                        Layout.alignment: Qt.AlignLeft
                                         onClicked: dbugger.stepOver()
                                     }
                                     ToolButton {
@@ -2937,6 +2939,7 @@ ApplicationWindow {
                                         icon.width: 16
                                         icon.height: 16
                                         enabled: dbugger.running
+                                        Layout.alignment: Qt.AlignHCenter
                                         onClicked: dbugger.stepIn()
                                     }
                                     ToolButton {
@@ -2944,6 +2947,8 @@ ApplicationWindow {
                                         icon.width: 16
                                         icon.height: 16
                                         enabled: dbugger.running
+                                        Layout.rightMargin: paddingMedium
+                                        Layout.alignment: Qt.AlignRight
                                         onClicked: dbugger.stepOut()
                                     }
                                 }
