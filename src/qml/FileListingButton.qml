@@ -95,7 +95,7 @@ Item {
                 width: parent.width - (paddingMedium * 2)
                 height: 1
                 anchors.centerIn: parent
-                color: root.palette.midlight
+                color: root.palette.placeholderText
             }
         }
     }

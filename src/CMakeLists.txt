@@ -110,12 +110,16 @@ set(LLVM_HEADERS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib/clang/18/include)
 set(CLANGRT ${CLANGRT_DIR}/lib/wasi)
 set(TIDE_SRC_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
+# Sysroot version
+set(SYSROOT_DELIVERY_VERSION "${CLANGRT_DIR}/delivery.version")
+
 if(IOS)
     resource(CLANG_PARTS ${CLANGRT_DIR} Resources clang.tar)
     resource(THE_SYSROOT ${CLANGRT_DIR} Resources sysroot.tar)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
     resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
+    resource(SYSROOT_DELIVERY_FILE ${CLANGRT_DIR} Resources delivery.version)
     resource(COMMANDSYAML ${CMAKE_CURRENT_SOURCE_DIR} Resources commands.yaml)
 endif()
 
@@ -125,6 +129,7 @@ if(APPLE AND NOT IOS)
     resource(BOOST_TAR ${CLANGRT_DIR} Resources boost.tar)
     resource(CMAKE_MODULES ${CLANGRT_DIR} Resources cmake.tar)
     resource(PYTHON_WASM ${CLANGRT_DIR} Resources python.tar)
+    resource(SYSROOT_DELIVERY_FILE ${CLANGRT_DIR} Resources delivery.version)
     macoscomponent(LLVM_RANLIB ${LLVM_TOOLS} Content/MacOS llvm-ranlib)
     macoscomponent(LLVM_AR ${LLVM_TOOLS} Content/MacOS llvm-ar)
 endif()
@@ -305,6 +310,7 @@ qt_add_executable(${PROJECT_NAME}
     ${CMAKE_MODULES}
     ${PYTHON_WASM}
     ${COMMANDSYAML}
+    ${SYSROOT_DELIVERY_FILE}
 
     ${TIDE_FORMATTER}
 
@@ -341,6 +347,7 @@ qt_add_qml_module(${PROJECT_NAME}
     qml/AutocompletorFrame.qml
     qml/GitDialog.qml
     qml/GitLogEntry.qml
+    qml/GitFileEntry.qml
     qml/PlatformProperties.qml
     qml/TideScrollBar.qml
     qml/VirtualKeyboard.qml
@@ -902,6 +909,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     install(FILES "${CLANGRT_DIR}/boost.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
     install(FILES "${CLANGRT_DIR}/cmake.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
     install(FILES "${CLANGRT_DIR}/python.tar" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
+    install(FILES "${SYSROOT_DELIVERY_VERSION}" DESTINATION ${CMAKE_INSTALL_PREFIX}/tide)
 
     install(FILES "${CLANGRT_DIR}/usr/lib/clang/18/wasi/libclang_rt.builtins-wasm32.a" DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/clang/18/lib/wasi)
 

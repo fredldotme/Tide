@@ -5,7 +5,7 @@ import QtQuick.Effects
 Menu {
     id: menuRoot
     background: MultiEffect {
-        implicitWidth: 200
+        implicitWidth: menuRoot.contentItem.implicitWidth
         implicitHeight: menuRoot.contentItem.implicitHeight
         source: menuRoot.contentItem
         paddingRect: Qt.rect(0, 0, menuRoot.width, menuRoot.height)
@@ -13,7 +13,7 @@ Menu {
         shadowEnabled: true
     }
     contentItem: Rectangle {
-        implicitWidth: 200
+        implicitWidth: menuItemListView.width
         implicitHeight: menuItemListView.height
         color: root.palette.base
         radius: roundedCornersRadius
@@ -25,7 +25,7 @@ Menu {
                          ? contentHeight + menuRoot.topPadding + menuRoot.bottomPadding > Window.window.height
                          : false
             currentIndex: menuRoot.currentIndex
-            width: parent.width
+            width: 200
             height: contentHeight
 
             ScrollIndicator.vertical: ScrollIndicator {}

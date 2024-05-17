@@ -32,6 +32,13 @@ ApplicationWindow {
             Qt.quit();
         }
 
+    Connections {
+        target: Qt.application
+        function onStateChanged() {
+            windowActiveChanged()
+        }
+    }
+
     SystemPalette { id: tidePalette; colorGroup: SystemPalette.Active }
     property alias tidePalette : tidePalette
     property alias dbugger: dbugger
@@ -311,9 +318,10 @@ ApplicationWindow {
     }
 
     signal reloadFilestructure()
+    readonly property bool windowActive: (Qt.application.state === Qt.ApplicationActive)
 
-    onActiveChanged: {
-        if (active) {
+    onWindowActiveChanged: {
+        if (windowActive) {
             cleanObsoleteProjects()
             projectList.refresh()
         } else {
@@ -1249,6 +1257,8 @@ ApplicationWindow {
 
     GitClient {
         id: git
+        name: settings.gitName
+        email: settings.gitEmail
 
         onRepoCloned:
             (url, name) => {
@@ -1751,6 +1761,7 @@ ApplicationWindow {
 
                                             ListView {
                                                 id: projectListView
+
                                                 headerPositioning: ListView.PullBackHeader
                                                 header: Item {
                                                     width: projectNavigationStack.width
@@ -1818,10 +1829,10 @@ ApplicationWindow {
                                                     refreshFlick = atYBeginning
                                                 }
                                                 onFlickEnded: {
-                                                    if (atYBeginning && refreshFlick)
-                                                    {
+                                                    if (atYBeginning && refreshFlick) {
                                                         projectList.refresh()
                                                     }
+                                                    refreshFlick = false
                                                 }
 
                                                 anchors {
@@ -1851,8 +1862,22 @@ ApplicationWindow {
                                                                      Qt.resolvedUrl("qrc:/assets/bookmark@2x.png") :
                                                                      Qt.resolvedUrl("qrc:/assets/folder@2x.png")
                                                     showTrailingSeparator: index !== (projectListView.model.length - 1)
+                                                    readonly property string projectPath : modelData.path
 
-                                                    function getDetailText() {
+                                                    Connections {
+                                                        target: git
+                                                        function onHasUncommittedChecked(path, val) {
+                                                            if (path !== bookmarkButton.projectPath)
+                                                                return;
+                                                            bookmarkButton.detailText = getDetailText(val);
+                                                        }
+                                                    }
+
+                                                    function checkGit() {
+                                                        git.checkHasUncommitted(modelData.path);
+                                                    }
+
+                                                    function getDetailText(hasUncommitted) {
                                                         if (!git.hasRepo(modelData.path))
                                                             return modelData.isBookmark ?
                                                                         qsTr("Bookmark") :
@@ -1864,13 +1889,29 @@ ApplicationWindow {
                                                         if (branch !== "")
                                                             texts.push(branch)
 
-                                                        if (git.hasUncommitted(modelData.path))
+                                                        if (hasUncommitted)
                                                             texts.push(qsTr("uncommitted changes"))
 
                                                         return texts.join(", ")
                                                     }
 
-                                                    detailText: getDetailText()
+                                                    detailText: qsTr("Checking Git status...")
+                                                    Component.onCompleted: checkGit()
+
+                                                    Connections {
+                                                        target: root
+                                                        function onWindowActiveChanged() {
+                                                            if (root.windowActive)
+                                                                bookmarkButton.checkGit()
+                                                        }
+                                                        function onReloadFilestructure() {
+                                                            bookmarkButton.checkGit()
+                                                        }
+                                                        function onFileSaved() {
+                                                            if (editor.file.path.startsWith(modelData.path))
+                                                                bookmarkButton.checkGit()
+                                                        }
+                                                    }
 
                                                     onClicked: {
                                                         git.path = projectsArea.getRepoPathFromProject(modelData)
@@ -1989,10 +2030,10 @@ ApplicationWindow {
                                                     refreshFlick = atYBeginning
                                                 }
                                                 onFlickEnded: {
-                                                    if (atYBeginning && refreshFlick)
-                                                    {
+                                                    if (atYBeginning && refreshFlick) {
                                                         refresh()
                                                     }
+                                                    refreshFlick = false
                                                 }
 
                                                 Component.onCompleted: {
@@ -2374,10 +2415,11 @@ ApplicationWindow {
                                                                       Qt.resolvedUrl("qrc:/assets/hammer.circle@2x.png") :
                                                                       Qt.resolvedUrl("qrc:/assets/hammer@2x.png"))
                                                                : Qt.resolvedUrl("qrc:/assets/doc@2x.png")
-                                        color: (editor.file.path === modelData.path) ?
+                                        selected: editor.file.path === modelData.path
+                                        color: (selected) ?
                                                    root.palette.active.button :
                                                    "transparent"
-                                        textColor: (editor.file.path === modelData.path) ?
+                                        textColor: (selected) ?
                                                        root.palette.buttonText :
                                                        root.palette.button
                                         text: modelData.name
@@ -2509,11 +2551,17 @@ ApplicationWindow {
                     id: editor
 
                     readonly property int heightPadding : (openFiles.files.length === 0 ? paddingTiny : 0)
-                    readonly property int integratedModeHeight :
-                        consoleView.expanded ? ((parent.height / 3) * 2) :
-                                               parent.height - root.toolBarHeight - paddingLarge
 
-                    height: consoleView.integratedMode ? integratedModeHeight : parent.height - paddingMedium
+                    readonly property int regularExpandedHeight: ((parent.height / 3) * 2)
+                    readonly property int invalidatedExpandedHeight: (parent.height / 2) - paddingMid
+                    readonly property int fullHeight : parent.height - root.toolBarHeight - paddingLarge
+
+                    readonly property int integratedModeHeight :
+                        consoleView.expanded && !invalidated ? regularExpandedHeight :
+                                               consoleView.expanded && invalidated ? invalidatedExpandedHeight :
+                                                                                     fullHeight
+
+                    height: consoleView.integratedMode ? integratedModeHeight + (paddingTiny / 2) : parent.height - paddingMedium
                     parent: editorContainer
                     anchors {
                         top: parent.top
@@ -2580,9 +2628,11 @@ ApplicationWindow {
                     anchors.right: parent.right
                     anchors.top: editor.bottom
                     anchors.topMargin: paddingSmall
-                    height: consoleView.expanded ?
-                                (parent.height / 3) - paddingLarge :
-                                root.toolBarHeight
+
+                    height:
+                        consoleView.expanded && !editor.invalidated? (parent.height / 3) - paddingLarge :
+                                               consoleView.expanded && editor.invalidated ? editor.integratedModeHeight :
+                                                                                            root.toolBarHeight
 
                     Behavior on height {
                         enabled: consoleView.integratedMode
@@ -2628,9 +2678,6 @@ ApplicationWindow {
                     return 1.0
 
                 if (!consoleView.integratedMode && consoleView.visible)
-                    return 1.0
-
-                if (gitDialog.visible)
                     return 1.0
 
                 for (let i = 0; i < paddedOverlayArea.children.length; i++) {
@@ -2693,11 +2740,12 @@ ApplicationWindow {
             readonly property int debuggerZ : z + 3
             readonly property int dialogZ : z + 4
             readonly property int settingsZ : z + 5
-            readonly property int helpZ : z + 6
-            readonly property int warningZ : z + 7
-            readonly property int contextMenuZ : z + 8
-            readonly property int flashThroughZ : z + 9
-            readonly property int inputPanelZ : z + 10
+            readonly property int gitZ : z + 6
+            readonly property int helpZ : z + 7
+            readonly property int warningZ : z + 8
+            readonly property int contextMenuZ : z + 9
+            readonly property int flashThroughZ : z + 10
+            readonly property int inputPanelZ : z + 11
 
             Row {
                 id: overlayLandingPad
@@ -2870,27 +2918,32 @@ ApplicationWindow {
                             clip: true
                             model: dbugger.waitingpoints
                             header: Item {
-                                width: projectNavigationStack.width
+                                x: paddingMedium
+                                width: sideBarExpandedWidth - (paddingMedium * 2)
                                 height: root.headerBarHeight
 
                                 RowLayout {
                                     anchors.fill: parent
                                     spacing: paddingSmall * 2
                                     ToolButton {
-                                        text: qsTr("Step over")
+                                        icon.source: "qrc:/assets/arrow.uturn.forward@2x.png"
+                                        icon.width: 16
+                                        icon.height: 16
                                         enabled: dbugger.running
                                         onClicked: dbugger.stepOver()
                                     }
                                     ToolButton {
-                                        text: qsTr("Step in")
+                                        icon.source: "qrc:/assets/arrow.uturn.down@2x.png"
+                                        icon.width: 16
+                                        icon.height: 16
                                         enabled: dbugger.running
-                                        font.pixelSize: 16
                                         onClicked: dbugger.stepIn()
                                     }
                                     ToolButton {
-                                        text: qsTr("Step out")
+                                        icon.source: "qrc:/assets/arrow.uturn.up@2x.png"
+                                        icon.width: 16
+                                        icon.height: 16
                                         enabled: dbugger.running
-                                        font.pixelSize: 16
                                         onClicked: dbugger.stepOut()
                                     }
                                 }
@@ -3190,7 +3243,7 @@ ApplicationWindow {
             height: mainView.settingsDialogHeight
             anchors.centerIn: parent
             parent: paddedOverlayArea
-            z: paddedOverlayArea.contextMenuZ
+            z: paddedOverlayArea.gitZ
         }
 
         ListModel {
@@ -3241,11 +3294,11 @@ ApplicationWindow {
                 editor.refreshLineNumbers()
             }
             property int spacesForTab : 0
-            property int tabWidth: 4
-            property bool autocomplete: true
-            property bool autoformat: true
-            property bool autoindent: true
-            property bool blinkingCursor: true
+            property int tabWidth : 4
+            property bool autocomplete : true
+            property bool autoformat : true
+            property bool autoindent : true
+            property bool blinkingCursor : true
             property int formatStyle : CppFormatter.LLVM
             property bool wiggleHints : true
             property bool wrapEditor : true
@@ -3258,6 +3311,8 @@ ApplicationWindow {
             property bool optimizations : platformProperties.supportsOptimizations
             property int sysrootType : SysrootManager.Regular
             property bool integratedConsole : false
+            property string gitName : ""
+            property string gitEmail : ""
         }
 
         Component {

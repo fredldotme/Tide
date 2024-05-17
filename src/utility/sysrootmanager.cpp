@@ -87,6 +87,21 @@ void SysrootManager::unpackTar(QString archive, QString target)
     mtar_close(&tar);
 }
 
+bool SysrootManager::sameVersion(const QString& left, const QString& right)
+{
+    QFile leftFile(left);
+    QFile rightFile(right);
+
+    qInfo() << left << "vs" << right;
+
+    if (!leftFile.open(QFile::ReadOnly) || !rightFile.open(QFile::ReadOnly)) {
+        qWarning() << "Failed to open delivery version files";
+        return false;
+    }
+
+    return leftFile.readAll() == rightFile.readAll();
+}
+
 void SysrootManager::runInThread()
 {
 #if defined(Q_OS_IOS)
@@ -96,6 +111,13 @@ void SysrootManager::runInThread()
 #else
     const auto resourcesRoot = qApp->applicationDirPath() + QStringLiteral("/../../resources");
 #endif
+
+    const QString deliveryVersion = resourcesRoot + QStringLiteral("/delivery.version");
+    const QString installedDeliveryVersion =
+        QStandardPaths::writableLocation(QStandardPaths::HomeLocation) + QStringLiteral("/Library/delivery.version");
+
+    if (sameVersion(deliveryVersion, installedDeliveryVersion))
+        return;
 
     qDebug() << "Resources:" << resourcesRoot;
 
@@ -192,10 +214,7 @@ void SysrootManager::runInThread()
             }
             setProgress((qreal)stage++ / (qreal)stages);
         }
-    });
 
-    // Sysroot
-    QThreadPool::globalInstance()->start([=](){
         {
             const auto archive = resourcesRoot + "/sysroot.tar";
             unpackTar(archive, temporaries + QStringLiteral("/Sysroot"));
@@ -227,10 +246,7 @@ void SysrootManager::runInThread()
             }
             setProgress((qreal)stage++ / (qreal)stages);
         }
-    });
 
-    // Boost
-    QThreadPool::globalInstance()->start([=](){
         {
             const auto archive = resourcesRoot + "/boost.tar";
             unpackTar(archive, temporaries + QStringLiteral("/Boost"));
@@ -262,10 +278,7 @@ void SysrootManager::runInThread()
             }
             setProgress((qreal)stage++ / (qreal)stages);
         }
-    });
 
-    // CMake
-    QThreadPool::globalInstance()->start([=](){
         {
             const auto archive = resourcesRoot + "/cmake.tar";
             unpackTar(archive, temporaries + QStringLiteral("/CMake"));
@@ -297,11 +310,7 @@ void SysrootManager::runInThread()
             }
             setProgress((qreal)stage++ / (qreal)stages);
         }
-    });
 
-
-    // Python
-    QThreadPool::globalInstance()->start([=](){
         {
             const auto archive = resourcesRoot + "/python.tar";
             unpackTar(archive, temporaries + QStringLiteral("/Python"));
@@ -330,6 +339,12 @@ void SysrootManager::runInThread()
                 //qDebug() << "Moving" << relativePath << "from" << sourcePath << "to" << targetPath;
                 QFile::rename(sourcePath, targetPath);
             }
+            setProgress((qreal)stage++ / (qreal)stages);
+        }
+
+        // Signify delivery done
+        {
+            qDebug() << "Delivery:" << QFile::copy(deliveryVersion, installedDeliveryVersion);
             setProgress((qreal)stage++ / (qreal)stages);
         }
     });

@@ -353,6 +353,10 @@ Item {
             contentWidth: -1
             contentHeight: welcomeColumn.height
 
+            ScrollBar.vertical: TideScrollBar {
+                parent: welcomeScrollView
+            }
+
             ColumnLayout {
                 id: welcomeColumn
                 anchors.centerIn: parent

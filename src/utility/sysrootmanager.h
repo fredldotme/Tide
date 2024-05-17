@@ -28,12 +28,13 @@ public slots:
 private:
     void unpackTar(QString archive, QString target);
     void setProgress(const qreal value);
+    bool sameVersion(const QString& left, const QString& right);
 
     bool m_installing;
     qreal m_progress;
     QThread m_installThread;
 
-    const int stages = 15;
+    const int stages = 16;
     int stage = 0;
 
 signals:

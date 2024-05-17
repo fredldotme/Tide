@@ -7,6 +7,8 @@ BUILD_SNAP=0
 BUILD_MAC=0
 BUILD_IOS=1
 
+CLANG_VER=18
+
 if [ "$1" = "--linux" ]; then
     BUILD_LINUX=1
     BUILD_SNAP=0
@@ -256,8 +258,8 @@ cd $OLD_PWD
 cd tmp
 curl -L https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-20/libclang_rt.builtins-wasm32-wasi-20.0.tar.gz --output clangrt.tar.gz
 tar xvf clangrt.tar.gz
-mkdir -p $CLANG_LIBS/clang/18/lib/wasi
-cp -a $OLD_PWD/tmp/lib/wasi/libclang_rt.builtins-wasm32.a $CLANG_LIBS/clang/18/lib/wasi/libclang_rt.builtins-wasm32.a
+mkdir -p $CLANG_LIBS/clang/$CLANG_VER/lib/wasi
+cp -a $OLD_PWD/tmp/lib/wasi/libclang_rt.builtins-wasm32.a $CLANG_LIBS/clang/$CLANG_VER/lib/wasi/libclang_rt.builtins-wasm32.a
 cd $OLD_PWD
 
 # OpenSSL
@@ -370,11 +372,15 @@ mkdir -p tmp/the-sysroot/Clang
 mkdir -p tmp/the-sysroot/Sysroot
 mkdir -p tmp/the-sysroot/Clang/lib/wasi/
 cp -a $OLD_PWD/tmp/wasi-sysroot/* tmp/the-sysroot/Sysroot
-cp -a $OLD_PWD/llvm/$LLVM_BUILD/lib/clang/18/include tmp/the-sysroot/Clang/
+cp -a $OLD_PWD/llvm/$LLVM_BUILD/lib/clang/$CLANG_VER/include tmp/the-sysroot/Clang/
 cp -a $OLD_PWD/tmp/lib/wasi/* tmp/the-sysroot/Clang/lib/wasi/
 tar cvf tmp/sysroot.tar -C tmp/the-sysroot Sysroot
 tar cvf tmp/clang.tar -C tmp/the-sysroot Clang
 cd $OLD_PWD
+
+# Version check to skip already unpacked sysroots
+VERSION=$(grep "VERSION" $OLD_PWD/../src/CMakeLists.txt | grep "^project" | awk -F" " '{ print $3 }')
+echo "$VERSION-$RANDOM" > $OLD_PWD/tmp/delivery.version
 
 # Rust
 #cd 3rdparty/rust
@@ -390,8 +396,8 @@ cd $OLD_PWD
 if [ "$BUILD_SNAP" = "1" ]; then
     mkdir -p $CRAFT_PART_INSTALL/resources
     cp -a tmp/{boost.tar,clang.tar,sysroot.tar,python.tar,cmake.tar} $CRAFT_PART_INSTALL/resources
-    mkdir -p $CRAFT_PART_INSTALL/resources/usr/lib/clang/18/wasi/
-    cp -a $CLANG_LIBS/clang/18/lib/wasi/libclang_rt.builtins-wasm32.a $CRAFT_PART_INSTALL/resources/usr/lib/clang/18/wasi/
+    mkdir -p $CRAFT_PART_INSTALL/resources/usr/lib/clang/$CLANG_VER/wasi/
+    cp -a $CLANG_LIBS/clang/$CLANG_VER/lib/wasi/libclang_rt.builtins-wasm32.a $CRAFT_PART_INSTALL/resources/usr/lib/clang/$CLANG_VER/wasi/
 fi
 
 # Done!

@@ -96,10 +96,10 @@ TideDialog {
                         category: qsTr("Appearance")
                         categoryIcon: "qrc:/assets/doc.plaintext@2x.png"
                     }
-                    /*ListElement {
+                    ListElement {
                         category: qsTr("Git")
                         categoryIcon: "qrc:/assets/arrow.triangle.branch@2x.png"
-                    }*/
+                    }
                     ListElement {
                         category: qsTr("Tools")
                         categoryIcon: "qrc:/assets/scissors@2x.png"
@@ -285,10 +285,47 @@ TideDialog {
                 }
 
                 // Git
-                /*ScrollView {
+                ScrollView {
                     width: parent.width
                     contentWidth: -1
-                }*/
+
+                    Column {
+                        width: parent.width
+                        height: implicitHeight
+                        spacing: paddingSmall
+
+                        RowLayout {
+                            width: parent.width
+                            Label {
+                                text: qsTr("Name:")
+                            }
+                            TextField {
+                                id: gitName
+                                text: settings.gitName
+                                onTextEdited: {
+                                    settings.gitName = gitName.text
+                                }
+
+                                Layout.fillWidth: true
+                            }
+                        }
+                        RowLayout {
+                            width: parent.width
+                            Label {
+                                text: qsTr("Email:")
+                            }
+                            TextField {
+                                id: gitEmail
+                                text: settings.gitEmail
+                                onTextEdited: {
+                                    settings.gitEmail = gitEmail.text
+                                }
+
+                                Layout.fillWidth: true
+                            }
+                        }
+                    }
+                }
 
                 // Tools
                 ScrollView {

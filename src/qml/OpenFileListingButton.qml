@@ -23,7 +23,9 @@ Rectangle {
     property bool longPressEnabled: true
     property bool outline : false
     property color outlineColor : "transparent"
+    property bool selected : false
     readonly property bool pressed: iconControl.pressed || mainMouseArea.pressed
+    readonly property bool hasDetailText: detailText !== ""
 
     signal clicked()
     signal pressAndHold()
@@ -32,7 +34,7 @@ Rectangle {
     opacity: pressed || !enabled ? 0.5 : 1.0
 
     width: mainColumn.width + (root.paddingMid * 2)
-    height: mainColumn.implicitHeight
+    height: mainColumn.implicitHeight + (root.paddingSmall * 2)
 
     Behavior on scale {
         NumberAnimation {
@@ -57,7 +59,8 @@ Rectangle {
         id: mainColumn
         spacing: root.paddingTiny
         width: parent.width
-        height: implicitHeight
+        height: implicitHeight + (root.paddingSmall * 2)
+        y: root.paddingSmall
 
         TideButton {
             id: iconControl
@@ -80,7 +83,8 @@ Rectangle {
         }
 
         Rectangle {
-            width: parent.width
+            width: parent.width - paddingMedium
+            anchors.horizontalCenter: parent.horizontalCenter
             height: 1
             visible: detailControl.visible
             color: itemRoot.textColor

@@ -19,8 +19,10 @@ class GitClient : public QObject
     Q_PROPERTY(QString path MEMBER m_path NOTIFY pathChanged)
     Q_PROPERTY(QVariantMap status MEMBER m_status NOTIFY statusChanged CONSTANT)
     Q_PROPERTY(QVariantList files MEMBER m_files NOTIFY filesChanged CONSTANT);
-    Q_PROPERTY(bool hasStagedFiles MEMBER m_hasStagedFiles NOTIFY hasStagedFilesChanged CONSTANT)
+    Q_PROPERTY(bool hasStagedFiles READ hasStagedFiles NOTIFY hasStagedFilesChanged CONSTANT)
     Q_PROPERTY(bool hasCommittable READ hasCommittable NOTIFY hasCommittableChanged CONSTANT)
+    Q_PROPERTY(QString name MEMBER m_name NOTIFY nameChanged)
+    Q_PROPERTY(QString email MEMBER m_email NOTIFY emailChanged)
 
 public:
     enum GitFileStatus {
@@ -33,8 +35,7 @@ public:
         Typechange = (1 << 6),
         Ignored = (1 << 7),
         Conflicted = (1 << 8),
-        WorkingDirectoryNew = (1 << 9),
-        WorkingDirectoryDeleted = (1 << 10)
+        Unreadable = (1 << 9),
     };
     static GitFileStatus translateStatusFromBackend(const int status);
     Q_ENUM(GitFileStatus);
@@ -47,12 +48,13 @@ public:
 public slots:
     // Generic methods
     bool hasRepo(const QString& path);
-    bool hasUncommitted(const QString& path);
+    void checkHasUncommitted(const QString& path);
     QString branch(const QString& path);
     void clone(const QString& url, const QString& name);
 
     // Methods working on a specifically selected repository
     bool hasCommittable();
+    bool hasStagedFiles();
     void resetStage();
     void stage(const QString& path);
     void unstage(const QString& path);
@@ -76,6 +78,9 @@ private:
     QVariantList m_files;
     bool m_hasStagedFiles;
 
+    QString m_name;
+    QString m_email;
+
 signals:
     void pathChanged();
     void statusChanged();
@@ -88,6 +93,9 @@ signals:
     void filesChanged();
     void hasCommittableChanged();
     void hasStagedFilesChanged();
+    void hasUncommittedChecked(const QString path, const bool value);
+    void nameChanged();
+    void emailChanged();
 };
 
 #endif // GITCLIENT_H

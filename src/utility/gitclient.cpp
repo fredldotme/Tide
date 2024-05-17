@@ -35,7 +35,6 @@ GitClient::GitClient(QObject *parent)
             emit this->repoOpened(m_path);
         }, Qt::DirectConnection);
 #endif
-    QObject::connect(this, &GitClient::hasStagedFilesChanged, this, &GitClient::hasCommittableChanged);
 
 #if !defined(__EMSCRIPTEN__)
     git_libgit2_init();
@@ -56,6 +55,29 @@ GitClient::~GitClient()
 GitClient::GitFileStatus GitClient::translateStatusFromBackend(const int status)
 {
     switch (status) {
+    case GIT_STATUS_CURRENT:
+        return Current;
+    case GIT_STATUS_WT_NEW:
+    case GIT_STATUS_INDEX_NEW:
+        return New;
+    case GIT_STATUS_WT_DELETED:
+    case GIT_STATUS_INDEX_DELETED:
+        return Deleted;
+    case GIT_STATUS_WT_MODIFIED:
+    case GIT_STATUS_INDEX_MODIFIED:
+        return Modified;
+    case GIT_STATUS_WT_RENAMED:
+    case GIT_STATUS_INDEX_RENAMED:
+        return Renamed;
+    case GIT_STATUS_WT_TYPECHANGE:
+    case GIT_STATUS_INDEX_TYPECHANGE:
+        return Typechange;
+    case GIT_STATUS_IGNORED:
+        return Ignored;
+    case GIT_STATUS_CONFLICTED:
+        return Conflicted;
+    case GIT_STATUS_WT_UNREADABLE:
+        return Unreadable;
     default:
         return Unknown;
     }
@@ -139,23 +161,44 @@ QVariantMap GitClient::gitEntryToVariant(const git_status_entry *s)
 {
     QVariantMap ret;
 
-    if (!s || !s->head_to_index)
+    if (!s) {
+        qWarning() << "No valid git status entry";
         return ret;
-    
-    const auto path = QString::fromLocal8Bit(s->head_to_index->new_file.path,
-                                             strlen(s->head_to_index->new_file.path));
-
-    // Old path existing implies a difference between old and new
-    if (s->head_to_index->old_file.path) {
-        const auto old_path = QString::fromLocal8Bit(s->head_to_index->old_file.path,
-                                                     strlen(s->head_to_index->old_file.path));
-    } else {
-        const auto old_path = path;
-        ret.insert("oldPath", old_path);
     }
 
-    ret.insert("status", QVariant((int)s->status));
+    bool staged;
+    git_diff_delta* delta = nullptr;
+
+    if (s->index_to_workdir) {
+        delta = s->index_to_workdir;
+        staged = false;
+    }
+    else if (s->head_to_index) {
+        delta = s->head_to_index;
+        staged = true;
+    }
+
+    if (!delta) {
+        qWarning() << "Invalid git status";
+        return ret;
+    }
+
+    const auto path = QString::fromLocal8Bit(delta->new_file.path,
+                                             strlen(delta->new_file.path));
+
+    // Old path existing implies a difference between old and new
+    if (delta->old_file.path) {
+        const auto old_path = QString::fromLocal8Bit(delta->old_file.path,
+                                                     strlen(delta->old_file.path));
+        if (old_path != path)
+            ret.insert("oldPath", old_path);
+    }
+
+    ret.insert("status", QVariant(translateStatusFromBackend(s->status)));
     ret.insert("path", path);
+    ret.insert("staged", staged);
+
+    qDebug() << ret;
     return ret;
 }
 #endif
@@ -165,9 +208,21 @@ bool GitClient::hasCommittable()
     for (const auto& entry : m_files) {
         const auto entryValue = entry.value<QVariantMap>();
         const auto status = entryValue.value("status").toInt();
-        if (!(status & GitFileStatus::Current)) {
+        if (status != GitFileStatus::Unknown && !(status & GitFileStatus::Current)) {
             return true;
         }
+    }
+
+    return false;
+}
+
+bool GitClient::hasStagedFiles()
+{
+    for (const auto& entry : m_files) {
+        const auto entryValue = entry.value<QVariantMap>();
+        const auto staged = entryValue.value("staged").toBool();
+        if (staged)
+            return true;
     }
 
     return false;
@@ -195,16 +250,17 @@ void GitClient::refreshStage()
             continue;
 
         stageChanged = true;
-        QVariant entry = gitEntryToVariant(s);
-        newFileStates << entry;
+        const auto entry = gitEntryToVariant(s);
+        if (!entry.empty())
+            newFileStates << entry;
     }
     m_files = newFileStates;
     emit filesChanged();
 
-    if (stageChanged) {
-        m_hasStagedFiles = hasCommittable();
+    if (stageChanged)
         emit hasStagedFilesChanged();
-    }
+
+    emit hasCommittableChanged();
 #endif
 }
 
@@ -281,40 +337,44 @@ bool GitClient::hasRepo(const QString& path)
     return false;
 }
 
-bool GitClient::hasUncommitted(const QString& path)
+void GitClient::checkHasUncommitted(const QString& path)
 {
 #if !defined(__EMSCRIPTEN__)
-    if (path.isEmpty())
-        return false;
+    const auto check = [=]() {
+        if (path.isEmpty())
+            return;
 
-    git_repository* repo;
-    git_repository_open_ext(&repo, path.toStdString().c_str(), 0, nullptr);
-    if (repo) {
-        git_status_list *status;
-        git_status_list_new(&status, repo, nullptr);
+        git_repository* repo;
+        git_repository_open_ext(&repo, path.toStdString().c_str(), 0, nullptr);
+        if (repo) {
+            git_status_list *status;
+            git_status_list_new(&status, repo, nullptr);
 
-        size_t i, maxi = git_status_list_entrycount(status);
-        int changes_in_index = 0;
-        const git_status_entry *s;
-        bool hasUncommitted = false;
+            size_t i, maxi = git_status_list_entrycount(status);
+            int changes_in_index = 0;
+            const git_status_entry *s;
+            bool hasUncommitted = false;
 
-        for (i = 0; i < maxi; ++i) {
-            s = git_status_byindex(status, i);
+            for (i = 0; i < maxi; ++i) {
+                s = git_status_byindex(status, i);
 
-            if (s->status == GIT_STATUS_CURRENT)
-                continue;
+                if (s->status == GIT_STATUS_CURRENT)
+                    continue;
 
-            hasUncommitted = true;
-            break;
+                hasUncommitted = true;
+                break;
+            }
+
+            git_repository_free(repo);
+            emit hasUncommittedChecked(path, hasUncommitted);
+        } else {
+            emit hasUncommittedChecked(path, false);
         }
-
-        git_repository_free(repo);
-        return hasUncommitted;
-    } else {
-        return false;
-    }
+    };
+    QThreadPool::globalInstance()->start(check);
+#else
+    emit hasUncommittedChecked(path, false);
 #endif
-    return false;
 }
 
 QString GitClient::branch(const QString& path)
@@ -348,23 +408,44 @@ QString GitClient::branch(const QString& path)
 
 void GitClient::stage(const QString& path)
 {
-#if !defined(__EMSCRIPTEN__)
+#if !defined(__EMSCRIPTEN__)    
+    char* val[1] = { strdup(path.toStdString().data()) };
+
     git_index *index;
     git_strarray array = {0};
-
     array.count = 1;
+    array.strings = val;
     git_repository_index(&index, m_repo);
 
     git_index_add_all(index, &array, 0, nullptr, nullptr);
-
     git_index_write(index);
     git_index_free(index);
+
+    free((void*) val[0]);
+
+    refreshStage();
 #endif
 }
 
 void GitClient::unstage(const QString& path)
 {
+#if !defined(__EMSCRIPTEN__)
+    char* val[1] = { strdup(path.toStdString().data()) };
 
+    git_index *index;
+    git_strarray array = {0};
+    array.count = 1;
+    array.strings = val;
+    git_repository_index(&index, m_repo);
+
+    git_index_remove_all(index, &array, nullptr, nullptr);
+    git_index_write(index);
+    git_index_free(index);
+
+    free((void*) val[0]);
+
+    refreshStage();
+#endif
 }
 
 void GitClient::resetStage()
@@ -375,8 +456,8 @@ void GitClient::resetStage()
 void GitClient::commit(const QString& summary, const QString& body)
 {
 #if !defined(__EMSCRIPTEN__)
-    const char *opt = summary.toLocal8Bit();
-    const char *comment = body.toLocal8Bit();
+    auto message = summary.toStdString() + "\n\n" + body.toStdString();
+    const char *comment = message.data();
     int err;
 
     git_oid commit_oid,tree_oid;
@@ -403,7 +484,9 @@ void GitClient::commit(const QString& summary, const QString& body)
     git_index_write_tree(&tree_oid, index);
     git_index_write(index);
     git_tree_lookup(&tree, m_repo, &tree_oid);
-    git_signature_default(&signature, m_repo);
+    git_signature_now(&signature,
+                      m_name.toStdString().data(),
+                      m_email.toStdString().data());
 
     git_commit_create_v(
         &commit_oid,
@@ -422,6 +505,9 @@ void GitClient::commit(const QString& summary, const QString& body)
     git_tree_free(tree);
     git_object_free(parent);
     git_reference_free(ref);
+
+    refreshStatus();
+    checkHasUncommitted(m_path);
 #endif
 }
 
