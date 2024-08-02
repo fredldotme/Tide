@@ -91,3 +91,6 @@
 [submodule "3rdparty/QtIosCMake"]
 	path = 3rdparty/QtIosCMake
 	url = https://github.com/OlivierLDff/QtIosCMake.git
+[submodule "3rdparty/pspsdk"]
+	path = 3rdparty/pspsdk
+	url = https://github.com/pspdev/pspsdk.git
