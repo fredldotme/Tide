@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.20)
 
 if(IOS OR APPLE)
     set(PROJECT_NAME Tide)
+    set(QT_IOS_TARGET Tide)
+
+    include(${CMAKE_CURRENT_SOURCE_DIR}/../3rdparty/QtIosCMake/AddQtIosApp.cmake)
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
@@ -484,6 +487,31 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
 
     set_property(TARGET ${PROJECT_NAME} PROPERTY XCODE_ATTRIBUTE_ASSETCATALOG_COMPILER_APPICON_NAME "AppIcon")
 
+    add_qt_ios_app(Tide
+        NAME "Tide IDE"
+        BUNDLE_IDENTIFIER "me.fredl.Tide"
+        VERSION "${PROJECT_VERSION}"
+        SHORT_VERSION "${PROJECT_VERSION}"
+        LONG_VERSION "${PROJECT_VERSION}"
+        CUSTOM_PLIST "./MacOSXBundleInfo.plist.in"
+        CODE_SIGN_IDENTITY "Alfred Neumayer"
+        TEAM_ID "6VFS24X855"
+        COPYRIGHT "Alfred Neumayer"
+        QML_DIR "${CMAKE_CURRENT_SOURCE_DIR}/qml"
+        ASSET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/Assets.xcassets"
+        LAUNCHSCREEN_STORYBOARD "${CMAKE_CURRENT_SOURCE_DIR}/assets/LaunchScreen.storyboard"
+        ORIENTATION_PORTRAIT
+        ORIENTATION_PORTRAIT_UPDOWN
+        ORIENTATION_LANDSCAPE_LEFT
+        ORIENTATION_LANDSCAPE_RIGHT
+        SUPPORT_IPHONE
+        SUPPORT_IPAD
+        HIDDEN_STATUS_BAR
+        IPA
+        UPLOAD_SYMBOL
+        VERBOSE
+    )
+
     # LLVM & ios_system
     find_library(NOSYSTEM REQUIRED NAMES nosystem PATHS ${NOSYSTEM_FRAMEWORK} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(LLVM REQUIRED NAMES libLLVM PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
@@ -492,8 +520,6 @@ if(CMAKE_OSX_SYSROOT MATCHES iphonesimulator OR CMAKE_OSX_SYSROOT MATCHES iphone
     find_library(LLDFW REQUIRED NAMES lld PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
     find_library(LLDBFW REQUIRED NAMES lldb PATHS ${LLVM_TOOLS} CMAKE_FIND_ROOT_PATH_BOTH)
 
-    find_library(COMPRESSION compression)
-    find_library(XML2 xml2)
     find_library(FOUNDATION_LIBRARY Foundation)
     find_library(UIKIT_LIBRARY UIKit)
 
@@ -590,11 +616,16 @@ if(APPLE AND NOT IOS)
     # LLVM
     find_library(LLVM REQUIRED NAMES LLVM PATHS ${LLVM_LIBS} CMAKE_FIND_ROOT_PATH_BOTH)
 
-    find_library(COMPRESSION compression REQUIRED)
-    find_library(XML2 xml2 REQUIRED)
     find_library(FOUNDATION_LIBRARY Foundation REQUIRED)
     find_library(SECURITY_LIBRARY Security REQUIRED)
     find_library(LIBZ z REQUIRED)
+
+    # Git with SSH support
+    set(MBEDTLS_LIBDIR "${MBEDTLS_DIR}/build-ios/library")
+    set(MBEDTLS_INCLUDEDIR "${MBEDTLS_DIR}/build-ios/include")
+    find_library(MBEDTLS_CRYPTO NAMES mbedcrypto PATHS ${MBEDTLS_LIBDIR} REQUIRED CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(MBEDTLS_X509 NAMES mbedx509 PATHS ${MBEDTLS_LIBDIR} REQUIRED CMAKE_FIND_ROOT_PATH_BOTH)
+    find_library(MBEDTLS_TLS NAMES mbedtls PATHS ${MBEDTLS_LIBDIR} REQUIRED CMAKE_FIND_ROOT_PATH_BOTH)
 
     # libclang for C++ ASTs
     message("LLVM_LIBS: ${LLVM_LIBS}")
@@ -664,6 +695,9 @@ include_directories(${PROJECT_NAME}
     ${CMAKE_CURRENT_SOURCE_DIR}/editor
     ${CMAKE_CURRENT_SOURCE_DIR}/projects
     ${CMAKE_CURRENT_SOURCE_DIR}/utility
+
+    # 3rdparty libs
+    ${MBEDTLS_INCLUDEDIR}
 )
 
 target_link_libraries(${PROJECT_NAME}-platform
@@ -704,8 +738,6 @@ target_link_libraries(${PROJECT_NAME}
     ${QT6VIRTUALKEYBOARD}
     ${LLVM}
     ${NOSYSTEM}
-    ${COMPRESSION}
-    ${XML2}
     ${FOUNDATION_LIBRARY}
     ${SECURITY_LIBRARY}
     ${UIKITLIBRARY}
@@ -722,6 +754,9 @@ target_link_libraries(${PROJECT_NAME}
     ${PROJECT_NAME}-platform
 
     # Fit for git
+    ${MBEDTLS_CRYPTO}
+    ${MBEDTLS_X509}
+    ${MBEDTLS_TLS}
     libgit2
     util
     pcre

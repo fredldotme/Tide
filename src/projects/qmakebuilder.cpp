@@ -110,11 +110,8 @@ void QMakeBuilder::build(const bool debug, const bool aot, const bool exceptions
             projectTemplate = variables.at("TEMPLATE").values.front();
     }
 
-    bool useThreads = false;
-    if (variables.find("CONFIG") != variables.end()) {
-        const auto& configs = variables.at("CONFIG").values;
-        useThreads = (std::find(configs.begin(), configs.end(), "threads") != configs.end());
-    }
+    // Hardcode, but keep dependent code paths intact for now
+    const bool useThreads = true;
 
     const auto commonFlags = exceptions ?
         QStringLiteral(" -fwasm-exceptions ") : QStringLiteral(" -fno-exceptions ");

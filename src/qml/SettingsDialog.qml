@@ -7,6 +7,7 @@ TideDialog {
     id: settingsDialog
 
     readonly property bool paneHeight : implicitHeight
+    readonly property alias sysrootComboBox: sysrootComboBox
 
     function show() {
         settingsDialog.open()
@@ -575,18 +576,15 @@ TideDialog {
                                 editable: false
                                 model: ListModel {
                                     ListElement {
-                                        text: "No threads, no exceptions"
+                                        text: "Without exceptions"
                                     }
                                     ListElement {
-                                        text: "Threads, no exceptions"
-                                    }
-                                    ListElement {
-                                        text: "Threads and exceptions"
+                                        text: "With exceptions"
                                     }
                                 }
-                                currentIndex: settings.sysrootType
+                                currentIndex: settings.sysrootType - 1
                                 onCurrentIndexChanged: {
-                                    settings.sysrootType = currentIndex
+                                    settings.sysrootType = currentIndex + 1
                                 }
                             }
                         }

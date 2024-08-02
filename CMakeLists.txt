@@ -20,6 +20,8 @@ endif()
 set(WAMR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/wamr)
 set(QMAKEPARSER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libqmakeparser)
 set(MICROTAR_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/microtar)
+set(MBEDTLS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/mbedtls)
+set(SSH2_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libssh2)
 set(GIT2_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/libgit2)
 set(UNIXY_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/unixy)
 # set(SDL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/SDL)
@@ -35,7 +37,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 set(BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
-# libgit2
+# libgit2 and its dependencies
 if(NOT EMSCRIPTEN)
     add_subdirectory(${GIT2_DIR})
 endif()

@@ -345,10 +345,6 @@ ApplicationWindow {
         // Hide the debug area on small screens
         if (width >= height && shouldAllowDebugArea) {
             showDebugArea = true;
-        } else if (width < height) {
-            showDebugArea = false;
-        } else {
-            showDebugArea = shouldAllowDebugArea;
         }
     }
 
@@ -2773,7 +2769,7 @@ ApplicationWindow {
                 CodeEditor {
                     id: overlayEditor
                     width: (parent.width / 2) - (paddingMedium / 2)
-                    height: parent.height
+                    height: parent.height - paddingLarge
                     y: consoleView.y
                     codeField.readOnly: true
                     opacity: !consoleView.integratedMode && consoleView.visibility && dbugger.paused && !dbugger.heatingUp ? 1.0 : 0.0
@@ -2816,7 +2812,7 @@ ApplicationWindow {
                            0 : // Don't overlap debugger area and ConsoleView in portraitMode
                            mainView.dialogWidth - (debuggerArea.width / 2)
             height: parent == consoleViewDialogLandingPad || parent == consoleViewIntegratedLandingPad ?
-                        parent.height : mainView.dialogHeight - parent.y
+                        parent.height : mainView.dialogHeight - parent.y - paddingLarge
             integratedMode: settings.integratedConsole && root.landscapeMode
             opacityOverride: 1.0
             parent: settings.integratedConsole && integratedMode ?
@@ -2919,7 +2915,7 @@ ApplicationWindow {
                             model: dbugger.waitingpoints
                             header: Item {
                                 x: paddingMedium
-                                width: parent.width
+                                width: waitingPointsListView.width
                                 height: root.headerBarHeight
 
                                 RowLayout {
@@ -3314,10 +3310,20 @@ ApplicationWindow {
             property int heapSize : 256
             property int threads : 16
             property bool optimizations : platformProperties.supportsOptimizations
-            property int sysrootType : SysrootManager.Regular
+            property int sysrootType : SysrootManager.ThreadsNoExceptions
             property bool integratedConsole : false
             property string gitName : ""
             property string gitEmail : ""
+
+            property bool migratedSysrootType: false
+            Component.onCompleted: {
+                if (!migratedSysrootType) {
+                    if (sysrootType == SysrootManager.Regular) {
+                        sysrootType = SysrootManager.ThreadsNoExceptions
+                        migratedSysrootType = true
+                    }
+                }
+            }
         }
 
         Component {

@@ -344,6 +344,8 @@ void SysrootManager::runInThread()
 
         // Signify delivery done
         {
+            if (QFile::exists(installedDeliveryVersion))
+                QFile::remove(installedDeliveryVersion);
             qDebug() << "Delivery:" << QFile::copy(deliveryVersion, installedDeliveryVersion);
             setProgress((qreal)stage++ / (qreal)stages);
         }

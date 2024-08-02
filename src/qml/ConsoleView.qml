@@ -30,7 +30,8 @@ Item {
     property real opacityOverride : 1.0
     property bool inputEnabled : false
     property bool fullScreenMode : false
-    
+    property bool editMode : false
+
     readonly property bool modal : true
     
     function show() {
@@ -118,7 +119,19 @@ Item {
                             consoleView.hideStdOut = !consoleView.hideStdOut
                         }
                     }
-                    
+
+                    TideToolButton {
+                        enabled: ((integratedMode && expanded) || !integratedMode) && consoleOutput.count > 0
+                        visible: enabled
+                        icon.source: !consoleView.editMode ?
+                                         Qt.resolvedUrl("qrc:/assets/pencil.circle@2x.png")
+                                       : Qt.resolvedUrl("qrc:/assets/pencil.circle.fill@2x.png")
+                        icon.color: !consoleView.editMode ? root.palette.link : root.palette.linkVisited
+                        onClicked: {
+                            consoleView.editMode = !consoleView.editMode
+                        }
+                    }
+
                     Label {
                         Layout.fillWidth: true
                         color: root.palette.text
@@ -171,10 +184,38 @@ Item {
                     }
                 }
             }
-            
-            ScrollView {
+
+            TextArea {
                 width: parent.width
                 height: parent.height - consoleToolBar.height - consoleInputField.height - (paddingSmall*2)
+                visible: opacity > 0.0
+                property bool visibility : consoleView.editMode
+                opacity: visibility ? 1.0 : 0.0
+                Behavior on opacity {
+                    NumberAnimation {}
+                }
+
+                font: fixedFont
+                text: {
+                    let str = ""
+                    for (let i = 0; i < consoleOutput.count; i++) {
+                        const line = consoleOutput.get(i)
+                        str += line + "\n"
+                    }
+                    return str
+                }
+            }
+
+            ScrollView {
+                width: parent.width
+                height: parent.height - consoleToolBar.height - consoleInputField.height - (paddingSmall*2)                
+                visible: opacity > 0.0
+                property bool visibility : !consoleView.editMode
+                opacity: visibility ? 1.0 : 0.0
+                Behavior on opacity {
+                    NumberAnimation {}
+                }
+
                 ListView {
                     id: consoleScrollView
                     model: consoleOutput

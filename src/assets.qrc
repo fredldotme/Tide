@@ -77,5 +77,6 @@
         <file>assets/arrow.uturn.down@2x.png</file>
         <file>assets/arrow.uturn.up@2x.png</file>
         <file>assets/arrow.uturn.forward@2x.png</file>
+        <file>assets/pencil.circle.fill@2x.png</file>
     </qresource>
 </RCC>

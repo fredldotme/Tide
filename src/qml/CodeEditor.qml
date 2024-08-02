@@ -627,13 +627,11 @@ Item {
                         }
                     }
 
-                    TextArea {
+                    TextEdit {
                         id: codeField
                         Layout.fillHeight: true
                         Layout.fillWidth: settings.wrapEditor
-                        background: Item {}
-                        persistentSelection: true
-                        renderType: TextInput.CurveRendering
+                        //background: Item {}
 
                         text: ""
                         onTextChanged: {
@@ -810,7 +808,6 @@ Item {
                             let ret = codeField.text.substring(start, end)
                             ret = ret.trim()
 
-                            console.log("currentBlock: " + ret)
                             return ret;
                         }
 

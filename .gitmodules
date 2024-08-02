@@ -82,3 +82,12 @@
 [submodule "3rdparty/unixy"]
 	path = 3rdparty/unixy
 	url = https://github.com/fredldotme/unixy.git
+[submodule "3rdparty/libssh2"]
+	path = 3rdparty/libssh2
+	url = https://github.com/libssh2/libssh2.git
+[submodule "3rdparty/mbedtls"]
+	path = 3rdparty/mbedtls
+	url = https://github.com/Mbed-TLS/mbedtls.git
+[submodule "3rdparty/QtIosCMake"]
+	path = 3rdparty/QtIosCMake
+	url = https://github.com/OlivierLDff/QtIosCMake.git
