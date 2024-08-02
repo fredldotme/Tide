@@ -52,14 +52,14 @@ else
     LLVM_BUILD=build-linux
 fi
 
-function cmake_iossystem_build {
-    echo "Custom args: $1"
+function cmake_ios_build {
+    echo "Custom args: $@"
 
-    if [ -d build ]; then
-        rm -rf build
+    if [ -d build-ios ]; then
+        rm -rf build-ios
     fi
-    mkdir build
-    cd build
+    mkdir build-ios
+    cd build-ios
     cmake \
         -G Ninja \
         -DCMAKE_SYSTEM_NAME=iOS \
@@ -68,7 +68,7 @@ function cmake_iossystem_build {
         -DCMAKE_CXX_COMPILER=$(xcrun --sdk iphoneos -f clang++) \
         -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_OSX_DEPLOYMENT_TARGET:STRING=14.0 \
-        $1 ..
+        $@ ..
     ninja
 
     cd ..
@@ -171,20 +171,39 @@ if [ "$BUILD_IOS" = "1" ]; then
 
     # Unixy tools
     cd unixy
-    cmake_iossystem_build "-DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DNO_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos"
+    cmake_ios_build -DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DNO_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos
     cd $OLD_PWD
 
     # Ninja
     cd ninja
-    cmake_iossystem_build "-DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DNINJA_BUILD_BINARY=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos -DCMAKE_SYSTEM_NAME=iOS"
-    cp ios/Info.plist build/ninjaexe.framework/Info.plist
+    cmake_ios_build -DBUILD_TESTING=0 -DNINJA_BUILD_FRAMEWORK=1 -DNINJA_BUILD_BINARY=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos -DCMAKE_SYSTEM_NAME=iOS
+    cp ios/Info.plist build-ios/ninjaexe.framework/Info.plist
     cd $OLD_PWD
 
     # CMake
     cd CMake
-    cmake_iossystem_build "-DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos"
-    cp ios/Info.plist build/Source/cmake.framework/Info.plist
+    cmake_ios_build -DBUILD_TESTING=0 -DCMake_ENABLE_DEBUGGER=0 -DKWSYS_USE_DynamicLoader=0 -DKWSYS_SUPPORTS_SHARED_LIBS=0 -DIOS_SYSTEM_FRAMEWORK=$OLD_PWD/llvm/no_system/build-iphoneos/Debug-iphoneos
+    cp ios/Info.plist build-ios/Source/cmake.framework/Info.plist
     tar cvf $OLD_PWD/tmp/cmake.tar Modules Templates
+    cd $OLD_PWD
+
+    # mbedtls
+    cd mbedtls
+    cmake_ios_build -DBUILD_STATIC_LIBS=ON
+    cd $OLD_PWD
+
+    # libssh2
+    cd libssh2
+    cmake_ios_build -DCRYPTO_BACKEND=mbedTLS -DMBEDTLS_INCLUDE_DIR=$OLD_PWD/mbedtls/build-ios/include -DMBEDTLS_LIBRARY=$OLD_PWD/mbedtls/build-ios/library/libmbedtls.a -DMBEDCRYPTO_LIBRARY=$OLD_PWD/mbedtls/build-ios/library/libmbedcrypto.a -DMBEDX509_LIBRARY=$OLD_PWD/mbedtls/build-ios/library/libmbedx509.a -DBUILD_SHARED_LIBS=OFF -DBUILD_STATIC_LIBS=ON -DBUILD_EXAMPLES=OFF -DBUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=$OLD_PWD/libssh2/build-ios-install
+    cd build-ios
+    ninja install
+    cd $OLD_PWD
+
+    # libgit2
+    cd libgit2
+    export PKG_CONFIG_PATH=$OLD_PWD/libssh2/build-ios-install/lib/pkgconfig
+    cmake_ios_build -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTS=OFF -DBUILD_CLI=OFF -DUSE_SSH=ON
+    unset PKG_CONFIG_PATH
     cd $OLD_PWD
 fi
 
@@ -216,15 +235,11 @@ fi
 cd wasi-libc
 make CC=$CLANG_BINS/clang \
      AR=$CLANG_BINS/llvm-ar \
-     NM=$CLANG_BINS/llvm-nm
-make CC=$CLANG_BINS/clang \
-     AR=$CLANG_BINS/llvm-ar \
      NM=$CLANG_BINS/llvm-nm \
      SYSROOT=$(pwd)/sysroot-threads \
      THREAD_MODEL=posix
 rm -rf $OLD_PWD/tmp/wasi-sysroot
-cp -a sysroot $OLD_PWD/tmp/wasi-sysroot
-cp -a sysroot-threads/lib/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/lib/
+cp -a sysroot-threads $OLD_PWD/tmp/wasi-sysroot
 cp -a sysroot-threads/lib/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads-exce
 cp -a sysroot-threads/include $OLD_PWD/tmp/wasi-sysroot/
 cp -a sysroot-threads/share $OLD_PWD/tmp/wasi-sysroot/
@@ -235,11 +250,6 @@ cd $OLD_PWD
 cd wasi-sdk
 mkdir -p $OLD_PWD/tmp/wasi-sysroot/lib
 
-# No exceptions, no threads
-rm -rf build || true
-NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi TARGET_TRIPLE=wasm32-wasi THREADING=OFF EXCEPTIONS=OFF EXCEPTIONS_FLAGS="" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-tide.BUILT
-cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi $OLD_PWD/tmp/wasi-sysroot/lib/
-
 # Threads, no exceptions
 rm -rf build
 NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET_TRIPLE=wasm32-wasi-threads EXCEPTIONS=OFF EXCEPTIONS_FLAGS="" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-tide.BUILT
@@ -247,7 +257,7 @@ cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi-threads $OLD_PWD/tm
 
 # Threads and exceptions
 rm -rf build || true
-NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi TARGET_TRIPLE=wasm32-wasi-threads-exce THREADING=ON EXCEPTIONS=ON EXCEPTIONS_FLAGS="-fwasm-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-exce-tide.BUILT
+NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi-threads TARGET_TRIPLE=wasm32-wasi-threads-exce THREADING=ON EXCEPTIONS=ON EXCEPTIONS_FLAGS="-fwasm-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-exce-tide.BUILT
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi-threads-exce $OLD_PWD/tmp/wasi-sysroot/lib/
 
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/include/* $OLD_PWD/tmp/wasi-sysroot/include/
@@ -265,15 +275,12 @@ cd $OLD_PWD
 # OpenSSL
 cd openssl-wasm
 cp -a precompiled/include $OLD_PWD/tmp/wasi-sysroot/
-cp -a precompiled/lib/* $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
 cp -a precompiled/lib/* $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
 cp -a precompiled/lib/* $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads-exce/
 cd $OLD_PWD
 
 # Posix/Berkely socket support
 cd aux/lib-socket
-cmake_wasi_build wasm32-wasi ""
-cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
 cmake_wasi_build wasm32-wasi-threads "-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory"
 cp $OLD_PWD/aux/lib-socket/build/libsocket_wasi_ext.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
 cmake_wasi_build wasm32-wasi-threads-exce "-Wl,--shared-memory -pthread -ftls-model=local-exec -mbulk-memory -fwasm-exceptions"
@@ -284,8 +291,6 @@ cd $OLD_PWD
 # JSON library C
 cd json-c
 mkdir -p $OLD_PWD/tmp/wasi-sysroot/include/json-c
-cmake_wasi_build wasm32-wasi ""
-cp $OLD_PWD/json-c/build/libjson-c.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
 cmake_wasi_build wasm32-wasi-threads "-pthread -ftls-model=local-exec -mbulk-memory"
 cp $OLD_PWD/json-c/build/libjson-c.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
 cmake_wasi_build wasm32-wasi-threads-exce "-pthread -ftls-model=local-exec -mbulk-memory -fwasm-exceptions"
@@ -295,8 +300,6 @@ cd $OLD_PWD
 
 # YAML library C
 cd libyaml
-cmake_wasi_build wasm32-wasi ""
-cp $OLD_PWD/libyaml/build/libyaml.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi/
 cmake_wasi_build wasm32-wasi-threads "-pthread -ftls-model=local-exec -mbulk-memory"
 cp $OLD_PWD/libyaml/build/libyaml.a $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads/
 cmake_wasi_build wasm32-wasi-threads-exce "-pthread -ftls-model=local-exec -mbulk-memory -fwasm-exceptions"
@@ -361,6 +364,7 @@ done
 cd ..
 cp -a unpacked/lib/wasm32-wasi unpacked/lib/wasm32-wasi-threads
 cp -a unpacked/lib/wasm32-wasi unpacked/lib/wasm32-wasi-threads-exce
+rm -rf unpacked/lib/wasm32-wasi
 cp -a unpacked/* $OLD_PWD/tmp/wasi-sysroot/
 cd $OLD_PWD
 
