@@ -32,6 +32,8 @@
 
 int main(int argc, char *argv[])
 {
+    bool useQtVirtualKeyboard = false;
+
 #if defined(Q_OS_IOS)
     const auto orgName = QStringLiteral("fredl.me");
     const auto appName = QStringLiteral("Tide");
@@ -96,8 +98,14 @@ int main(int argc, char *argv[])
         const auto scale = (qreal)gridUnitPx / (qreal) 8;
         qputenv("QT_SCALE_FACTOR", std::to_string(scale).c_str());
     }
-    qputenv("QT_IM_MODULE", "maliit");
-    qputenv("QT_VIRTUALKEYBOARD_DESKTOP_DISABLE", "1");
+
+    if (qgetenv("QT_IM_MODULE") == QByteArrayLiteral("maliitphablet")) {
+        qputenv("QT_IM_MODULE", "maliit");
+    } else {
+        useQtVirtualKeyboard = true;
+        qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
+        qputenv("QT_VIRTUALKEYBOARD_DESKTOP_DISABLE", "1");
+    }
 #elif defined(Q_OS_WASM)
     const auto orgName = QStringLiteral("");
     const auto appName = QStringLiteral("tide.fredldotme");
@@ -179,6 +187,7 @@ int main(int argc, char *argv[])
             standardFixedFont.setPixelSize(14);
             standardFixedFont.setStyleHint(QFont::Monospace);
             engine.addImportPath(":/");
+            engine.rootContext()->setContextProperty("useQtVirtualKeyboard", useQtVirtualKeyboard);
             engine.rootContext()->setContextProperty("standardFixedFont", standardFixedFont);
             engine.rootContext()->setContextProperty("imFixer", &imFixer);
             engine.rootContext()->setContextProperty("sysroot", sysroot);
