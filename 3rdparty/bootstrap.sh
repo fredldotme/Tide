@@ -147,7 +147,7 @@ elif [ "$BUILD_LINUX" = "1" ]; then
         -DLLDB_INCLUDE_TESTS=OFF \
         -DCMAKE_BUILD_TYPE=Release \
         $PREFIX_ARG \
-        ../llvm
+        $OLD_PWD/llvm
     ninja
     if [ "$BUILD_SNAP" = "1" ]; then
         ninja install
