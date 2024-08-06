@@ -1,5 +1,5 @@
 name: tide-ide
-version: 2.0.4
+version: 2.2.0
 grade: stable
 confinement: classic
 base: core22
@@ -306,21 +306,21 @@ parts:
     stage:
       - usr/*
   # Special to Snapcraft release: Homebrew PSP
-  pspsdk:
-    plugin: autotools
-    after: [ tide ]
-    source: https://github.com/pspdev/pspsdk.git
-    build-attributes:
-      - enable-patchelf
-    build-packages:
-      - build-essential
-      - dpkg-dev
-    override-build: |
-      mkdir $SNAPCRAFT_PART_BUILD || true
-      cd $SNAPCRAFT_PART_BUILD
-      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
-      ./bootstrap
-      craftctl default
+  #pspsdk:
+  #  plugin: autotools
+  #  after: [ tide ]
+  #  source: https://github.com/pspdev/pspsdk.git
+  #  build-attributes:
+  #    - enable-patchelf
+  #  build-packages:
+  #    - build-essential
+  #    - dpkg-dev
+  #  override-build: |
+  #    mkdir $SNAPCRAFT_PART_BUILD || true
+  #    cd $SNAPCRAFT_PART_BUILD
+  #    export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
+  #    ./bootstrap
+  #    craftctl default
   maliit:
     after: [ qt6declarative ]
     plugin: cmake
