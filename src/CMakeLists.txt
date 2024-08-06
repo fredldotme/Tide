@@ -830,16 +830,16 @@ if(APPLE AND NOT IOS)
         COMMAND cp -a "${LLVM}" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/../Frameworks/"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND cp -a "${LLVM_TOOLS}/clang-17" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
+        COMMAND cp -a "${LLVM_TOOLS}/clang-18" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND install_name_tool -change "@rpath/libclang-cpp.dylib" "@rpath/../Frameworks/libclang-cpp.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/clang-17"
+        COMMAND install_name_tool -change "@rpath/libclang-cpp.dylib" "@rpath/../Frameworks/libclang-cpp.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/clang-18"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/../Frameworks/libLLVM.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/clang-17"
+        COMMAND install_name_tool -change "@rpath/libLLVM.dylib" "@rpath/../Frameworks/libLLVM.dylib" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/clang-18"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-        COMMAND install_name_tool -add_rpath "@loader_path/../Frameworks" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/clang-17"
+        COMMAND install_name_tool -add_rpath "@loader_path/../Frameworks" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/clang-18"
     )
     add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
         COMMAND cp -a "${LLVM_TOOLS}/clang" "$<TARGET_FILE_DIR:${PROJECT_NAME}>/"
@@ -952,5 +952,5 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     install(FILES "${LLVM_LIBRARIES}/libclang.so.17" DESTINATION ${CMAKE_INSTALL_LIBDIR})
     install(FILES "${LLVM_LIBRARIES}/libclang-cpp.so" DESTINATION ${CMAKE_INSTALL_LIBDIR})
     install(FILES "${LLVM_LIBRARIES}/libclang-cpp.so.17" DESTINATION ${CMAKE_INSTALL_LIBDIR})
-    install(FILES "${LLVM_LIBRARIES}/libLLVM-17.so" DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(FILES "${LLVM_LIBRARIES}/libLLVM-18.so" DESTINATION ${CMAKE_INSTALL_LIBDIR})
 endif()

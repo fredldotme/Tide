@@ -80,7 +80,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
         set(LLVM_LIBS ${LLVM_DIR}/${LLVM_BUILD_DIR}/lib)
     endif()
 
-    find_library(LLVM REQUIRED NAMES libLLVM-17.so PATHS ${LLVM_LIBS})
+    find_library(LLVM REQUIRED NAMES libLLVM-18.so PATHS ${LLVM_LIBS})
 endif()
 
 # Clang's formatting lib and dependencies
