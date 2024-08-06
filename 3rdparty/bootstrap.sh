@@ -134,8 +134,10 @@ elif [ "$BUILD_LINUX" = "1" ]; then
 
     if [ "$BUILD_SNAP" = "1" ]; then
         PREFIX_ARG="-DCMAKE_INSTALL_PREFIX=$SNAPCRAFT_PART_INSTALL/usr"
+        SRCDIR="$CRAFT_PART_SRC/llvm/llvm"
     else
         PREFIX_ARG=""
+        SRCDIR="$OLD_PWD/llvm/llvm"
     fi
 
     env CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake -GNinja \
@@ -147,7 +149,7 @@ elif [ "$BUILD_LINUX" = "1" ]; then
         -DLLDB_INCLUDE_TESTS=OFF \
         -DCMAKE_BUILD_TYPE=Release \
         $PREFIX_ARG \
-        $OLD_PWD/llvm/llvm
+        $SRCDIR
     ninja
     if [ "$BUILD_SNAP" = "1" ]; then
         ninja install
