@@ -147,7 +147,7 @@ elif [ "$BUILD_LINUX" = "1" ]; then
         -DLLDB_INCLUDE_TESTS=OFF \
         -DCMAKE_BUILD_TYPE=Release \
         $PREFIX_ARG \
-        $OLD_PWD/llvm
+        $OLD_PWD/llvm/llvm
     ninja
     if [ "$BUILD_SNAP" = "1" ]; then
         ninja install
@@ -400,7 +400,7 @@ cd $OLD_PWD
 
 if [ "$BUILD_SNAP" = "1" ]; then
     mkdir -p $CRAFT_PART_INSTALL/resources
-    cp -a tmp/{boost.tar,clang.tar,sysroot.tar,python.tar,cmake.tar} $CRAFT_PART_INSTALL/resources
+    cp -a tmp/{delivery.version,boost.tar,clang.tar,sysroot.tar,python.tar,cmake.tar} $CRAFT_PART_INSTALL/resources
     mkdir -p $CRAFT_PART_INSTALL/resources/usr/lib/clang/$CLANG_VER/wasi/
     cp -a $CLANG_LIBS/clang/$CLANG_VER/lib/wasi/libclang_rt.builtins-wasm32.a $CRAFT_PART_INSTALL/resources/usr/lib/clang/$CLANG_VER/wasi/
 fi
