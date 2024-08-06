@@ -242,6 +242,7 @@ rm -rf $OLD_PWD/tmp/wasi-sysroot
 cp -a sysroot-threads $OLD_PWD/tmp/wasi-sysroot
 cp -a sysroot-threads/lib/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads-exce
 cp -a sysroot-threads/include $OLD_PWD/tmp/wasi-sysroot/
+cp -a $OLD_PWD/tmp/wasi-sysroot/include/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/include/wasm32-wasi-threads-exce
 cp -a sysroot-threads/share $OLD_PWD/tmp/wasi-sysroot/
 cp -a $OLD_PWD/tmp/wasi-sysroot/share/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/share/wasm32-wasi-threads-exce
 cd $OLD_PWD
@@ -252,12 +253,12 @@ mkdir -p $OLD_PWD/tmp/wasi-sysroot/lib
 
 # Threads, no exceptions
 rm -rf build
-NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET_TRIPLE=wasm32-wasi-threads EXCEPTIONS=OFF EXCEPTIONS_FLAGS="" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-tide.BUILT
+NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi-threads THREADING=ON EXCEPTIONS=OFF EXCEPTIONS_FLAGS="" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-tide.BUILT
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/lib/
 
 # Threads and exceptions
 rm -rf build || true
-NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi-threads TARGET_TRIPLE=wasm32-wasi-threads-exce THREADING=ON EXCEPTIONS=ON EXCEPTIONS_FLAGS="-fwasm-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-exce-tide.BUILT
+NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi-threads-exce THREADING=ON EXCEPTIONS=ON EXCEPTIONS_FLAGS="-fwasm-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-exce-tide.BUILT
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi-threads-exce $OLD_PWD/tmp/wasi-sysroot/lib/
 
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/include/* $OLD_PWD/tmp/wasi-sysroot/include/
