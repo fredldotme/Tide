@@ -134,7 +134,7 @@ elif [ "$BUILD_LINUX" = "1" ]; then
 
     if [ "$BUILD_SNAP" = "1" ]; then
         PREFIX_ARG="-DCMAKE_INSTALL_PREFIX=$SNAPCRAFT_PART_INSTALL/usr"
-        SRCDIR="$CRAFT_PART_SRC/llvm/llvm"
+        SRCDIR="../llvm"
     else
         PREFIX_ARG=""
         SRCDIR="$OLD_PWD/llvm/llvm"
