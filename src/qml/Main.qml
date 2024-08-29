@@ -1104,22 +1104,38 @@ ApplicationWindow {
                                     return qsTr("Hide console")
                                 else
                                     return qsTr("Show console")
-                            } else {
-                                if (settings.integratedConsole)
-                                    return qsTr("Pop-out console")
-                                else
-                                    return qsTr("Pop-in console")
                             }
                         }
+                        enabled: settings.integratedConsole
                         icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
                         onPressed: {
-                            if (!consoleView.integratedMode) {
+                            if (consoleView.visibility)
+                                consoleView.hide()
+                            else
+                                consoleView.show()
+                            consoleContextMenu.close()
+                        }
+                    }
+                    MenuItem {
+                        property var process : null
+
+                        text: {
+                            if (process !== null)
+                                return qsTr("Start shell")
+                            else
+                                return qsTr("Stop shell")
+                        }
+                        enabled: platformProperties.hasShell
+                        icon.source: Qt.resolvedUrl("qrc:/assets/terminal.fill@2x.png")
+                        onPressed: {
+                            if (process !== null) {
+                                iosSystem.killProcess(process)
                                 if (consoleView.visibility)
                                     consoleView.hide()
                                 else
                                     consoleView.show()
                             } else {
-                                settings.integratedConsole = !settings.integratedConsole
+                                process = iosSystem.spawnProcess("/bin/bash", mainStdio, false)
                                 consoleView.show()
                             }
                             consoleContextMenu.close()
@@ -1426,10 +1442,13 @@ ApplicationWindow {
         onTriggered: dbugger.cont()
     }
 
+    property var mainStdio : null
+
     Component.onCompleted: {
         projectPicker.documentSelected.connect(directorySelected);
         iosSystem.stdioCreated.connect(function(spec) {
             consoleHandler.feedProgramSpec(spec)
+            mainStdio = spec
         });
         iosSystem.stdioWritersPrepared.connect(function(spec) {
             wasmRunner.prepareStdio(spec)

@@ -13,6 +13,8 @@ public:
     explicit Console(QObject *parent = nullptr);
     ~Console();
 
+    Q_INVOKABLE StdioSpec spec() { return m_spec; }
+
 public slots:
     void feedProgramSpec(StdioSpec spec);
     void write(const QString str);

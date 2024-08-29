@@ -11,6 +11,7 @@
 #include <thread>
 #include <iostream>
 #include <spawn.h>
+#include <signal.h>
 
 extern "C" {
 #include <unistd.h>
@@ -149,19 +150,30 @@ bool MacSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spe
 // Blocking and hence shouldn't be called from the main or GUI threads
 int MacSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
 {
-    StdioSpec copy;
+    auto process = spawnProcess(cmd, spec, true);
+    return process.exitCode;
+}
+
+void MacSystemGlue::killProcess(SystemGlueProcess process)
+{
+    kill(process.pid, SIGKILL);
+}
+
+SystemGlueProcess MacSystemGlue::spawnProcess(const QString cmd, const StdioSpec spec, const bool wait)
+{
+    SystemGlueProcess process;
     int status = 0;
     pid_t childpid = 0;
     int ret = -1;
 
     if (spec.std_in || spec.std_out || spec.std_err) {
-        copy.std_in = fdopen(dup(fileno(spec.std_in)), "r");
-        copy.std_out = fdopen(dup(fileno(spec.std_out)), "w");
-        copy.std_err = fdopen(dup(fileno(spec.std_err)), "w");
+        process.stdio.std_in = fdopen(dup(fileno(spec.std_in)), "r");
+        process.stdio.std_out = fdopen(dup(fileno(spec.std_out)), "w");
+        process.stdio.std_err = fdopen(dup(fileno(spec.std_err)), "w");
     } else {
-        copy.std_in = fdopen(dup(fileno(m_spec.std_in)), "r");
-        copy.std_out = fdopen(dup(fileno(m_spec.std_out)), "w");
-        copy.std_err = fdopen(dup(fileno(m_spec.std_err)), "w");
+        process.stdio.std_in = fdopen(dup(fileno(m_spec.std_in)), "r");
+        process.stdio.std_out = fdopen(dup(fileno(m_spec.std_out)), "w");
+        process.stdio.std_err = fdopen(dup(fileno(m_spec.std_err)), "w");
     }
 
     const auto stdcmd = cmd.toStdString();
@@ -181,33 +193,39 @@ int MacSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
     posix_spawn_file_actions_addclose(&action, 0);
     posix_spawn_file_actions_addclose(&action, 1);
     posix_spawn_file_actions_addclose(&action, 2);
-    posix_spawn_file_actions_adddup2(&action, fileno(copy.std_in), 0);
-    posix_spawn_file_actions_adddup2(&action, fileno(copy.std_out), 1);
-    posix_spawn_file_actions_adddup2(&action, fileno(copy.std_err), 2);
+    posix_spawn_file_actions_adddup2(&action, fileno(process.stdio.std_in), 0);
+    posix_spawn_file_actions_adddup2(&action, fileno(process.stdio.std_out), 1);
+    posix_spawn_file_actions_adddup2(&action, fileno(process.stdio.std_err), 2);
 
     qDebug() << "Run command:" << cmd;
 
     status = posix_spawnp(&childpid, cargs[0], &action, NULL, (char * const*)cargs.data(), environ);
     if (status != 0) {
         qDebug() << "spawn status:" << status;
+        ret = -1;
         goto done;
     }
 
-    if (childpid >= 0) {
-        waitpid(childpid, &status, 0);
+    if (wait) {
+        if (childpid >= 0) {
+            waitpid(childpid, &status, 0);
+        }
+        ret = WEXITSTATUS(status);
+    } else {
+        ret = 255;
     }
-    ret = WEXITSTATUS(status);
 
 done:
     posix_spawn_file_actions_destroy(&action);
-    if (copy.std_in)
-        fclose(copy.std_in);
-    if (copy.std_out)
-        fclose(copy.std_out);
-    if (copy.std_err)
+    if (process.stdio.std_in)
+        fclose(process.stdio.std_in);
+    if (process.stdio.std_out)
+        fclose(process.stdio.std_out);
+    if (process.stdio.std_err)
         fclose(copy.std_err);
 
-    return ret;
+    process.exitCode = ret;
+    return process;
 }
 
 void MacSystemGlue::killBuildCommands()

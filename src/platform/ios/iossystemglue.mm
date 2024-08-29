@@ -135,37 +135,88 @@ bool IosSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec spe
     return true;
 }
 
+
 // Blocking and hence shouldn't be called from the main or GUI threads
 int IosSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
 {
-    StdioSpec copy;
+    const auto process = spawnProcess(cmd, spec, true);
+    return process.exitCode;
+}
+
+void IosSystemGlue::killProcess(SystemGlueProcess process)
+{
+    // nosystem_kill(process.pid, SIGKILL?);
+}
+
+// Straight up copy from no_system
+static inline std::vector<std::string> __nosystem_split_command(const std::string& cmd)
+{
+    std::vector<std::string> cmd_parts;
+    std::string tmp_part;
+
+    std::string cmd_as_std(cmd);
+    for (auto it = cmd_as_std.begin(); it != cmd_as_std.end(); it++) {
+        if (*it == '\"') {
+            while (++it != cmd_as_std.end() && *it != '\"') {
+                tmp_part += *it;
+            }
+        } else if (*it == ' ') {
+            if (tmp_part.size() != 0)
+                cmd_parts.push_back(tmp_part);
+            tmp_part = "";
+        } else {
+            tmp_part += *it;
+        }
+    }
+    if (tmp_part.size() != 0)
+        cmd_parts.push_back(tmp_part);
+
+    return cmd_parts;
+}
+
+// Blocking and hence shouldn't be called from the main or GUI threads
+SystemGlueProcess IosSystemGlue::spawnProcess(const QString cmd, const StdioSpec spec, const bool wait)
+{
+    SystemGlueProcess process;
 
     if (spec.std_in || spec.std_out || spec.std_err) {
-        copy.std_in = fdopen(dup(fileno(spec.std_in)), "r");
-        copy.std_out = fdopen(dup(fileno(spec.std_out)), "w");
-        copy.std_err = fdopen(dup(fileno(spec.std_err)), "w");
+        process.stdio.std_in = fdopen(dup(fileno(spec.std_in)), "r");
+        process.stdio.std_out = fdopen(dup(fileno(spec.std_out)), "w");
+        process.stdio.std_err = fdopen(dup(fileno(spec.std_err)), "w");
     } else {
-        copy.std_in = fdopen(dup(fileno(m_spec.std_in)), "r");
-        copy.std_out = fdopen(dup(fileno(m_spec.std_out)), "w");
-        copy.std_err = fdopen(dup(fileno(m_spec.std_err)), "w");
+        process.stdio.std_in = fdopen(dup(fileno(m_spec.std_in)), "r");
+        process.stdio.std_out = fdopen(dup(fileno(m_spec.std_out)), "w");
+        process.stdio.std_err = fdopen(dup(fileno(m_spec.std_err)), "w");
     }
 
-    nosystem_stdin = copy.std_in;
-    nosystem_stdout = copy.std_out;
-    nosystem_stderr = copy.std_err;
+    nosystem_stdin = process.stdio.std_in;
+    nosystem_stdout = process.stdio.std_out;
+    nosystem_stderr = process.stdio.std_err;
 
     const auto stdcmd = cmd.toStdString();
-    const int ret = nosystem_system(stdcmd.c_str());
-    qWarning() << "Return" << ret << "from command" << cmd;
+    if (!wait) {
+        const int ret = nosystem_system(stdcmd.c_str());
+        process.exitCode = ret;
 
-    if (copy.std_in)
-        fclose(copy.std_in);
-    if (copy.std_out)
-        fclose(copy.std_out);
-    if (copy.std_err)
-        fclose(copy.std_err);
+        qWarning() << "Return" << ret << "from command" << cmd;
+    } else {
+        const auto args = __nosystem_split_command(stdcmd);
+        std::vector<char*> cargs;
+        for (const auto& arg : args) {
+            cargs.push_back(const_cast<char*>(arg.c_str()));
+        }
 
-    return ret;
+        process.pid = nosystem_execv(args[0].c_str(), cargs.data());
+    }
+
+    if (process.stdio.std_in)
+        fclose(process.stdio.std_in);
+    if (process.stdio.std_out)
+        fclose(process.stdio.std_out);
+    if (process.stdio.std_err)
+        fclose(process.stdio.std_err);
+
+    return process;
 }
 
 void IosSystemGlue::killBuildCommands()

@@ -170,6 +170,7 @@ int main(int argc, char *argv[])
         
         qmlRegisterUncreatableType<SystemGlue>("Tide", 1, 0, "IosSystemGlue", "Created in main() as 'iosSystem'.");
         qmlRegisterUncreatableType<StdioSpec>("Tide", 1, 0, "ProgramSpec", "StdioSpec is protocol between 'iosSystem' and 'Console'.");
+        qmlRegisterUncreatableType<SystemGlueProcess>("Tide", 1, 0, "SystemGlueProcess", "Created by iosSystem.spawnProcess()");
         qmlRegisterUncreatableType<QSourceHighliter>("Tide", 1, 0, "SourceHighliter", "Use 'SyntaxHighlighter' instead.");
         qmlRegisterUncreatableType<InputMethodFixerInstaller>("Tide", 1, 0, "ImFixerInstaller", "Instantiated in main() as 'imFixer'.");
         qmlRegisterUncreatableType<SearchResult>("Tide", 1, 0, "SearchResult", "Created 'searchAndReplace'.");
