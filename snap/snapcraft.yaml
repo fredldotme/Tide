@@ -69,7 +69,6 @@ parts:
       - usr/lib
     prime:
       - usr/lib/$SNAPCRAFT_ARCH_TRIPLET
-    after: [ bootstrap ]
   qt6:
     plugin: cmake
     source: https://github.com/qt/qtbase.git
