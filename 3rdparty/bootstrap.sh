@@ -242,7 +242,6 @@ make CC=$CLANG_BINS/clang \
      THREAD_MODEL=posix
 rm -rf $OLD_PWD/tmp/wasi-sysroot
 cp -a sysroot-threads $OLD_PWD/tmp/wasi-sysroot
-mv sysroot-threads/lib/wasm32-wasip1-threads sysroot-threads/lib/wasm32-wasi-threads
 cp -a sysroot-threads/lib/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/lib/wasm32-wasi-threads-exce
 cp -a sysroot-threads/include $OLD_PWD/tmp/wasi-sysroot/
 cp -a $OLD_PWD/tmp/wasi-sysroot/include/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/include/wasm32-wasi-threads-exce
