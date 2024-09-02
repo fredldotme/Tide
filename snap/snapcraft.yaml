@@ -46,6 +46,27 @@ apps:
     command: usr/bin/tide-ide
 
 parts:
+  bootstrap:
+    plugin: cmake
+    source: 3rdparty
+    build-attributes:
+      - enable-patchelf
+    build-packages:
+      - cmake
+      - ccache
+      - ninja-build
+      - build-essential
+      - dpkg-dev
+      - libssl-dev
+      - libcrypt-dev
+      - curl
+      - clang
+      - libicu-dev
+    stage-packages:
+      - libpcre2-16-0
+    override-build: |
+      cd $SNAPCRAFT_PART_SRC
+      bash -x bootstrap.sh --linux-snap
   deps:
     plugin: nil
     build-attributes:
@@ -234,16 +255,6 @@ parts:
       - libpcre2-16-0
       - libudev-dev
       - zlib1g-dev
-      - ccache
-      - curl
-      - clang
-      - libicu-dev   
-    stage-packages:
-      - libpcre2-16-0
-    override-build: |
-      cd $SNAPCRAFT_PART_SRC
-      bash -x bootstrap.sh --linux-snap
-      craftctl default
     after: [ qt6virtualkeyboard ]
   launcher:
     plugin: dump
