@@ -95,6 +95,8 @@ parts:
     plugin: cmake
     source: https://github.com/qt/qtbase.git
     source-branch: 6.7.0
+    build-attributes:
+      - enable-patchelf
     cmake-parameters:
       - -GNinja
       - -DCMAKE_INSTALL_PREFIX=/usr
@@ -149,6 +151,8 @@ parts:
     plugin: cmake
     source: https://github.com/qt/qtshadertools.git
     source-branch: 6.7.0
+    build-attributes:
+      - enable-patchelf
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
     build-packages:
@@ -163,6 +167,8 @@ parts:
     plugin: cmake
     source: https://github.com/qt/qtdeclarative.git
     source-branch: 6.7.0
+    build-attributes:
+      - enable-patchelf
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
     build-environment:
@@ -182,6 +188,8 @@ parts:
     plugin: cmake
     source: https://github.com/qt/qtwayland.git
     source-branch: 6.7.0
+    build-attributes:
+      - enable-patchelf
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/cmake/Qt6
@@ -199,6 +207,8 @@ parts:
     plugin: cmake
     source: https://github.com/qt/qtsvg.git
     source-branch: 6.7.0
+    build-attributes:
+      - enable-patchelf
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
     build-environment:
@@ -215,6 +225,8 @@ parts:
     plugin: cmake
     source: https://github.com/qt/qtvirtualkeyboard.git
     source-branch: 6.7.0
+    build-attributes:
+      - enable-patchelf
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
     build-environment:
