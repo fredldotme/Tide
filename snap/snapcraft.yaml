@@ -95,8 +95,6 @@ parts:
     plugin: cmake
     source: https://github.com/qt/qtbase.git
     source-branch: 6.7.0
-    build-attributes:
-      - enable-patchelf
     cmake-parameters:
       - -GNinja
       - -DCMAKE_INSTALL_PREFIX=/usr
@@ -105,6 +103,7 @@ parts:
       - -DQT_FEATURE_opengles3=ON
       - -DQT_FEATURE_opengles31=ON
       - -DQT_FEATURE_opengles32=ON
+      - -DCMAKE_LD_FLAGS="-Wl,-rpath=/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR"
     build-packages:
       - cmake
       - ninja-build
@@ -151,10 +150,9 @@ parts:
     plugin: cmake
     source: https://github.com/qt/qtshadertools.git
     source-branch: 6.7.0
-    build-attributes:
-      - enable-patchelf
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_LD_FLAGS="-Wl,-rpath=/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR"
     build-packages:
       - cmake
       - ninja-build
@@ -167,10 +165,9 @@ parts:
     plugin: cmake
     source: https://github.com/qt/qtdeclarative.git
     source-branch: 6.7.0
-    build-attributes:
-      - enable-patchelf
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_LD_FLAGS="-Wl,-rpath=/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR"
     build-environment:
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
     build-packages:
@@ -188,11 +185,10 @@ parts:
     plugin: cmake
     source: https://github.com/qt/qtwayland.git
     source-branch: 6.7.0
-    build-attributes:
-      - enable-patchelf
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/cmake/Qt6
+      - -DCMAKE_LD_FLAGS="-Wl,-rpath=/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR"
     build-environment:
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
     build-packages:
@@ -202,15 +198,16 @@ parts:
       - dpkg-dev
       - libxkbcommon-dev
       - libwayland-dev
+    stage-packages:
+      - libpcre3
     after: [ qt6declarative ]
   qt6svg:
     plugin: cmake
     source: https://github.com/qt/qtsvg.git
     source-branch: 6.7.0
-    build-attributes:
-      - enable-patchelf
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_LD_FLAGS="-Wl,-rpath=/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR"
     build-environment:
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
     build-packages:
@@ -225,10 +222,9 @@ parts:
     plugin: cmake
     source: https://github.com/qt/qtvirtualkeyboard.git
     source-branch: 6.7.0
-    build-attributes:
-      - enable-patchelf
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_LD_FLAGS="-Wl,-rpath=/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR"
     build-environment:
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
     build-packages:
@@ -242,8 +238,6 @@ parts:
   tide:
     plugin: cmake
     source: .
-    build-attributes:
-      - enable-patchelf
     build-environment:
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
     cmake-parameters:
@@ -251,6 +245,7 @@ parts:
       - -DCMAKE_CXX_COMPILER=clang++
       - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/cmake/Qt6
       - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DCMAKE_LD_FLAGS="-Wl,-rpath=/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR"
       - -DSNAP=1
       - -DSNAP_STAGE=$CRAFT_STAGE
     build-packages:
@@ -341,6 +336,7 @@ parts:
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/cmake/Qt6
+      - -DCMAKE_LD_FLAGS="-Wl,-rpath=/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR"
       - -Denable-wayland=OFF
       - -Denable-glib=OFF
       - -Denable-tests=OFF
