@@ -57,6 +57,7 @@ else
   ARCH="$SNAP_ARCH-linux-gnu"
 fi
 
+CORE_SNAP=core22
 export SNAP_LAUNCHER_ARCH_TRIPLET="$ARCH"
 export HOME="$SNAP_USER_COMMON"
 
@@ -130,6 +131,8 @@ function is_subpath() {
 }
 
 #system paths
+prepend_dir LD_LIBRARY_PATH "/snap/$CORE_SNAP/current/usr/lib/$ARCH"
+prepend_dir LD_LIBRARY_PATH "/snap/$CORE_SNAP/current/usr/lib"
 append_dir LD_LIBRARY_PATH "$SNAP/lib/$ARCH"
 append_dir LD_LIBRARY_PATH "$SNAP/usr/lib/$ARCH"
 append_dir LD_LIBRARY_PATH "$SNAP/usr/lib"
