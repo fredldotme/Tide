@@ -47,22 +47,16 @@ fi
 
 if [ "$SNAP_ARCH" = "amd64" ]; then
   ARCH="x86_64-linux-gnu"
-  LD="ld-linux-x86-64.so.2"
 elif [ "$SNAP_ARCH" = "armhf" ]; then
   ARCH="arm-linux-gnueabihf"
-  LD="ld-linux-armhf.so.3"
 elif [ "$SNAP_ARCH" = "arm64" ]; then
   ARCH="aarch64-linux-gnu"
-  LD="ld-linux-aarch64.so.1"
 elif [ "$SNAP_ARCH" = "ppc64el" ]; then
   ARCH="powerpc64le-linux-gnu"
-  LD="ld64.so.2"
 else
   ARCH="$SNAP_ARCH-linux-gnu"
-  LD=""
 fi
 
-CORE_SNAP=core22
 export SNAP_LAUNCHER_ARCH_TRIPLET="$ARCH"
 export HOME="$SNAP_USER_COMMON"
 
@@ -136,8 +130,6 @@ function is_subpath() {
 }
 
 #system paths
-prepend_dir LD_LIBRARY_PATH "/snap/$CORE_SNAP/current/usr/lib/$ARCH"
-prepend_dir LD_LIBRARY_PATH "/snap/$CORE_SNAP/current/usr/lib"
 append_dir LD_LIBRARY_PATH "$SNAP/lib/$ARCH"
 append_dir LD_LIBRARY_PATH "$SNAP/usr/lib/$ARCH"
 append_dir LD_LIBRARY_PATH "$SNAP/usr/lib"
@@ -380,5 +372,4 @@ if [ -n "$SNAP_DESKTOP_DEBUG" ]; then
   echo "Now running: exec $*"
 fi
 
-LD_EXEC="/snap/$CORE_SNAP/current/usr/lib/$ARCH/$LD"
-exec $LD_EXEC "$@"
+exec "$@"
