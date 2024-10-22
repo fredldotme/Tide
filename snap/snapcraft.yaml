@@ -84,7 +84,6 @@ parts:
       - libffi8
       - libglib2.0-0
       - zlib1g
-      - mime-support
       - shared-mime-info
     stage:
       - usr/lib
