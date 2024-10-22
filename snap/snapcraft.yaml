@@ -65,7 +65,7 @@ parts:
     stage-packages:
       - libpcre2-16-0
     override-build: |
-      cd $SNAPCRAFT_PART_SRC
+      cd $CRAFT_PART_SRC
       bash -x bootstrap.sh --linux-snap
   deps:
     plugin: nil
@@ -88,7 +88,7 @@ parts:
     stage:
       - usr/lib
     prime:
-      - usr/lib/$SNAPCRAFT_ARCH_TRIPLET
+      - usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
     after: [ bootstrap ]
   qt6:
     plugin: cmake
@@ -167,7 +167,7 @@ parts:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
     build-environment:
-      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
+      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib:$CRAFT_STAGE/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:$CRAFT_STAGE/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
     build-packages:
       - cmake
       - ninja-build
@@ -185,10 +185,10 @@ parts:
     source-branch: 6.7.0
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/cmake/Qt6
+      - -DCMAKE_PREFIX_PATH=${CRAFT_STAGE}/usr/lib/cmake/Qt6
       - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
     build-environment:
-      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
+      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib:$CRAFT_STAGE/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:$CRAFT_STAGE/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
     build-packages:
       - cmake
       - ninja-build
@@ -205,7 +205,7 @@ parts:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
     build-environment:
-      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
+      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib:$CRAFT_STAGE/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:$CRAFT_STAGE/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
     build-packages:
       - cmake
       - ninja-build
@@ -222,7 +222,7 @@ parts:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
     build-environment:
-      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
+      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib:$CRAFT_STAGE/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:$CRAFT_STAGE/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
     build-packages:
       - cmake
       - ninja-build
@@ -237,11 +237,11 @@ parts:
     build-attributes:
       - enable-patchelf
     build-environment:
-      - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
+      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib:$CRAFT_STAGE/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:$CRAFT_STAGE/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
     cmake-parameters:
       - -DCMAKE_C_COMPILER=clang
       - -DCMAKE_CXX_COMPILER=clang++
-      - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}/cmake/Qt6
+      - -DCMAKE_PREFIX_PATH=${CRAFT_STAGE}/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/cmake/Qt6
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DSNAP=1
       - -DSNAP_STAGE=$CRAFT_STAGE
@@ -271,15 +271,15 @@ parts:
     build-attributes:
       - enable-patchelf
     override-build: |
-      mkdir $SNAPCRAFT_PART_BUILD || true
-      cd $SNAPCRAFT_PART_BUILD
-      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC" $SNAPCRAFT_PART_SRC
-      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
+      mkdir $CRAFT_PART_BUILD || true
+      cd $CRAFT_PART_BUILD
+      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC" $CRAFT_PART_SRC
+      export LD_LIBRARY_PATH=${CRAFT_STAGE}/usr/lib
       ninja
-      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+      DESTDIR=$CRAFT_PART_INSTALL ninja install
     override-stage: |
-      cd $SNAPCRAFT_PART_BUILD
-      DESTDIR=$SNAPCRAFT_STAGE ninja install
+      cd $CRAFT_PART_BUILD
+      DESTDIR=$CRAFT_STAGE ninja install
     build-packages:
       - cmake
       - ninja-build
@@ -293,15 +293,15 @@ parts:
     build-attributes:
       - enable-patchelf
     override-build: |
-      mkdir $SNAPCRAFT_PART_BUILD || true
-      cd $SNAPCRAFT_PART_BUILD
-      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $SNAPCRAFT_PART_SRC
-      export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
+      mkdir $CRAFT_PART_BUILD || true
+      cd $CRAFT_PART_BUILD
+      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $CRAFT_PART_SRC
+      export LD_LIBRARY_PATH=${CRAFT_STAGE}/usr/lib
       ninja
-      DESTDIR=$SNAPCRAFT_PART_INSTALL ninja install
+      DESTDIR=$CRAFT_PART_INSTALL ninja install
     override-stage: |
-      cd $SNAPCRAFT_PART_BUILD
-      DESTDIR=$SNAPCRAFT_STAGE ninja install
+      cd $CRAFT_PART_BUILD
+      DESTDIR=$CRAFT_STAGE ninja install
     build-packages:
       - cmake
       - ninja-build
@@ -320,9 +320,9 @@ parts:
   #    - build-essential
   #    - dpkg-dev
   #  override-build: |
-  #    mkdir $SNAPCRAFT_PART_BUILD || true
-  #    cd $SNAPCRAFT_PART_BUILD
-  #    export LD_LIBRARY_PATH=${SNAPCRAFT_STAGE}/usr/lib
+  #    mkdir $CRAFT_PART_BUILD || true
+  #    cd $CRAFT_PART_BUILD
+  #    export LD_LIBRARY_PATH=${CRAFT_STAGE}/usr/lib
   #    ./bootstrap
   #    craftctl default
   maliit:
@@ -332,7 +332,7 @@ parts:
     source-branch: tide
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/cmake/Qt6
+      - -DCMAKE_PREFIX_PATH=${CRAFT_STAGE}/usr/lib/cmake/Qt6
       - -Denable-wayland=OFF
       - -Denable-glib=OFF
       - -Denable-tests=OFF
