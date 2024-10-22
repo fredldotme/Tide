@@ -2,7 +2,7 @@ name: tide-ide
 version: 2.2.0
 grade: stable
 confinement: classic
-base: core22
+base: core24
 summary: The modern approach to WebAssembly development & more
 description: |
   Develop and build WebAssembly code directly on your favorite tablet device!
@@ -98,7 +98,7 @@ parts:
     cmake-parameters:
       - -GNinja
       - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_INSTALL_RPATH=\$ORIGIN:\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
+      - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
       - -DQT_FEATURE_opengl=ON
       - -DQT_FEATURE_opengles2=ON
       - -DQT_FEATURE_opengles3=ON
@@ -152,7 +152,7 @@ parts:
     source-branch: 6.7.0
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_INSTALL_RPATH=\$ORIGIN:\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
+      - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
     build-packages:
       - cmake
       - ninja-build
@@ -167,7 +167,7 @@ parts:
     source-branch: 6.7.0
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_INSTALL_RPATH=\$ORIGIN:\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
+      - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
     build-environment:
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
     build-packages:
@@ -188,7 +188,7 @@ parts:
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_PREFIX_PATH=${SNAPCRAFT_STAGE}/usr/lib/cmake/Qt6
-      - -DCMAKE_INSTALL_RPATH=\$ORIGIN:\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
+      - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
     build-environment:
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
     build-packages:
@@ -205,7 +205,7 @@ parts:
     source-branch: 6.7.0
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_INSTALL_RPATH=\$ORIGIN:\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
+      - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
     build-environment:
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
     build-packages:
@@ -222,7 +222,7 @@ parts:
     source-branch: 6.7.0
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_INSTALL_RPATH=\$ORIGIN:\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core22/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
+      - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
     build-environment:
       - LD_LIBRARY_PATH: $SNAPCRAFT_STAGE/usr/lib:$SNAPCRAFT_STAGE/usr/lib/${SNAPCRAFT_ARCH_TRIPLET}:$SNAPCRAFT_STAGE/lib/${SNAPCRAFT_ARCH_TRIPLET}
     build-packages:
