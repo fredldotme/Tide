@@ -342,3 +342,29 @@ parts:
       - -Denable-xcb=OFF
       - -Denable-qt-inputcontext=ON
       - -Dwith-qt6=ON
+  interpreter:
+    after: [ maliit, ninja, cmake, launcher, tide ]
+    plugin: nil
+    build-packages:
+      - patchelf
+    override-prime: |
+      set -eux
+      LD=""
+      if [ "$CRAFT_ARCH_BUILD_FOR" = "amd64" ]; then
+        LD="ld-linux-x86-64.so.2"
+      elif [ "$CRAFT_ARCH_BUILD_FOR" = "armhf" ]; then
+        LD="ld-linux-armhf.so.3"
+      elif [ "$CRAFT_ARCH_BUILD_FOR" = "arm64" ]; then
+        LD="ld-linux-aarch64.so.1"
+      elif [ "$CRAFT_ARCH_BUILD_FOR" = "ppc64el" ]; then
+        LD="ld64.so.2"
+      else
+        echo "Unknown architecture: $CRAFT_ARCH_BUILD_FOR"
+        exit 1
+      fi
+      cd $CRAFT_PRIME/usr/lib
+      for f in $(find . -name "libQt*.so.6.7.0"); do
+        patchelf --set-interpreter "$f" "/snap/core24/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/$LD"
+      done
+      patchelf --set-interpreter "$CRAFT_ARCH_TRIPLET_BUILD_FOR/qt6/plugins/platforminputcontexts/libmaliitplatforminputcontextplugin.so" "/snap/core24/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/$LD"
+      exit 0
