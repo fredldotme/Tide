@@ -34,11 +34,11 @@ description: |
   - no_system: BSD 3-Clause License
   - Tide icon: Parmjot Singh
 
-architectures:
-  - build-on: [amd64]
-    build-for: [amd64]
-  - build-on: [arm64]
-    build-for: [arm64]
+platforms:
+  arm64:
+    build-on: [ arm64 ]
+  amd64:
+    build-on: [ amd64 ]
 
 apps:
   tide-ide:
