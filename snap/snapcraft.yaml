@@ -140,7 +140,6 @@ parts:
       - dmz-cursor-theme
       - light-themes
       - adwaita-icon-theme
-      - gnome-themes-standard
       - shared-mime-info
       - libgdk-pixbuf2.0-0
     stage:
