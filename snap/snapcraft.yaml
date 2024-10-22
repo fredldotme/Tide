@@ -366,6 +366,10 @@ parts:
       for f in $(find . -name "lib*.so"); do
         patchelf --set-interpreter "/snap/core24/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/$LD" "$f"
       done
+      cd $CRAFT_PRIME/usr/plugins
+      for f in $(find . -name "lib*.so"); do
+        patchelf --set-interpreter "/snap/core24/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/$LD" "$f"
+      done
       cd $CRAFT_PRIME/usr/lib
       for f in $(find . -name "libQt*.so.6.7.0"); do
         patchelf --set-interpreter "/snap/core24/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/$LD" "$f"
