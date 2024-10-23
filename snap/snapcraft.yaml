@@ -345,6 +345,7 @@ parts:
     plugin: nil
     build-packages:
       - patchelf
+      - coreutils
     override-prime: |
       set -eux
       LD=""
