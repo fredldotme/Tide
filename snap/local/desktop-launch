@@ -355,10 +355,14 @@ export QML_IMPORT_PATH=${SNAP}/usr/qml
 export QT_XKB_CONFIG_ROOT=${SNAP}/usr/share/X11/xkb
 append_dir LD_LIBRARY_PATH "$SNAP/usr/qml/QtQuick/Controls"
 
+# System libs (since this is a classic Snap)
+append_dir LD_LIBRARY_PATH "/usr/lib"
+append_dir LD_LIBRARY_PATH "/usr/lib/$ARCH"
+
 export QT_QPA_PLATFORM=wayland-egl
 
 # Misc
-append_dir LIBGL_DRIVERS_PATH "$SNAP/usr/lib/$ARCH/dri"
+# append_dir LIBGL_DRIVERS_PATH "$SNAP/usr/lib/$ARCH/dri"
 
 ###############################
 # Mark update and exec binary #
