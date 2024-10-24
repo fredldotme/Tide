@@ -142,6 +142,8 @@ parts:
       - adwaita-icon-theme
       - shared-mime-info
       - libgdk-pixbuf2.0-0
+      - libfreetype6
+      - libfontconfig1
     stage:
       - usr/*
   qt6shadertools:
