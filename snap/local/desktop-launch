@@ -357,6 +357,7 @@ append_dir LD_LIBRARY_PATH "$SNAP/usr/qml/QtQuick/Controls"
 
 # System libs (since this is a classic Snap)
 append_dir LD_LIBRARY_PATH "/usr/lib"
+append_dir LD_LIBRARY_PATH "/usr/lib64"
 append_dir LD_LIBRARY_PATH "/usr/lib/$ARCH"
 
 export QT_QPA_PLATFORM=wayland-egl
