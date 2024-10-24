@@ -196,6 +196,10 @@ parts:
       - dpkg-dev
       - libxkbcommon-dev
       - libwayland-dev
+    stage-packages:
+      - libwayland-client0
+      - libwayland-cursor0
+      - libwayland-egl1
     after: [ qt6declarative ]
   qt6svg:
     plugin: cmake
