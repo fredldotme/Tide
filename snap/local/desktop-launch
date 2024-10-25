@@ -360,6 +360,11 @@ append_dir LD_LIBRARY_PATH "/usr/lib"
 append_dir LD_LIBRARY_PATH "/usr/lib64"
 append_dir LD_LIBRARY_PATH "/usr/lib/$ARCH"
 
+# Core libraries
+CORE=core24
+prepend_dir LD_LIBRARY_PATH "/snap/$CORE/current/usr/lib"
+prepend_dir LD_LIBRARY_PATH "/snap/$CORE/current/usr/lib/$ARCH"
+
 export QT_QPA_PLATFORM=wayland-egl
 
 # Misc
