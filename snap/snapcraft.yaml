@@ -349,12 +349,21 @@ parts:
   cleanup:
     after: [ maliit, ninja, cmake, launcher, tide ]
     plugin: nil
-    build-snaps:
-      - mesa-2404
     override-prime: |
       set -eux
-      cd /snap/mesa-2404/current/usr/lib/${CRAFT_ARCH_TRIPLET}
-      find . -type f,l -exec rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/{} \;
+
+      # GL
+      rm $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/lib*GL*.so*
+      rm $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libdrm*.so*
+      rm $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libgbm*.so*
+
+      # Clang
+      rm $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libclang.so
+      rm $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libclang.so.18.1
+
+      # Static libraries not used
+      rm $CRAFT_PRIME/usr/lib/*.a
+
       rm -fr "$CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/dri"
       for CRUFT in bug drirc.d glvnd libdrm lintian man; do
           rm -rf "$CRAFT_PRIME/usr/share/$CRUFT"
