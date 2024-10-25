@@ -346,8 +346,21 @@ parts:
       - -Denable-xcb=OFF
       - -Denable-qt-inputcontext=ON
       - -Dwith-qt6=ON
-  interpreter:
+  cleanup:
     after: [ maliit, ninja, cmake, launcher, tide ]
+    plugin: nil
+    build-snaps:
+      - mesa-2404
+    override-prime: |
+      set -eux
+      cd /snap/mesa-2404/current/usr/lib/${CRAFT_ARCH_TRIPLET}
+      find . -type f,l -exec rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/{} \;
+      rm -fr "$CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/dri"
+      for CRUFT in bug drirc.d glvnd libdrm lintian man; do
+          rm -rf "$CRAFT_PRIME/usr/share/$CRUFT"
+      done
+  interpreter:
+    after: [ cleanup ]
     plugin: nil
     build-packages:
       - patchelf
