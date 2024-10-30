@@ -246,7 +246,7 @@ TideDialog {
                 anchors.fill: parent
                 text: qsTr("Nothing to commit")
                 font.pixelSize: 32
-                color: root.palette.placeholderText
+                color: root.palette.text
                 horizontalAlignment: Qt.AlignHCenter
                 verticalAlignment: Qt.AlignVCenter
                 visible: !commitTab.hasCommittable
