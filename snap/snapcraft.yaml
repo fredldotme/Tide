@@ -85,6 +85,7 @@ parts:
       - libglib2.0-0
       - zlib1g
       - shared-mime-info
+      - xdg-utils
     stage:
       - usr/lib
     prime:
