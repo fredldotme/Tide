@@ -265,7 +265,7 @@ parts:
       - libpcre2-16-0
       - libudev-dev
       - zlib1g-dev
-    after: [ qt6virtualkeyboard ]
+    after: [ bootstrap, qt6virtualkeyboard ]
   launcher:
     plugin: dump
     source: snap/local
