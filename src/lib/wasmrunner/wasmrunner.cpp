@@ -165,8 +165,8 @@ int WasmRunnerImpl::exec(const std::string& path, int argc, char** argv, int std
     if (debug) {
         debug_exec_env = wasm_runtime_get_exec_env_singleton(shared.module_inst);
         debug_port = wasm_runtime_start_debug_instance(debug_exec_env);
-        hostInterface->reportDebugPort(debug_port);
         wasm_runtime_wait_for_remote_start(debug_exec_env);
+        hostInterface->reportDebugPort(debug_port);
     }
 
     if (!wasm_application_execute_main(shared.module_inst, 0, NULL)) {
