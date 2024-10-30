@@ -446,6 +446,8 @@ void Debugger::connectToRemote(const int port)
 
     spawnDebugger();
 
+    QThread::msleep(500);
+
     auto debugCommand =
         QStringLiteral("process detach\n") +
         QStringLiteral("wa del\ny\n") +
