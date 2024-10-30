@@ -347,22 +347,22 @@ parts:
       - -Denable-qt-inputcontext=ON
       - -Dwith-qt6=ON
   cleanup:
-    after: [ maliit, ninja, cmake, launcher, tide ]
+    after: [ maliit, ninja, cmake, launcher, tide, deps ]
     plugin: nil
     override-prime: |
       set -eux
 
       # GL
-      rm $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/lib*GL*.so*
-      rm $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libdrm*.so*
-      rm $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libgbm*.so*
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/lib*GL*.so*
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libdrm*.so*
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libgbm*.so*
 
       # Clang
-      rm $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libclang.so
-      rm $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libclang.so.18.1
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libclang.so
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libclang.so.18.1
 
       # Static libraries not used
-      rm $CRAFT_PRIME/usr/lib/*.a
+      rm -f $CRAFT_PRIME/usr/lib/*.a
 
       rm -fr "$CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/dri"
       for CRUFT in bug drirc.d glvnd libdrm lintian man; do
