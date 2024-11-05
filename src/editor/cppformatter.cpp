@@ -24,7 +24,7 @@ QString CppFormatter::format(QString text, FormattingStyle formatStyle)
     this->handle = dlopen(libPath.toUtf8().data(), RTLD_NOW | RTLD_LOCAL);
 
     if (!this->handle) {
-        qWarning() << "Failed to load TideFormatter from" << libPath;
+        qWarning() << "Failed to load TideFormatter from" << libPath << ":" << QString::fromUtf8(dlerror());
         emit formatError();
         return text;
     }

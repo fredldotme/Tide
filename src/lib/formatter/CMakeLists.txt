@@ -81,15 +81,19 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
     endif()
 
     find_library(LLVM REQUIRED NAMES libLLVM-18.so PATHS ${LLVM_LIBS})
+    find_library(LIBCLANG REQUIRED NAMES libclang.so PATHS ${LLVM_LIBS})
+    find_library(LIBCLANG_CPP REQUIRED NAMES libclang-cpp.so PATHS ${LLVM_LIBS})
 endif()
 
-# Clang's formatting lib and dependencies
-set(LIBCLANGBASIC "${LLVM_LIBS}/libclangBasic.a")
-set(LIBCLANGLEX "${LLVM_LIBS}/libclangLex.a")
-set(LIBCLANGTOOLINGCORE "${LLVM_LIBS}/libclangToolingCore.a")
-set(LIBCLANGTOOLINGINCLUSIONS "${LLVM_LIBS}/libclangToolingInclusions.a")
-set(LIBCLANGREWRITE "${LLVM_LIBS}/libclangRewrite.a")
-set(LIBCLANGFORMAT "${LLVM_LIBS}/libclangFormat.a")
+if (APPLE OR IOS)
+    # Clang's formatting lib and dependencies
+    set(LIBCLANGBASIC "${LLVM_LIBS}/libclangBasic.a")
+    set(LIBCLANGLEX "${LLVM_LIBS}/libclangLex.a")
+    set(LIBCLANGTOOLINGCORE "${LLVM_LIBS}/libclangToolingCore.a")
+    set(LIBCLANGTOOLINGINCLUSIONS "${LLVM_LIBS}/libclangToolingInclusions.a")
+    set(LIBCLANGREWRITE "${LLVM_LIBS}/libclangRewrite.a")
+    set(LIBCLANGFORMAT "${LLVM_LIBS}/libclangFormat.a")
+endif()
 
 message(${LLVM_DIR}/${LLVM_MODE}/include)
 
@@ -111,6 +115,8 @@ target_link_libraries(${PROJECT_NAME}
     ${LIBCLANGTOOLINGINCLUSIONS}
     ${LIBCLANGREWRITE}
     ${LIBCLANGFORMAT}
+    ${LIBCLANG}
+    ${LIBCLANG_CPP}
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
