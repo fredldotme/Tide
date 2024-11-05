@@ -359,8 +359,8 @@ parts:
       rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libgbm*.so*
 
       # Clang
-      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libclang.so
-      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libclang.so.18.1
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libclang*.so*
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libLLVM-*.so*
 
       # Static libraries not used
       rm -f $CRAFT_PRIME/usr/lib/*.a
