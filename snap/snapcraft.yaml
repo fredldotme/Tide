@@ -25,9 +25,10 @@ description: |
 
   Special to Linux:
   - Ability to build Linux Snap packages when `snapcraft` is also installed
+  - Ability to build Ubuntu Touch packages when `clickable` is also installed
 
   Copyright notices:
-  - LLVM: Apache 2.0 License with LLVM exceptions
+  - LLVM: Apache 2.0 with LLVM exceptions
   - WAMR: Apache 2.0
   - Wasi SDK: Apache 2.0
   - libqmakeparser: BSD 3-Clause License
@@ -46,9 +47,18 @@ apps:
     command: usr/bin/tide-ide
 
 parts:
-  bootstrap:
+  builddeps:
+    plugin: nil
+    build-attributes:
+      - no-patchelf
+    stage-packages:
+      - ninja-build
+      - cmake
+      - cmake-data
+      - cmake-extras
+  llvm:
     plugin: cmake
-    source: 3rdparty
+    source: 3rdparty/llvm
     build-attributes:
       - enable-patchelf
     build-packages:
@@ -66,6 +76,25 @@ parts:
       - libpcre2-16-0
     override-build: |
       cd $CRAFT_PART_SRC
+      bash -x bootstrap-linux.sh
+    prime:
+      - usr/bin
+      - usr/lib
+  bootstrap:
+    after: [ builddeps, llvm ]
+    plugin: cmake
+    source: 3rdparty
+    build-packages:
+      - build-essential
+      - dpkg-dev
+      - libssl-dev
+      - libcrypt-dev
+      - curl
+      - libicu-dev
+    stage-packages:
+      - libpcre2-16-0
+    override-build: |
+      cd $CRAFT_PART_SRC
       bash -x bootstrap.sh --linux-snap
   deps:
     plugin: nil
@@ -78,19 +107,12 @@ parts:
       - openssl
       - fonts-open-sans
       - fonts-ubuntu
-      - libgl1-mesa-dri
       - libedit2
-      - libegl1
       - libffi8
       - libglib2.0-0
       - zlib1g
       - shared-mime-info
       - xdg-utils
-    stage:
-      - usr/lib
-    prime:
-      - usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
-    after: [ bootstrap ]
   qt6:
     plugin: cmake
     source: https://github.com/qt/qtbase.git
@@ -104,6 +126,7 @@ parts:
       - -DQT_FEATURE_opengles3=ON
       - -DQT_FEATURE_opengles31=ON
       - -DQT_FEATURE_opengles32=ON
+      - -DQT_FEATURE_xcb=ON
     build-packages:
       - cmake
       - ninja-build
@@ -121,6 +144,7 @@ parts:
       - libxi-dev
       - libxrender-dev
       - libxcb1-dev
+      - libxcb-cursor-dev
       - libxcb-glx0-dev
       - libxcb-keysyms1-dev
       - libxcb-image0-dev
@@ -138,6 +162,20 @@ parts:
       - libxkbcommon-x11-dev
     stage-packages:
       - libxkbcommon0
+      - libxcb-cursor0
+      - libxcb-glx0
+      - libxcb-keysyms1
+      - libxcb-image0
+      - libxcb-shm0
+      - libxcb-icccm4
+      - libxcb-sync1
+      - libxcb-xfixes0
+      - libxcb-shape0
+      - libxcb-randr0
+      - libxcb-render-util0
+      - libxcb-util1
+      - libxcb-xinerama0
+      - libxcb-xkb1
       - dmz-cursor-theme
       - light-themes
       - adwaita-icon-theme
@@ -147,6 +185,13 @@ parts:
       - libfontconfig1
     stage:
       - usr/*
+    prime:
+      - usr/lib/*
+      - usr/libexec/*
+      - usr/metatypes/*
+      - usr/modules/*
+      - usr/plugins/*
+      - usr/qml/*
   qt6shadertools:
     plugin: cmake
     source: https://github.com/qt/qtshadertools.git
@@ -266,60 +311,53 @@ parts:
       - libpcre2-16-0
       - libudev-dev
       - zlib1g-dev
-    after: [ bootstrap, qt6virtualkeyboard ]
+    after: [ llvm, bootstrap, qt6virtualkeyboard ]
   launcher:
     plugin: dump
     source: snap/local
     organize:
       desktop-launch: bin/desktop-launch
-  cmake:
-    plugin: cmake
-    source: 3rdparty/CMake
-    build-attributes:
-      - enable-patchelf
-    override-build: |
-      mkdir $CRAFT_PART_BUILD || true
-      cd $CRAFT_PART_BUILD
-      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_C_FLAGS="-fPIC" -DCMAKE_CXX_FLAGS="-fPIC" $CRAFT_PART_SRC
-      export LD_LIBRARY_PATH=${CRAFT_STAGE}/usr/lib
-      ninja
-      DESTDIR=$CRAFT_PART_INSTALL ninja install
-    override-stage: |
-      cd $CRAFT_PART_BUILD
-      DESTDIR=$CRAFT_STAGE ninja install
-    build-packages:
-      - cmake
-      - ninja-build
-      - build-essential
-      - dpkg-dev
-    stage:
-      - usr/*
-  ninja:
-    plugin: cmake
-    source: 3rdparty/ninja
-    build-attributes:
-      - enable-patchelf
-    override-build: |
-      mkdir $CRAFT_PART_BUILD || true
-      cd $CRAFT_PART_BUILD
-      cmake -GNinja -DCMAKE_INSTALL_PREFIX=/usr $CRAFT_PART_SRC
-      export LD_LIBRARY_PATH=${CRAFT_STAGE}/usr/lib
-      ninja
-      DESTDIR=$CRAFT_PART_INSTALL ninja install
-    override-stage: |
-      cd $CRAFT_PART_BUILD
-      DESTDIR=$CRAFT_STAGE ninja install
-    build-packages:
-      - cmake
-      - ninja-build
-      - build-essential
-      - dpkg-dev
-    stage:
-      - usr/*
+  #patches:
+  #  plugin: dump
+  #  source: snap/patches
+  #  override-prime:
+  #    rm -f $CRAFT_STAGE/*.patch
+  #    craftctl default
   # Special to Snapcraft release: Homebrew PSP
+  #pspgcc:
+  #  #after: [ patches ]
+  #  plugin: nil
+  #  source: https://github.com/pspdev/gcc.git
+  #  source-branch: allegrex-v13.2.0
+  #  build-attributes:
+  #    - enable-patchelf
+  #  build-packages:
+  #    - libgmp-dev
+  #    - libmpfr-dev
+  #    - libmpc-dev
+  #    - flex
+  #    - bison
+  #  stage-packages:
+  #    - libgmp10
+  #    - libmpfr6
+  #    - libmpc3
+  #  override-build: |
+  #    cd $CRAFT_PART_BUILD
+  #    export LD_LIBRARY_PATH=${CRAFT_STAGE}/usr/lib
+  #    export PATH=$CRAFT_STAGE/usr/bin:$CRAFT_STAGE/bin:$PATH
+  #    # patch -p1 < $CRAFT_STAGE/gcc-9.3.0-PSP.patch
+  #    ./configure --quiet --prefix=/usr --target=psp --enable-languages="c,c++" \
+  #      --with-float=hard  --with-newlib --disable-libssp --disable-multilib \
+  #      --enable-cxx-flags="-G0" --enable-threads=posix
+  #    make -j$(nproc --all)
+  #    craftctl default
+  #  override-stage: |
+  #    cd $CRAFT_PART_BUILD
+  #    DESTDIR=$CRAFT_STAGE make install
+  #    craftctl default
   #pspsdk:
-  #  plugin: autotools
-  #  after: [ tide ]
+  #  after: [ pspgcc ]
+  #  plugin: nil
   #  source: https://github.com/pspdev/pspsdk.git
   #  build-attributes:
   #    - enable-patchelf
@@ -327,10 +365,16 @@ parts:
   #    - build-essential
   #    - dpkg-dev
   #  override-build: |
-  #    mkdir $CRAFT_PART_BUILD || true
   #    cd $CRAFT_PART_BUILD
   #    export LD_LIBRARY_PATH=${CRAFT_STAGE}/usr/lib
+  #    export PATH=$CRAFT_STAGE/usr/bin:$CRAFT_STAGE/bin:$PATH
   #    ./bootstrap
+  #    ./configure --with-pspdev --prefix=/usr
+  #    make -j$(nproc)
+  #    craftctl default
+  #  override-stage: |
+  #    cd $CRAFT_PART_BUILD
+  #    DESTDIR=$CRAFT_STAGE make install
   #    craftctl default
   maliit:
     after: [ qt6declarative ]
@@ -348,15 +392,10 @@ parts:
       - -Denable-qt-inputcontext=ON
       - -Dwith-qt6=ON
   cleanup:
-    after: [ maliit, ninja, cmake, launcher, tide, deps ]
+    after: [ maliit, launcher, tide, deps ]
     plugin: nil
     override-prime: |
       set -eux
-
-      # GL
-      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/lib*GL*.so*
-      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libdrm*.so*
-      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libgbm*.so*
 
       # Clang
       rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libclang*.so*
@@ -365,6 +404,10 @@ parts:
       # Static libraries not used
       rm -f $CRAFT_PRIME/usr/lib/*.a
 
+      # GL & docs
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/lib*GL*.so*
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libdrm*.so*
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libgbm*.so*
       rm -fr "$CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/dri"
       for CRUFT in bug drirc.d glvnd libdrm lintian man; do
           rm -rf "$CRAFT_PRIME/usr/share/$CRUFT"
@@ -374,9 +417,10 @@ parts:
     plugin: nil
     build-packages:
       - patchelf
-      - coreutils
     override-prime: |
-      set -eux
+      set -ux
+      set +e
+
       LD=""
       if [ "$CRAFT_ARCH_BUILD_FOR" = "amd64" ]; then
         LD="ld-linux-x86-64.so.2"
@@ -400,9 +444,9 @@ parts:
       #done
       cd $CRAFT_PRIME/usr/lib
       for f in $(find . -name "libQt*.so.6.7.0"); do
-        set +e
         patchelf --set-interpreter "/snap/core24/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/$LD" "$f"
-        set -e
       done
-      patchelf --set-interpreter "/snap/core24/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/$LD" "$CRAFT_ARCH_TRIPLET_BUILD_FOR/qt6/plugins/platforminputcontexts/libmaliitplatforminputcontextplugin.so" || true
+      for f in $(find $CRAFT_ARCH_TRIPLET_BUILD_FOR/qt6/plugins -name "*.so"); do
+        patchelf --set-interpreter "/snap/core24/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/$LD" "$f"
+      done
       exit 0
