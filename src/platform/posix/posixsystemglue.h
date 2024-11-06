@@ -7,6 +7,11 @@
 
 #include "stdiospec.h"
 
+struct Command {
+    pid_t pid;
+    StdioSpec stdio;
+};
+
 class PosixSystemGlue : public QObject
 {
     Q_OBJECT
@@ -19,7 +24,10 @@ public:
 
     static std::pair<StdioSpec, StdioSpec> setupPipes();
 
-    Q_INVOKABLE int runCommand(const QString cmd, const StdioSpec spec = StdioSpec());
+    Command runCommand(const QString cmd, const StdioSpec spec = StdioSpec());
+    int waitCommand(Command& cmd);
+    void killCommand(Command& cmd);
+
     Q_INVOKABLE bool runBuildCommands(const QStringList cmds, const StdioSpec spec = StdioSpec());
     Q_INVOKABLE void killBuildCommands();
     Q_INVOKABLE void writeToStdIn(const QByteArray data);

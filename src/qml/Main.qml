@@ -29,6 +29,8 @@ ApplicationWindow {
 
     onClosing:
         (event) => {
+            console.log("Closing...")
+            dbugger.killDebugger();
             Qt.quit();
         }
 

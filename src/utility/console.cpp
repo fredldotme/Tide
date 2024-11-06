@@ -17,11 +17,11 @@ Console::~Console()
 
     close(fileno(m_spec.std_out));
     m_readThreadOut.terminate();
-    m_readThreadOut.wait(1000);
+    m_readThreadOut.wait(1500);
 
     close(fileno(m_spec.std_err));
     m_readThreadErr.terminate();
-    m_readThreadErr.wait(1000);
+    m_readThreadErr.wait(1500);
 }
 
 void Console::feedProgramSpec(StdioSpec spec)
@@ -46,16 +46,40 @@ void Console::write(const QString str)
 void Console::read(FILE* io)
 {
     qDebug() << Q_FUNC_INFO << io;
+
+    int ret;
+    fd_set rfds;
+    struct timeval tv;
     char buffer[4096];
     memset(buffer, 0, 4096);
+
+    FD_ZERO(&rfds);
+    FD_SET(fileno(io), &rfds);
+    tv.tv_sec = 1;
+    tv.tv_usec = 0;
+
     ::setvbuf(io, nullptr, _IOLBF, 4096);
-    while (::read(fileno(io), buffer, 4096))
-    {
-        const auto output = QString::fromUtf8(buffer);
-        emit contentRead(output, (this->m_spec.std_out == io));
-        memset(buffer, 0, 4096);
+
+    while ((ret = select(1, &rfds, NULL, NULL, &tv)) != -1) {
         if (m_quitting)
             return;
+
+        if (ret == 0)
+            continue;
+
+        while (::read(fileno(io), buffer, 4096))
+        {
+            const auto output = QString::fromUtf8(buffer);
+            emit contentRead(output, (this->m_spec.std_out == io));
+            memset(buffer, 0, 4096);
+            if (m_quitting)
+                return;
+        }
+
+        FD_ZERO(&rfds);
+        FD_SET(fileno(io), &rfds);
+        tv.tv_sec = 1;
+        tv.tv_usec = 0;
     }
 }
 

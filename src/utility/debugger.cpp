@@ -19,12 +19,12 @@ static const auto filterStackFrameInstructions = QRegularExpression("^(->  )(.*)
 static const auto filterFileStrRegex = QRegularExpression("^(.*):(\\d*)");
 
 Debugger::Debugger(QObject *parent)
-    : QObject{parent}, m_spawned{false}, m_running{false}, m_runner{nullptr}, m_system{nullptr}, m_forceQuit{false}
+    : QObject{parent}, m_running{false}, m_runner{nullptr}, m_system{nullptr},
+      m_process{0, StdioSpec()}, m_forceQuit{false}
 {
     // Similar to Console
     QObject::connect(&m_readThreadOut, &QThread::started, this, &Debugger::readOutput, Qt::DirectConnection);
     QObject::connect(&m_readThreadErr, &QThread::started, this, &Debugger::readError, Qt::DirectConnection);
-    QObject::connect(&m_debuggerThread, &QThread::started, this, &Debugger::runDebugSession, Qt::DirectConnection);
 
     QObject::connect(this, &Debugger::breakpointsChanged, this, &Debugger::waitingpointsChanged);
     QObject::connect(this, &Debugger::watchpointsChanged, this, &Debugger::waitingpointsChanged);
@@ -34,31 +34,35 @@ Debugger::Debugger(QObject *parent)
 
 void Debugger::spawnDebugger()
 {
-    if (m_spawned)
+    if (m_process.pid > 0)
         return;
 
     m_stdioPair = SystemGlue::setupPipes();
 
     m_readThreadOut.start();
     m_readThreadErr.start();
-    m_debuggerThread.start();
+
+    const QString cmd { QStringLiteral("lldb") };
+    m_process = m_system->runCommand(cmd, m_stdioPair.first);
 }
 
 Debugger::~Debugger()
 {
     m_forceQuit = true;
-    writeToStdIn("quit\n");
+
+    if (m_process.pid > 0) {
+        writeToStdIn("quit\n");
+        m_system->killCommand(m_process);
+    }
 
     close(fileno(m_stdioPair.second.std_out));
     close(fileno(m_stdioPair.second.std_err));
 
     m_readThreadOut.quit();
     m_readThreadErr.quit();
-    m_debuggerThread.quit();
 
-    m_readThreadOut.wait();
-    m_readThreadErr.wait();
-    m_debuggerThread.wait();
+    m_readThreadOut.wait(1500);
+    m_readThreadErr.wait(1500);
 }
 
 void Debugger::read(FILE* io)
@@ -78,7 +82,7 @@ void Debugger::read(FILE* io)
     ::setvbuf(io, nullptr, _IOLBF, 4096);
 
     while (select(1, &rfds, NULL, NULL, &tv) != -1) {
-        if (!m_spawned || m_forceQuit)
+        if (m_forceQuit)
             return;
 
         while (::read(fileno(io), buffer, 4096))
@@ -180,7 +184,7 @@ void Debugger::read(FILE* io)
 
             memset(buffer, 0, 4096);
 
-            if (!m_spawned || m_forceQuit)
+            if (m_forceQuit)
                 return;
         }
 
@@ -295,7 +299,7 @@ void Debugger::addBreakpoint(const QString& breakpoint)
     m_breakpoints.push_back(breakpoint);
     emit breakpointsChanged();
 
-    if (m_spawned) {
+    if (m_process.pid > 0) {
         const auto input = QByteArrayLiteral("b ") + breakpoint.toUtf8() + QByteArrayLiteral("\n");
         writeToStdIn(input);
     }
@@ -310,7 +314,7 @@ void Debugger::addWatchpoint(const QString& watchpoint)
     m_watchpoints.push_back(watchpoint);
     emit watchpointsChanged();
 
-    if (m_spawned) {
+    if (m_process.pid > 0) {
         const auto input = QByteArrayLiteral("watch set var -w write ") + watchpoint.toUtf8() + QByteArrayLiteral("\n");
         writeToStdIn(input);
     }
@@ -325,7 +329,7 @@ void Debugger::removeBreakpoint(const QString& breakpoint)
     m_breakpoints.removeAll(breakpoint);
     emit breakpointsChanged();
 
-    if (m_spawned) {
+    if (m_process.pid > 0) {
         writeToStdIn("br del\ny\n");
         for (const auto& valid_breakpoint : m_breakpoints) {
             const auto input = QByteArrayLiteral("b ") + valid_breakpoint.toUtf8() + QByteArrayLiteral("\n");
@@ -343,7 +347,7 @@ void Debugger::removeWatchpoint(const QString& watchpoint)
     m_watchpoints.removeAll(watchpoint);
     emit watchpointsChanged();
 
-    if (m_spawned) {
+    if (m_process.pid > 0) {
         writeToStdIn("wa del\ny\n");
         for (const auto& valid_watchpoint : m_watchpoints) {
             const auto input = QByteArrayLiteral("watch set var -w write ") + valid_watchpoint.toUtf8() + QByteArrayLiteral("\n");
@@ -378,17 +382,6 @@ QVariantList Debugger::waitingpoints()
         ret << entry;
     }
     return ret;
-}
-
-void Debugger::runDebugSession()
-{
-    const QString cmd { QStringLiteral("lldb") };
-
-    m_spawned = true;
-    const int ret = m_system->runCommand(cmd, m_stdioPair.first);
-    qDebug() << "Debugger return value:" << ret;
-
-    m_spawned = false;
 }
 
 void Debugger::writeToStdIn(const QByteArray& input)
@@ -436,7 +429,7 @@ void Debugger::setSystem(SystemGlue* system)
         return;
 
     m_system = system;
-    if (!m_spawned)
+    if (m_process.pid == 0)
         spawnDebugger();
 }
 
@@ -520,14 +513,14 @@ void Debugger::quitDebugger()
 
 void Debugger::killDebugger()
 {
-    if (!m_spawned)
+    if (!m_running)
         return;
 
     m_currentFile = "";
     m_currentLineOfExecution = "";
     emit currentLineOfExecutionChanged();
     clearBacktrace();
-    clearFrameValues();    
+    clearFrameValues();
     quitDebugger();
 
     m_running = false;

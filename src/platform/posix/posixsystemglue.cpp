@@ -33,9 +33,6 @@ PosixSystemGlue::~PosixSystemGlue()
         fwrite("\n", sizeof(char), 1, m_spec.std_err);
         fflush(m_spec.std_err);
     }
-
-    int status;
-    wait(&status);
 }
 
 StdioSpec PosixSystemGlue::consumerSpec()
@@ -127,7 +124,8 @@ bool PosixSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec s
     bool ret = true;
 
     for (const auto& command : cmds) {
-        if (runCommand(command, spec) != 0) {
+        Command cmd = runCommand(command, spec);
+        if (waitCommand(cmd) != 0) {
             ret = false;
             break;
         }
@@ -136,23 +134,11 @@ bool PosixSystemGlue::runBuildCommands(const QStringList cmds, const StdioSpec s
     return ret;
 }
 
-// Blocking and hence shouldn't be called from the main or GUI threads
-int PosixSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
+Command PosixSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
 {
-    StdioSpec copy;
+    Command ret {0, StdioSpec()};
     int status;
-    pid_t childpid, statuspid;
-    int ret = -1;
-
-    if (spec.std_in || spec.std_out || spec.std_err) {
-        copy.std_in = fdopen(dup(fileno(spec.std_in)), "r");
-        copy.std_out = fdopen(dup(fileno(spec.std_out)), "w");
-        copy.std_err = fdopen(dup(fileno(spec.std_err)), "w");
-    } else {
-        copy.std_in = fdopen(dup(fileno(m_spec.std_in)), "r");
-        copy.std_out = fdopen(dup(fileno(m_spec.std_out)), "w");
-        copy.std_err = fdopen(dup(fileno(m_spec.std_err)), "w");
-    }
+    pid_t childpid;
 
     const auto stdcmd = cmd.toStdString();
     std::vector<std::string> args = split_command(stdcmd);
@@ -166,21 +152,40 @@ int PosixSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
     }
     cargs.push_back(nullptr);
 
-    if (cargs.size() == 1)
-        goto done;
+    if (cargs.size() == 1) {
+        ret.pid = 0;
+        return ret;
+    }
+
+    if (spec.std_in || spec.std_out || spec.std_err) {
+        ret.stdio.std_in = fdopen(dup(fileno(spec.std_in)), "r");
+        ret.stdio.std_out = fdopen(dup(fileno(spec.std_out)), "w");
+        ret.stdio.std_err = fdopen(dup(fileno(spec.std_err)), "w");
+    } else {
+        ret.stdio.std_in = fdopen(dup(fileno(m_spec.std_in)), "r");
+        ret.stdio.std_out = fdopen(dup(fileno(m_spec.std_out)), "w");
+        ret.stdio.std_err = fdopen(dup(fileno(m_spec.std_err)), "w");
+    }
 
     posix_spawn_file_actions_init(&action);
     posix_spawn_file_actions_addclose(&action, 0);
     posix_spawn_file_actions_addclose(&action, 1);
     posix_spawn_file_actions_addclose(&action, 2);
-    posix_spawn_file_actions_adddup2(&action, fileno(copy.std_in), 0);
-    posix_spawn_file_actions_adddup2(&action, fileno(copy.std_out), 1);
-    posix_spawn_file_actions_adddup2(&action, fileno(copy.std_err), 2);
+    posix_spawn_file_actions_adddup2(&action, fileno(ret.stdio.std_in), 0);
+    posix_spawn_file_actions_adddup2(&action, fileno(ret.stdio.std_out), 1);
+    posix_spawn_file_actions_adddup2(&action, fileno(ret.stdio.std_err), 2);
     cmdbin = QStandardPaths::findExecutable(QString::fromStdString(args.at(0))).toStdString();
 
     if (cmdbin.empty()) {
         qWarning() << "Binary not found";
-        goto done;
+        if (ret.stdio.std_in)
+            fclose(ret.stdio.std_in);
+        if (ret.stdio.std_out)
+            fclose(ret.stdio.std_out);
+        if (ret.stdio.std_err)
+            fclose(ret.stdio.std_err);
+        ret.pid = 0;
+        return ret;
     }
 
     qDebug() << "Run command:" << cmd;
@@ -189,23 +194,49 @@ int PosixSystemGlue::runCommand(const QString cmd, const StdioSpec spec)
     status = posix_spawn(&childpid, cmdbin.c_str(), &action, NULL, (char * const*)cargs.data(), environ);
     if (status != 0) {
         qDebug() << "spawn status:" << status;
-        goto done;
     }
 
-    if (childpid >= 0) {
-        waitpid(childpid, &status, 0);
-    }
-    ret = WEXITSTATUS(status);
-
-done:
-    if (copy.std_in)
-        fclose(copy.std_in);
-    if (copy.std_out)
-        fclose(copy.std_out);
-    if (copy.std_err)
-        fclose(copy.std_err);
-
+    ret.pid = childpid;
     return ret;
+}
+
+int PosixSystemGlue::waitCommand(Command& cmd)
+{
+    int status;
+
+    if (cmd.pid < 1)
+        return 0;
+
+    waitpid(cmd.pid, &status, 0);
+
+    if (cmd.stdio.std_in)
+        fclose(cmd.stdio.std_in);
+    if (cmd.stdio.std_out)
+        fclose(cmd.stdio.std_out);
+    if (cmd.stdio.std_err)
+        fclose(cmd.stdio.std_err);
+    cmd.pid = 0;
+
+    return WEXITSTATUS(status);
+}
+
+void PosixSystemGlue::killCommand(Command& cmd)
+{
+    int status;
+
+    if (cmd.pid < 1)
+        return;
+
+    kill(cmd.pid, SIGKILL);
+    waitpid(cmd.pid, &status, 0);
+
+    if (cmd.stdio.std_in)
+        fclose(cmd.stdio.std_in);
+    if (cmd.stdio.std_out)
+        fclose(cmd.stdio.std_out);
+    if (cmd.stdio.std_err)
+        fclose(cmd.stdio.std_err);
+    cmd.pid = 0;
 }
 
 void PosixSystemGlue::killBuildCommands()

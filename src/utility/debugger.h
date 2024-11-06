@@ -13,6 +13,8 @@
 #include "platform/systemglue.h"
 #include "common/directorylisting.h"
 
+#include <unistd.h>
+
 class Debugger : public QObject
 {
     Q_OBJECT
@@ -36,7 +38,6 @@ public:
 
 public slots:
     void debug(const QString binary, const QStringList args, const bool exceptions);
-    void runDebugSession();
     void addBreakpoint(const QString& breakpoint);
     void addWatchpoint(const QString& watchpoint);
     void removeBreakpoint(const QString& breakpoint);
@@ -80,11 +81,11 @@ private:
     SystemGlue* system();
     void setSystem(SystemGlue* system);
 
-    bool m_spawned;
     bool m_running;
     bool m_processPaused;
     WasmRunner* m_runner;
     SystemGlue* m_system;
+    Command m_process;
     bool m_forceQuit;
     QString m_binary;
     QStringList m_args;
