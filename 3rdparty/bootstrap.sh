@@ -5,29 +5,27 @@ set -e
 BUILD_LINUX=0
 BUILD_SNAP=0
 BUILD_MAC=0
-BUILD_IOS=1
+BUILD_IOS=0
 
 CLANG_VER=18
 
 if [ "$1" = "--linux" ]; then
     BUILD_LINUX=1
-    BUILD_SNAP=0
-    BUILD_IOS=0
 fi
 
 if [ "$1" = "--linux-snap" ]; then
     echo "Building for Snap environment"
-    BUILD_LINUX=1
     BUILD_SNAP=1
-    BUILD_IOS=0
 fi
 
 if [ "$1" = "--macos" ]; then
     echo "Building for macOS"
-    BUILD_LINUX=0
-    BUILD_SNAP=0
     BUILD_MAC=1
-    BUILD_IOS=0
+fi
+
+if [ "$1" = "--ios" ]; then
+    echo "Building for iOS/iPadOS"
+    BUILD_IOS=1
 fi
 
 # Preparations
@@ -42,10 +40,14 @@ fi
 OLD_PWD=$(pwd)
 
 
-if [ "$BUILD_LINUX" = "0" ]; then
+if [ "$BUILD_MAC" == "1" ] || [ "$BUILD_IOS" == "1" ]; then
     CLANG_BINS=$OLD_PWD/llvm/build_osx/bin
     CLANG_LIBS=$OLD_PWD/llvm/build_osx/lib
     LLVM_BUILD=build-iphoneos
+elif [ "$BUILD_SNAP" == "1" ]; then
+    CLANG_BINS=$CRAFT_STAGE/usr/bin
+    CLANG_LIBS=$CRAFT_STAGE/usr/lib
+    LLVM_BUILD=""
 else
     CLANG_BINS=$OLD_PWD/llvm/build-linux/bin
     CLANG_LIBS=$OLD_PWD/llvm/build-linux/lib
@@ -94,7 +96,11 @@ function cmake_wasi_build {
     if [ "$BUILD_LINUX" = "1" ]; then
         OLD_PATH="$PATH"
         export PATH="/usr/bin:/bin:$PATH"
+    elif [ "$BUILD_SNAP" = "1" ]; then
+        OLD_PATH="$PATH"
+        export PATH="$CRAFT_STAGE/usr/bin:/usr/bin:/bin:$PATH"
     fi
+
     if [ -d build ]; then
         rm -rf build
     fi
@@ -118,10 +124,11 @@ function cmake_wasi_build {
         -DCMAKE_CXX_FLAGS="-Wl,--allow-undefined -Wno-error=unused-command-line-argument -Wno-error=unknown-warning-option $2" \
         "$3" ..
     ninja
-    if [ "$BUILD_LINUX" = "1" ]; then
+    cd ..
+
+    if [ ! -z "$OLD_PATH" ]; then
         export PATH="$OLD_PATH"
     fi
-    cd ..
 }
 
 # LLVM
@@ -129,31 +136,7 @@ cd llvm
 if [ "$BUILD_IOS" = "1" ] || [ "$BUILD_MAC" = "1" ]; then
     ./bootstrap.sh
 elif [ "$BUILD_LINUX" = "1" ]; then
-    mkdir build-linux || true
-    cd build-linux
-
-    if [ "$BUILD_SNAP" = "1" ]; then
-        PREFIX_ARG="-DCMAKE_INSTALL_PREFIX=$SNAPCRAFT_PART_INSTALL/usr"
-        SRCDIR="../llvm"
-    else
-        PREFIX_ARG=""
-        SRCDIR="$OLD_PWD/llvm/llvm"
-    fi
-
-    env CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake -GNinja \
-        -DLLVM_TARGETS_TO_BUILD="AArch64;X86;WebAssembly" \
-        -DLLVM_ENABLE_PROJECTS='clang;lld;lldb' \
-        -DLLVM_ENABLE_EH=ON \
-        -DLLVM_ENABLE_RTTI=ON \
-        -DLLVM_LINK_LLVM_DYLIB=ON \
-        -DLLDB_INCLUDE_TESTS=OFF \
-        -DCMAKE_BUILD_TYPE=Release \
-        $PREFIX_ARG \
-        $SRCDIR
-    ninja
-    if [ "$BUILD_SNAP" = "1" ]; then
-        ninja install
-    fi
+    ./bootstrap-linux.sh
 fi
 cd $OLD_PWD
 
@@ -223,7 +206,7 @@ if [ "$BUILD_MAC" = "1" ]; then
 fi
 
 # Dummy files for Linux
-if [ "$BUILD_LINUX" = "1" ]; then
+if [ "$BUILD_LINUX" = "1" ] || [ "$BUILD_SNAP" = "1" ]; then
     cd tmp
     if [ ! -d cmake-dummy ]; then
         mkdir cmake-dummy
@@ -259,10 +242,11 @@ NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TAR
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi-threads $OLD_PWD/tmp/wasi-sysroot/lib/
 
 # Threads and exceptions
-rm -rf build || true
+rm -rf build
 NINJA_FLAGS=-v LLVM_PROJ_DIR=$OLD_PWD/llvm SYSROOT=$OLD_PWD/tmp/wasi-sysroot TARGET=wasm32-wasi-threads-exce THREADING=ON EXCEPTIONS=ON EXCEPTIONS_FLAGS="-fwasm-exceptions" DESTDIR=$(pwd)/build/wasi make -f Makefile.tide build/libcxx-threads-exce-tide.BUILT
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/lib/wasm32-wasi-threads-exce $OLD_PWD/tmp/wasi-sysroot/lib/
 
+# Common
 cp -a $OLD_PWD/wasi-sdk/build/wasi/usr/local/include/* $OLD_PWD/tmp/wasi-sysroot/include/
 cd $OLD_PWD
 
@@ -379,15 +363,18 @@ mkdir -p tmp/the-sysroot/Clang
 mkdir -p tmp/the-sysroot/Sysroot
 mkdir -p tmp/the-sysroot/Clang/lib/wasi/
 cp -a $OLD_PWD/tmp/wasi-sysroot/* tmp/the-sysroot/Sysroot
-cp -a $OLD_PWD/llvm/$LLVM_BUILD/lib/clang/$CLANG_VER/include tmp/the-sysroot/Clang/
+if [ "$BUILD_SNAP" == "1" ]; then
+    cp -a $CRAFT_STAGE/usr/lib/clang/$CLANG_VER/include tmp/the-sysroot/Clang/
+else
+    cp -a $OLD_PWD/llvm/$LLVM_BUILD/lib/clang/$CLANG_VER/include tmp/the-sysroot/Clang/
+fi
 cp -a $OLD_PWD/tmp/lib/wasi/* tmp/the-sysroot/Clang/lib/wasi/
 tar cvf tmp/sysroot.tar -C tmp/the-sysroot Sysroot
 tar cvf tmp/clang.tar -C tmp/the-sysroot Clang
 cd $OLD_PWD
 
 # Version check to skip already unpacked sysroots
-VERSION=$(grep "VERSION" $OLD_PWD/../src/CMakeLists.txt | grep "^project" | awk -F" " '{ print $3 }')
-echo "$VERSION-$RANDOM" > $OLD_PWD/tmp/delivery.version
+echo "$RANDOM" > $OLD_PWD/tmp/delivery.version
 
 # Rust
 #cd 3rdparty/rust
