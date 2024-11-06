@@ -365,7 +365,11 @@ CORE=core24
 prepend_dir LD_LIBRARY_PATH "/snap/$CORE/current/usr/lib"
 prepend_dir LD_LIBRARY_PATH "/snap/$CORE/current/usr/lib/$ARCH"
 
-export QT_QPA_PLATFORM=wayland-egl
+if [ ! -z "$DESKTOP_FILE_HINT" ]; then
+    export QT_QPA_PLATFORM=wayland-egl
+else
+    export QT_QPA_PLATFORM=xcb
+fi
 
 # Misc
 # append_dir LIBGL_DRIVERS_PATH "$SNAP/usr/lib/$ARCH/dri"
