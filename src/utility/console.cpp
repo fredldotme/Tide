@@ -60,14 +60,11 @@ void Console::read(FILE* io)
 
     ::setvbuf(io, nullptr, _IOLBF, 4096);
 
-    while ((ret = select(1, &rfds, NULL, NULL, &tv)) != -1) {
+    while ((ret = select(fileno(io)+1, &rfds, NULL, NULL, &tv)) != -1) {
         if (m_quitting)
             return;
 
-        if (ret == 0)
-            continue;
-
-        while (::read(fileno(io), buffer, 4096))
+        if (ret > 0 && ::read(fileno(io), buffer, 4096))
         {
             const auto output = QString::fromUtf8(buffer);
             emit contentRead(output, (this->m_spec.std_out == io));

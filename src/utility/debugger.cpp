@@ -81,7 +81,7 @@ void Debugger::read(FILE* io)
 
     ::setvbuf(io, nullptr, _IOLBF, 4096);
 
-    while (select(1, &rfds, NULL, NULL, &tv) != -1) {
+    while (select(fileno(io)+1, &rfds, NULL, NULL, &tv) != -1) {
         if (m_forceQuit)
             return;
 
