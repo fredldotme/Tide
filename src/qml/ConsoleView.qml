@@ -164,7 +164,7 @@ Item {
                             consoleView.hide()
                         }
                     }
-                    ToolButton {
+                    TideToolButton {
                         Layout.alignment: Qt.AlignRight
                         Layout.rightMargin: paddingMedium
                         Layout.topMargin: expanded ? paddingSmall : 0
