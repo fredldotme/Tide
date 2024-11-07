@@ -199,8 +199,8 @@ Item {
                 text: {
                     let str = ""
                     for (let i = 0; i < consoleOutput.count; i++) {
-                        const line = consoleOutput.get(i)
-                        str += line + "\n"
+                        const line = consoleOutput.get(i).content
+                        str += line + (line.endsWith("\n") ? "" : "\n")
                     }
                     return str
                 }
