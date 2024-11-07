@@ -530,6 +530,11 @@ void Debugger::killDebugger()
     clearFrameValues();
     quitDebugger();
 
+    if (m_process.pid > 0) {
+        writeToStdIn("quit\n");
+        m_system->killCommand(m_process);
+    }
+
     m_running = false;
     emit runningChanged();
     m_processPaused = false;
