@@ -39,6 +39,25 @@ Building Tide requires a recent Xcode and QtCreator and prerequisite components 
 Afterwards you can open the CMake project in QtCreator.
 
 
+### macOS
+
+Building Tide for Mac requires a recent Xcode and QtCreator and prerequisite components built:
+
+```
+./bootstrap.sh --macos
+```
+
+Afterwards you can open the CMake project in QtCreator.
+
+
+### Linux
+
+Building Tide for Linux requires [Snapcraft](https://snapcraft.io)
+
+```
+snapcraft
+```
+
 ## Supporting Tide
 
 Tide IDE is Free and Open Source Software, but support is necessary to keep the project afloat. Instead of jumping through hoops of building the software yourself you can purchase Tide IDE from the App Store.
