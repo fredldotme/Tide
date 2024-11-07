@@ -57,7 +57,7 @@ ApplicationWindow {
     readonly property int roundedCornersRadius: 12
     readonly property int roundedCornersRadiusMedium: 18
     readonly property int sideBarStartWidth : (mainView.width / 2)
-    readonly property int sideBarExpandedWidth : 256
+    readonly property int sideBarExpandedWidth : 300
     readonly property int sideBarExpandedDefault: openFiles.files.length === 0 ?
                                                       sideBarStartWidth : sideBarExpandedWidth
     readonly property bool landscapeMode : width > height
@@ -2291,6 +2291,7 @@ ApplicationWindow {
                                     topMargin: paddingMedium
                                     model: openFiles.files
                                     spacing: paddingSmall
+                                    opacity: root.showLeftSideBar ? 1.0 : 0.0
 
                                     ScrollBar.vertical: TideScrollBar {
                                         parent: openfilesListView
@@ -3052,11 +3053,11 @@ ApplicationWindow {
                             model: dbugger.backtrace
                             clip: true
                             spacing: paddingSmall
-                            header: TideButton {
+                            header: Button {
+                                flat: true
                                 font.pixelSize: 18
-                                text: qsTr("Callstack & frames:")
+                                text: qsTr("Callstack && frames:")
                                 height: headerItemHeight
-                                color: root.palette.button
                                 /*onClicked: {
                                 dbugger.getBacktrace();
                                 }*/
@@ -3153,10 +3154,10 @@ ApplicationWindow {
                             model: dbugger.values
                             spacing: paddingSmall
                             clip: true
-                            header: TideButton {
+                            header: Button {
+                                flat: true
                                 font.pixelSize: 18
-                                text: qsTr("Values & instructions:")
-                                color: root.palette.button
+                                text: qsTr("Values && instructions:")
                                 height: headerItemHeight
                                 onClicked: {
                                     dbugger.getFrameValues();
