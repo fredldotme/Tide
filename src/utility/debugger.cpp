@@ -16,6 +16,7 @@ static const auto stackFrameRegex = QRegularExpression("^(.*) (.*) = (.*)");
 static const auto filterCallStackRegex = QRegularExpression("^(   |  \\*) frame #(\\d): ((.*)\\`(.*) at (.*)|(.*))");
 static const auto filterStackFrameRegex = QRegularExpression("^\\((.*)\\) ([^=]*) = (.*)");
 static const auto filterStackFrameInstructions = QRegularExpression("^(->  )(.*): (.*) (.*)");
+static const auto filterWasmInstruction = QRegularExpression("^(  |->)  0x(.*): (.*)");
 static const auto filterFileStrRegex = QRegularExpression("^(.*):(\\d*)");
 
 Debugger::Debugger(QObject *parent)
@@ -238,6 +239,7 @@ QVariantMap Debugger::filterStackFrame(const QString output)
     QVariantMap ret;
     auto regexMatch = filterStackFrameRegex.match(output);
     auto regex2Match = filterStackFrameInstructions.match(output);
+    auto regex3Match = filterWasmInstruction.match(output);
     qDebug() << Q_FUNC_INFO << regexMatch << "or" << regex2Match << "for input" << output;
 
     if (regexMatch.hasMatch()) {
@@ -258,6 +260,11 @@ QVariantMap Debugger::filterStackFrame(const QString output)
         ret.insert("type", type);
         ret.insert("name", regex2Match.captured(3));
         ret.insert("value", regex2Match.captured(4));
+    } else if (regex3Match.hasMatch()) {
+        ret.insert("partial", false);
+        ret.insert("type", "instruction");
+        ret.insert("name", regex3Match.captured(2));
+        ret.insert("value", regex3Match.captured(3));
     }
 
     return ret;
