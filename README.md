@@ -33,7 +33,7 @@ This project uses LLVM + Clang and the Wasi SDK to provide a compiler toolchain 
 Building Tide requires a recent Xcode and QtCreator and prerequisite components built:
 
 ```
-./bootstrap.sh
+./bootstrap.sh --ios
 ```
 
 Afterwards you can open the CMake project in QtCreator.
