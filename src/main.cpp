@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
         qputenv("QT_SCALE_FACTOR", std::to_string(scale).c_str());
     }
 
-    if (qgetenv("QT_IM_MODULE") == QByteArrayLiteral("maliitphablet")) {
+    if (qEnvironmentVariableIsSet("DESKTOP_FILE_HINT")) {
         qputenv("QT_IM_MODULE", "maliit");
     } else {
         useQtVirtualKeyboard = true;
