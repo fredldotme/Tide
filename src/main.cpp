@@ -167,14 +167,14 @@ int main(int argc, char *argv[])
         qmlRegisterType<GitClient>("Tide", 1, 0, "GitClient");
         qmlRegisterType<PlatformIntegrationDelegate>("Tide", 1, 0, "PlatformIntegrationDelegate");
         qmlRegisterType<TidePluginManager>("Tide", 1, 0, "TidePluginManager");
-        
+
         qmlRegisterUncreatableType<SystemGlue>("Tide", 1, 0, "IosSystemGlue", "Created in main() as 'iosSystem'.");
         qmlRegisterUncreatableType<StdioSpec>("Tide", 1, 0, "ProgramSpec", "StdioSpec is protocol between 'iosSystem' and 'Console'.");
         qmlRegisterUncreatableType<QSourceHighliter>("Tide", 1, 0, "SourceHighliter", "Use 'SyntaxHighlighter' instead.");
         qmlRegisterUncreatableType<InputMethodFixerInstaller>("Tide", 1, 0, "ImFixerInstaller", "Instantiated in main() as 'imFixer'.");
         qmlRegisterUncreatableType<SearchResult>("Tide", 1, 0, "SearchResult", "Created 'searchAndReplace'.");
         qmlRegisterUncreatableType<TidePlugin>("Tide", 1, 0, "TidePlugin", "TidePlugin is created by 'TidePluginManager'");
-        
+
         {
             SystemGlue iosSystemGlue;
             InputMethodFixerInstaller imFixer;
@@ -195,7 +195,7 @@ int main(int argc, char *argv[])
             engine.rootContext()->setContextProperty("pluginManager", &pluginManager);
             engine.rootContext()->setContextProperty("gridUnitPx", gridUnitPx);
             //engine.rootContext()->setContextProperty("runtime", runtime);
-            
+
             const QUrl url(u"qrc:/Tide/qml/Main.qml"_qs);
 #if defined(Q_OS_IOS) || defined(Q_OS_MACOS)
             QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
                              Qt::QueuedConnection);
 #endif
             engine.load(url);
-            
+
             signal(SIGPIPE, SIG_IGN);
 #if !defined(Q_OS_IOS) && !defined(Q_OS_WASM)
             setsid();

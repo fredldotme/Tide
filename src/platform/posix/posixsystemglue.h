@@ -34,6 +34,7 @@ public:
     Q_INVOKABLE void setupStdIo();
     Q_INVOKABLE void copyToClipboard(const QString text);
     Q_INVOKABLE void share(const QString text, const QUrl url, const QRect pos);
+    Q_INVOKABLE void openUrl(const QUrl url);
 
 private:
     StdioSpec m_spec;

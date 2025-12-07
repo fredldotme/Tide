@@ -191,7 +191,7 @@ ColumnLayout {
         font.pixelSize: 18
         spacing: 8
         onClicked: {
-            Qt.openUrlExternally("https://github.com/fredldotme/Tide")
+            iosSystem.openUrl("https://github.com/fredldotme/Tide")
         }
     }
 

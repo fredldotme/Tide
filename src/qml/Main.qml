@@ -1933,7 +1933,7 @@ ApplicationWindow {
                                                             text: qsTr("Open in Files app")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/folder@2x.png")
                                                             onClicked: {
-                                                                Qt.openUrlExternally(dirOpenProtocol + projectsContextMenu.selectedProject.path)
+                                                                iosSystem.openUrl(dirOpenProtocol + projectsContextMenu.selectedProject.path)
                                                             }
                                                         }
 
@@ -2212,7 +2212,7 @@ ApplicationWindow {
                                                             text: qsTr("Open in Files app")
                                                             icon.source: Qt.resolvedUrl("qrc:/assets/folder@2x.png")
                                                             onClicked: {
-                                                                Qt.openUrlExternally(dirOpenProtocol + modelData.path)
+                                                                iosSystem.openUrl(dirOpenProtocol + modelData.path)
                                                             }
                                                         }
 

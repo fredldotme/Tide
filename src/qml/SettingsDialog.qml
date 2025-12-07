@@ -506,7 +506,7 @@ TideDialog {
                                 text: qsTr("Open Plugins folder")
                                 color: root.palette.button
                                 onClicked: {
-                                    Qt.openUrlExternally(root.dirOpenProtocol + pluginManager.pluginsPath())
+                                    iosSystem.openUrl(root.dirOpenProtocol + pluginManager.pluginsPath())
                                 }
                             }
                         }
@@ -537,7 +537,7 @@ TideDialog {
                                     ToolButton {
                                         text: qsTr("Open Plugins folder")
                                         onClicked: {
-                                            Qt.openUrlExternally("shareddocuments://" + pluginManager.pluginsPath())
+                                            iosSystem.openUrl(root.dirOpenProtocol + pluginManager.pluginsPath())
                                         }
                                     }
                                 }

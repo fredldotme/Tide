@@ -3,7 +3,9 @@
 #include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
+#include <QFile>
 #include <QStandardPaths>
+#include <QStringList>
 #include <QUrl>
 #include <QProcess>
 #include <QDesktopServices>
@@ -267,5 +269,22 @@ void PosixSystemGlue::share(const QString text, const QUrl url, const QRect pos)
     splitPath.takeLast();
     const auto fullPath = QStringLiteral("file:///") + splitPath.join(QDir::separator());
     qDebug() << "Opening:" << fullPath;
-    QDesktopServices::openUrl(QUrl(fullPath));
+    openUrl(QUrl(fullPath));
+}
+
+void PosixSystemGlue::openUrl(const QUrl url)
+{
+    static const auto dispatcher = QStringLiteral("lomiri-url-dispatcher");
+    const auto pathEnv = qgetenv("PATH");
+    const auto pathList = pathEnv.split(':');
+
+    for (const auto path : pathList) {
+        const auto filePath = QString::fromUtf8(path) + QStringLiteral("/") + dispatcher;
+        if (QFile::exists(filePath)) {
+            QProcess::execute(filePath, QStringList() << url.toString());
+            return;
+        }
+    }
+
+    QDesktopServices::openUrl(url);
 }
