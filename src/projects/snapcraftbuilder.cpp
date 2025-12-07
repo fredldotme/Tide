@@ -52,7 +52,7 @@ void SnapcraftBuilder::build(const bool debug, const bool aot, const bool except
     const auto sourcePath = projectDir();
 
     QStringList buildCommands;
-    buildCommands << QStringLiteral("snapcraft");
+    buildCommands << QStringLiteral("snapcraft") << QStringLiteral("pack");
 
     std::thread buildThread([=]() {
         m_building = true;
