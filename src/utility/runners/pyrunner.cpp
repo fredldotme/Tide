@@ -117,7 +117,7 @@ void TidePyRunnerHost::reportExit(const int code)
     runner->sharedData.killing = true;
 #if 0
     if (runner->sharedData.debug && runner->sharedData.debugger) {
-        runner->sharedData.debugger->killDebugger();
+        runner->sharedData.debugger->killDebugger(false);
         runner->sharedData.debug = false;
     }
 #endif
@@ -222,7 +222,7 @@ void PyRunner::kill()
     sharedData.killing = true;
 #if 0
     if (sharedData.debug && m_debugger) {
-        m_debugger->killDebugger();
+        m_debugger->killDebugger(false);
         sharedData.debug = false;
     }
 #endif

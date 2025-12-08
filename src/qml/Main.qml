@@ -30,7 +30,7 @@ ApplicationWindow {
     onClosing:
         (event) => {
             console.log("Closing...")
-            dbugger.killDebugger();
+            dbugger.killDebugger(true);
             Qt.quit();
         }
 
@@ -294,7 +294,7 @@ ApplicationWindow {
         releaseRequested = false
 
         if (dbugger.running)
-            dbugger.killDebugger()
+            dbugger.killDebugger(false)
         if (wasmRunner.running)
             wasmRunner.kill()
         if (pyRunner.running)

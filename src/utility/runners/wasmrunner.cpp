@@ -104,7 +104,7 @@ void TideWasmRunnerHost::reportExit(const int code)
 {
     runner->sharedData.killing = true;
     if (runner->sharedData.debug && runner->sharedData.debugger) {
-        runner->sharedData.debugger->killDebugger();
+        runner->sharedData.debugger->killDebugger(false);
         runner->sharedData.debug = false;
     }
     emit runner->runEnded(code);
@@ -224,7 +224,7 @@ void WasmRunner::kill()
 {
     sharedData.killing = true;
     if (sharedData.debug && m_debugger) {
-        m_debugger->killDebugger();
+        m_debugger->killDebugger(false);
         sharedData.debug = false;
     }
 

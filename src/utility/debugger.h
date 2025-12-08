@@ -60,7 +60,7 @@ public slots:
     void getBacktraceAndFrameValues();
 
     void quitDebugger();
-    void killDebugger();
+    void killDebugger(const bool shutdown);
 
     DirectoryListing getFileForActiveLine();
 

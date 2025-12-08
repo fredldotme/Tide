@@ -518,9 +518,12 @@ void Debugger::quitDebugger()
     writeToStdIn("process detach\n");
 }
 
-void Debugger::killDebugger()
+void Debugger::killDebugger(const bool shutdown)
 {
-    m_forceQuit = true;
+    if (!m_running && !shutdown)
+        return;
+
+    m_forceQuit = shutdown;
 
     m_currentFile = "";
     m_currentLineOfExecution = "";
