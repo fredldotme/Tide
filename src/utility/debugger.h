@@ -97,7 +97,7 @@ private:
 
     QStringList m_breakpoints;
     QStringList m_watchpoints;
-    
+
     QMutex m_backtraceMutex;
     QVariantList m_backtrace;
 

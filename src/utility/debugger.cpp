@@ -35,7 +35,7 @@ Debugger::Debugger(QObject *parent)
 
 void Debugger::spawnDebugger()
 {
-    if (m_process.pid > 0)
+    if (m_process.pid > 0 || m_forceQuit)
         return;
 
     m_stdioPair = SystemGlue::setupPipes();
@@ -520,8 +520,7 @@ void Debugger::quitDebugger()
 
 void Debugger::killDebugger()
 {
-    if (!m_running)
-        return;
+    m_forceQuit = true;
 
     m_currentFile = "";
     m_currentLineOfExecution = "";
