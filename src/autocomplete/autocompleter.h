@@ -13,6 +13,8 @@
 
 #include "clangwrapper.h"
 
+struct CompletionHint;
+
 class AutoCompleter : public QObject
 {
     Q_OBJECT
@@ -35,16 +37,6 @@ public:
         Method = (1 << 10),
     };
     Q_ENUM(CompletionKind)
-
-    struct CompletionHint {
-        Q_GADGET
-    public:
-        QString prefix;
-        QString name;
-        QString detail;
-        CompletionKind kind;
-        CXCursor cursor; // Compared to in the second pass as the semantic parent
-    };
 
     explicit AutoCompleter(QObject *parent = nullptr);
     ~AutoCompleter();
@@ -89,7 +81,17 @@ signals:
     void pluginManagerChanged();
 };
 
-Q_DECLARE_METATYPE(AutoCompleter::CompletionHint)
+struct CompletionHint {
+    Q_GADGET
+public:
+    QString prefix;
+    QString name;
+    QString detail;
+    AutoCompleter::CompletionKind kind;
+    CXCursor cursor; // Compared to in the second pass as the semantic parent
+};
+
+Q_DECLARE_METATYPE(CompletionHint)
 Q_DECLARE_METATYPE(AutoCompleter)
 
 #endif // AUTOCOMPLETER_H

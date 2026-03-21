@@ -344,7 +344,7 @@ void AutoCompleter::addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang)
     const QString name = QString::fromUtf8(clang->getCString(spelling));
     clang->disposeString(spelling);
 
-    CompletionKind completionKind = getAutoCompleterKind(kind);
+    AutoCompleter::CompletionKind completionKind = getAutoCompleterKind(kind);
 
     if (this->referenceHints.length() != 0) {
         bool hintedResults = false;
@@ -364,7 +364,7 @@ void AutoCompleter::addDecl(CXCursor c, CXCursor parent, ClangWrapper* clang)
     foundKind(completionKind, prefix, name, detail);
 }
 
-void AutoCompleter::reloadAst(const QStringList paths, const QString hint, const CompletionKind filter, const int line, const int column)
+void AutoCompleter::reloadAst(const QStringList paths, const QString hint, const AutoCompleter::CompletionKind filter, const int line, const int column)
 {
     {
         QMutexLocker<QMutex> locker(&clangMutex);
@@ -417,13 +417,13 @@ QVariantList AutoCompleter::filteredDecls(const QString str)
     return ret;
 }
 
-void AutoCompleter::foundKind(const CompletionKind kind, const QString prefix, const QString name, const QString detail)
+void AutoCompleter::foundKind(const AutoCompleter::CompletionKind kind, const QString prefix, const QString name, const QString detail)
 {
     if (name.isEmpty())
         return;
 
-    if (this->typeFilter != CompletionKind::Unspecified) {
-        if (kind == CompletionKind::Unspecified || !(this->typeFilter & kind)) {
+    if (this->typeFilter != AutoCompleter::CompletionKind::Unspecified) {
+        if (kind == AutoCompleter::CompletionKind::Unspecified || !(this->typeFilter & kind)) {
             return;
         }
     }
