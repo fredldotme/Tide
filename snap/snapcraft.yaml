@@ -46,6 +46,13 @@ apps:
     command-chain: [ bin/desktop-launch ]
     command: usr/bin/tide-ide
 
+package-repositories:
+  - type: apt
+    url: http://repo.ubports.com/
+    key-id: B551C909D750AA744948E9ED4BD4B4D6DBB583F1
+    components: [ main ]
+    suites: [ 24.04-2.x ]
+
 parts:
   builddeps:
     plugin: nil
@@ -113,166 +120,14 @@ parts:
       - zlib1g
       - shared-mime-info
       - xdg-utils
-  qt6:
-    plugin: cmake
-    source: https://github.com/qt/qtbase.git
-    source-branch: 6.7.0
-    cmake-parameters:
-      - -GNinja
-      - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
-      - -DQT_FEATURE_opengl=ON
-      - -DQT_FEATURE_opengles2=ON
-      - -DQT_FEATURE_opengles3=ON
-      - -DQT_FEATURE_opengles31=ON
-      - -DQT_FEATURE_opengles32=ON
-      - -DQT_FEATURE_xcb=ON
-    build-packages:
-      - cmake
-      - ninja-build
-      - build-essential
-      - dpkg-dev
-      - libinput-dev
-      - libgl-dev
-      - libgles-dev
-      - libfontconfig1-dev
-      - libfreetype6-dev
-      - libx11-dev
-      - libx11-xcb-dev
-      - libxext-dev
-      - libxfixes-dev
-      - libxi-dev
-      - libxrender-dev
-      - libxcb1-dev
-      - libxcb-cursor-dev
-      - libxcb-glx0-dev
-      - libxcb-keysyms1-dev
-      - libxcb-image0-dev
-      - libxcb-shm0-dev
-      - libxcb-icccm4-dev
-      - libxcb-sync-dev
-      - libxcb-xfixes0-dev
-      - libxcb-shape0-dev
-      - libxcb-randr0-dev
-      - libxcb-render-util0-dev
-      - libxcb-util-dev
-      - libxcb-xinerama0-dev
-      - libxcb-xkb-dev
-      - libxkbcommon-dev
-      - libxkbcommon-x11-dev
-    stage-packages:
-      - libxkbcommon0
-      - libxcb-cursor0
-      - libxcb-glx0
-      - libxcb-keysyms1
-      - libxcb-image0
-      - libxcb-shm0
-      - libxcb-icccm4
-      - libxcb-sync1
-      - libxcb-xfixes0
-      - libxcb-shape0
-      - libxcb-randr0
-      - libxcb-render-util0
-      - libxcb-util1
-      - libxcb-xinerama0
-      - libxcb-xkb1
-      - dmz-cursor-theme
-      - light-themes
-      - adwaita-icon-theme
-      - shared-mime-info
-      - libgdk-pixbuf2.0-0
-      - libfreetype6
-      - libfontconfig1
-    stage:
-      - usr/*
-    prime:
-      - usr/lib/*
-      - usr/libexec/*
-      - usr/metatypes/*
-      - usr/modules/*
-      - usr/plugins/*
-      - usr/qml/*
-  qt6shadertools:
-    plugin: cmake
-    source: https://github.com/qt/qtshadertools.git
-    source-branch: 6.7.0
-    cmake-parameters:
-      - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
-    build-packages:
-      - cmake
-      - ninja-build
-      - build-essential
-      - dpkg-dev
-    stage:
-      - usr/*
-    after: [ qt6 ]
-  qt6declarative:
-    plugin: cmake
-    source: https://github.com/qt/qtdeclarative.git
-    source-branch: 6.7.0
-    cmake-parameters:
-      - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
-    build-environment:
-      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib:$CRAFT_STAGE/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:$CRAFT_STAGE/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
-    build-packages:
-      - cmake
-      - ninja-build
-      - build-essential
-      - dpkg-dev
-      - libharfbuzz-dev
-    stage-packages:
-      - libharfbuzz0b
-    stage:
-      - usr/*
-    after: [ qt6shadertools ]
-  qt6wayland:
-    plugin: cmake
-    source: https://github.com/qt/qtwayland.git
-    source-branch: 6.7.0
-    cmake-parameters:
-      - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_PREFIX_PATH=${CRAFT_STAGE}/usr/lib/cmake/Qt6
-      - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
-    build-environment:
-      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib:$CRAFT_STAGE/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:$CRAFT_STAGE/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
-    build-packages:
-      - cmake
-      - ninja-build
-      - build-essential
-      - dpkg-dev
-      - libxkbcommon-dev
-      - libwayland-dev
-    stage-packages:
-      - libwayland-client0
-      - libwayland-cursor0
-      - libwayland-egl1
-    after: [ qt6declarative ]
-  qt6svg:
-    plugin: cmake
-    source: https://github.com/qt/qtsvg.git
-    source-branch: 6.7.0
-    cmake-parameters:
-      - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
-    build-environment:
-      - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib:$CRAFT_STAGE/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:$CRAFT_STAGE/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
-    build-packages:
-      - cmake
-      - ninja-build
-      - build-essential
-      - dpkg-dev
-    stage:
-      - usr/*
-    after: [ qt6wayland ]
   qt6virtualkeyboard:
     plugin: cmake
     source: https://github.com/qt/qtvirtualkeyboard.git
-    source-branch: 6.7.0
+    source-branch: 6.8.2
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
       - -DCMAKE_INSTALL_RPATH=\$ORIGIN/$CRAFT_ARCH_TRIPLET_BUILD_FOR:/snap/core24/current/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR
+      - -DQT_NO_PACKAGE_VERSION_CHECK=TRUE
     build-environment:
       - LD_LIBRARY_PATH: $CRAFT_STAGE/usr/lib:$CRAFT_STAGE/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:$CRAFT_STAGE/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}
     build-packages:
@@ -280,9 +135,18 @@ parts:
       - ninja-build
       - build-essential
       - dpkg-dev
+      - qt6-svg-dev
+      - qt6-base-private-dev
+    stage-packages:
+      - libqt6opengl6
+      - libopengl0
+    override-build: |
+        craftctl default
+        make install
+        exit 0
     stage:
       - usr/*
-    after: [ qt6svg ]
+    after: [ deps ]
   tide:
     plugin: cmake
     source: .
@@ -311,12 +175,29 @@ parts:
       - libpcre2-16-0
       - libudev-dev
       - zlib1g-dev
+      - qt6-tools-dev
+      - qt6-tools-dev-tools
+      - qt6-declarative-dev
     after: [ llvm, bootstrap, qt6virtualkeyboard ]
   launcher:
     plugin: dump
     source: snap/local
     organize:
       desktop-launch: bin/desktop-launch
+    build-attributes:
+      - no-patchelf
+    stage-packages:
+      - qml6-module-qtquick
+      - qml6-module-qtquick-controls
+      - qml6-module-qtquick-effects
+      - qml6-module-qtquick-layouts
+      - qml6-module-qt-labs-settings
+      - qt6-wayland
+      - qtubuntu-qt6
+      - maliit-inputcontext-qt6
+      - libqt6sql6
+      - libqt6widgets6
+      - libqt6sql6-sqlite
   #patches:
   #  plugin: dump
   #  source: snap/patches
@@ -376,23 +257,8 @@ parts:
   #    cd $CRAFT_PART_BUILD
   #    DESTDIR=$CRAFT_STAGE make install
   #    craftctl default
-  maliit:
-    after: [ qt6declarative ]
-    plugin: cmake
-    source: https://github.com/fredldotme/maliit-framework.git
-    source-branch: tide
-    cmake-parameters:
-      - -DCMAKE_INSTALL_PREFIX=/usr
-      - -DCMAKE_PREFIX_PATH=${CRAFT_STAGE}/usr/lib/cmake/Qt6
-      - -Denable-wayland=OFF
-      - -Denable-glib=OFF
-      - -Denable-tests=OFF
-      - -Denable-docs=OFF
-      - -Denable-xcb=OFF
-      - -Denable-qt-inputcontext=ON
-      - -Dwith-qt6=ON
   cleanup:
-    after: [ maliit, launcher, tide, deps ]
+    after: [ launcher, tide, deps ]
     plugin: nil
     override-prime: |
       set -eux
@@ -405,9 +271,11 @@ parts:
       rm -f $CRAFT_PRIME/usr/lib/*.a
 
       # GL & docs
-      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/lib*GL*.so*
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libEGL*.so*
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libGL*.so*
       rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libdrm*.so*
       rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libgbm*.so*
+      rm -f $CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/libvulkan.so*
       rm -fr "$CRAFT_PRIME/usr/lib/${CRAFT_ARCH_TRIPLET}/dri"
       for CRUFT in bug drirc.d glvnd libdrm lintian man; do
           rm -rf "$CRAFT_PRIME/usr/share/$CRUFT"
@@ -443,7 +311,7 @@ parts:
       #  patchelf --set-interpreter "/snap/core24/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/$LD" "$f" || true
       #done
       cd $CRAFT_PRIME/usr/lib
-      for f in $(find . -name "libQt*.so.6.7.0"); do
+      for f in $(find $CRAFT_ARCH_TRIPLET_BUILD_FOR -name "libQt*.so.6.*.*"); do
         patchelf --set-interpreter "/snap/core24/current/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/$LD" "$f"
       done
       for f in $(find $CRAFT_ARCH_TRIPLET_BUILD_FOR/qt6/plugins -name "*.so"); do
