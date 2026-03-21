@@ -95,13 +95,11 @@ int main(int argc, char *argv[])
         qputenv("QT_WAYLAND_DISABLE_WINDOWDECORATION", "1");
         const auto grid_unit = qgetenv("GRID_UNIT_PX");
         gridUnitPx = grid_unit.toInt();
-        const auto scale = (qreal)gridUnitPx / (qreal) 8;
-        qputenv("QT_SCALE_FACTOR", std::to_string(scale).c_str());
+        //const auto scale = (qreal)gridUnitPx / (qreal) 8;
+        //qputenv("QT_SCALE_FACTOR", std::to_string(scale).c_str());
     }
 
-    if (qEnvironmentVariableIsSet("DESKTOP_FILE_HINT")) {
-        qputenv("QT_IM_MODULE", "maliit");
-    } else {
+    if (!qEnvironmentVariableIsSet("QT_IM_MODULE")) {
         useQtVirtualKeyboard = true;
         qputenv("QT_IM_MODULE", "qtvirtualkeyboard");
         qputenv("QT_VIRTUALKEYBOARD_DESKTOP_DISABLE", "1");
