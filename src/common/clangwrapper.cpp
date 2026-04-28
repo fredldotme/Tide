@@ -1,6 +1,7 @@
 #include "clangwrapper.h"
 
 #include <QCoreApplication>
+#include <QDebug>
 
 #include <dlfcn.h>
 
