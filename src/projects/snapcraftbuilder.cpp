@@ -120,6 +120,21 @@ bool SnapcraftBuilder::isRunnable()
     return false;
 }
 
+bool SnapcraftBuilder::hasRunCommand()
+{
+    return false;
+}
+
+void SnapcraftBuilder::run()
+{
+    return;
+}
+
+bool SnapcraftBuilder::isRunning()
+{
+    return false;
+}
+
 QString SnapcraftBuilder::projectName()
 {
     if (!m_projectFile.contains(QDir::separator())) {

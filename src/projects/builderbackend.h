@@ -25,6 +25,9 @@ public:
     virtual QStringList sourceFiles() = 0;
     virtual bool building() = 0;
     virtual bool isRunnable() = 0;
+    virtual bool hasRunCommand() = 0;
+    virtual void run() = 0;
+    virtual bool isRunning() = 0;
 
 signals:
     void projectFileChanged();
@@ -33,6 +36,7 @@ signals:
     void buildError(QString str);
     void cleaned();
     void runnableChanged();
+    void runningChanged();
 };
 
 #endif // BUILDERBACKEND_H

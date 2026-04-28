@@ -312,6 +312,21 @@ QString QMakeBuilder::runnableFile()
     return runnableFilePath;
 }
 
+bool QMakeBuilder::hasRunCommand()
+{
+    return false;
+}
+
+void QMakeBuilder::run()
+{
+    return;
+}
+
+bool QMakeBuilder::isRunning()
+{
+    return false;
+}
+
 QStringList QMakeBuilder::includePaths()
 {
     QStringList ret;

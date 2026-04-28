@@ -56,6 +56,7 @@ bool ProjectBuilder::loadProject(const QString path)
         m_activeBuilder = &m_clickableBuilder;
         m_clickableBuilder.iosSystem = m_iosSystem;
         QObject::connect(&m_clickableBuilder, &ClickableBuilder::commandRunnerChanged, this, &ProjectBuilder::commandRunnerChanged, Qt::DirectConnection);
+        QObject::connect(&m_clickableBuilder, &ClickableBuilder::isRunning, this, &ProjectBuilder::runningChanged, Qt::DirectConnection);
     }
 
     if (!m_activeBuilder) {
@@ -200,4 +201,32 @@ void ProjectBuilder::reloadProperties()
     }
 
     emit refreshingProperties();
+}
+
+bool ProjectBuilder::hasRunCommand()
+{
+    if (!m_activeBuilder) {
+        qWarning() << "No active builder";
+        return false;
+    }
+
+    return m_activeBuilder->hasRunCommand();
+}
+
+void ProjectBuilder::run()
+{
+    if (!hasRunCommand()) {
+        return;
+    }
+
+    m_activeBuilder->run();
+}
+
+bool ProjectBuilder::isRunning()
+{
+    if (!hasRunCommand()) {
+       return false;
+    }
+
+    return m_activeBuilder->isRunning();
 }

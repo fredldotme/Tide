@@ -134,6 +134,21 @@ QString CMakeBuilder::runnableFile()
     return runnableFilePath;
 }
 
+bool CMakeBuilder::hasRunCommand()
+{
+    return false;
+}
+
+void CMakeBuilder::run()
+{
+    return;
+}
+
+bool CMakeBuilder::isRunning()
+{
+    return false;
+}
+
 QStringList CMakeBuilder::includePaths()
 {
     QStringList ret;

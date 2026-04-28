@@ -19,6 +19,7 @@ class ClickableBuilder : public BuilderBackend
     Q_PROPERTY(bool building READ building NOTIFY buildingChanged)
     Q_PROPERTY(QString projectFile MEMBER m_projectFile NOTIFY projectFileChanged)
     Q_PROPERTY(bool runnable READ isRunnable NOTIFY runnableChanged)
+    Q_PROPERTY(bool isRunning READ isRunning NOTIFY runningChanged)
 
 public:
     explicit ClickableBuilder(QObject *parent = nullptr);
@@ -39,6 +40,9 @@ public slots:
     QStringList sourceFiles() override;
     bool building() override;
     bool isRunnable() override;
+    bool hasRunCommand() override;
+    void run() override;
+    bool isRunning() override;
 
 private:
     QString projectName();
@@ -47,6 +51,7 @@ private:
     QString m_sysroot;
     QString m_projectFile;
     bool m_building;
+    bool m_running;
 
 signals:
     void commandRunnerChanged();

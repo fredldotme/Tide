@@ -39,6 +39,9 @@ public slots:
     QStringList sourceFiles() override;
     bool building() override;
     bool isRunnable() override;
+    bool hasRunCommand() override;
+    void run() override;
+    bool isRunning() override;
 
 private:
     QString projectName();

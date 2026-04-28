@@ -231,11 +231,16 @@ ApplicationWindow {
             return;
 
         consoleView.show();
-        wasmRunner.configure(settings.stackSize,
-                             settings.heapSize,
-                             settings.threads,
-                             platformProperties.supportsOptimizations && settings.optimizations);
-        wasmRunner.run(projectBuilder.runnableFile(), [], root.useExceptions)
+
+        if (projectBuilder.hasRunCommand()) {
+            projectBuilder.run();
+        } else {
+            wasmRunner.configure(settings.stackSize,
+                                 settings.heapSize,
+                                 settings.threads,
+                                 platformProperties.supportsOptimizations && settings.optimizations);
+            wasmRunner.run(projectBuilder.runnableFile(), [], root.useExceptions)
+        }
     }
 
     function attemptDebug() {

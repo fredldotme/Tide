@@ -23,6 +23,7 @@ class ProjectBuilder : public QObject
 
     // Refreshable properties
     Q_PROPERTY(bool runnable READ isRunnable NOTIFY runnableChanged)
+    Q_PROPERTY(bool running READ isRunning NOTIFY runningChanged)
 
 public:
     explicit ProjectBuilder(QObject *parent = nullptr);
@@ -45,6 +46,10 @@ public slots:
 
     bool building();
     bool isRunnable();
+
+    bool hasRunCommand();
+    void run();
+    bool isRunning();
 
 private:
     QString projectBuildRoot();
@@ -70,6 +75,7 @@ signals:
     void sourceFilesChanged();
     void runnableChanged();
     void refreshingProperties();
+    void runningChanged();
 };
 
 #endif // PROJECTBUILDER_H

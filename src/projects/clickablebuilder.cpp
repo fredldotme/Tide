@@ -9,7 +9,7 @@
 #include <thread>
 
 ClickableBuilder::ClickableBuilder(QObject *parent)
-    : BuilderBackend{parent}, iosSystem{nullptr}, m_building(false)
+    : BuilderBackend{parent}, iosSystem{nullptr}, m_building(false), m_running(false)
 {
     QObject::connect(this, &ClickableBuilder::projectFileChanged, this, &ClickableBuilder::runnableChanged);
 }
@@ -125,7 +125,53 @@ bool ClickableBuilder::building()
 
 bool ClickableBuilder::isRunnable()
 {
-    return false;
+    return true;
+}
+
+bool ClickableBuilder::hasRunCommand()
+{
+    return true;
+}
+
+void ClickableBuilder::run()
+{
+    const auto sourcePath = projectDir();
+    const auto buildPath = buildRoot() + QDir::separator() + projectName();
+
+    QDir buildDir(buildPath);
+    qDebug() << buildDir.mkpath(buildPath);
+
+    QString optionalNvidia;
+    if (QFile::exists("/dev/nvidia0")) {
+        optionalNvidia = QStringLiteral("--nvidia");
+    }
+
+    QStringList startCommands;
+    startCommands << (QStringLiteral("clickable desktop ") + optionalNvidia);
+
+    std::thread buildThread([=]() {
+        m_running = true;
+        emit runningChanged();
+
+        const auto pwd = QDir::currentPath();
+        QDir::setCurrent(buildPath);
+        const bool success = iosSystem->runBuildCommands(startCommands);
+        QDir::setCurrent(pwd);
+        /*if (success) {
+            emit buildSuccess(debug, aot);
+        } else {
+            emit buildError(QStringLiteral("Build failed"));
+        }*/
+
+        m_running = false;
+        emit runningChanged();
+    });
+    buildThread.detach();
+}
+
+bool ClickableBuilder::isRunning()
+{
+    return m_running;
 }
 
 QString ClickableBuilder::projectName()
