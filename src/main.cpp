@@ -85,7 +85,7 @@ int main(int argc, char *argv[])
     const QString runtime = QStandardPaths::writableLocation(QStandardPaths::DocumentsLocation) +
                             QStringLiteral("/Runtimes/Linux");
 
-    qputenv("QT_QUICK_CONTROLS_STYLE", "Material");
+    qputenv("QT_QUICK_CONTROLS_STYLE", "Suru");
     qputenv("SYSROOT", sysroot.toUtf8().data());
     qputenv("CLANG_RESOURCE_DIR",
             QStringLiteral("%1/usr/lib/clang/18").arg(library).toStdString().c_str());

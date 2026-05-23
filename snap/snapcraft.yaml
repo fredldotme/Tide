@@ -192,6 +192,7 @@ parts:
       - qml6-module-qtquick-effects
       - qml6-module-qtquick-layouts
       - qml6-module-qt-labs-settings
+      - qml6-module-qtquick-controls2-suru
       - qt6-wayland
       - qtubuntu-qt6
       - maliit-inputcontext-qt6
